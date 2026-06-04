@@ -15,6 +15,7 @@
     "syncTokens",
     "searchTokens",
     "lookupLaunch",
+    "resolveUserProfiles",
     "verifyHolder",
     "createPost",
     "createCommunity",
@@ -32,6 +33,7 @@
     "communities",
     "token_launches",
     "community_posts",
+    "user_profiles",
     "meta.syncUpdatedAt"
   ],
   "frontendIdentity": "viewer",
