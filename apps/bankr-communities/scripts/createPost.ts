@@ -39,10 +39,50 @@ if (balance <= 0) {
   return { success: false, error: 'You must hold at least 1 token to post' };
 }
 
+const author = {
+  wallet,
+  twitter: null,
+  farcaster: null,
+  profileImage: null,
+};
+
+try {
+  const profile = await http.fetch('https://api.bankr.bot/wallet/me');
+  for (const s of profile?.socialAccounts || []) {
+    if (s.platform === 'twitter' && s.username) {
+      author.twitter = String(s.username).replace(/^@/, '');
+    }
+    if (s.platform === 'farcaster' && s.username) {
+      author.farcaster = String(s.username).replace(/^@/, '');
+    }
+  }
+} catch (err) {
+  log('wallet/me failed at post time', err);
+}
+
+const launches = (await appKV.get('token_launches')) || [];
+for (const launch of launches) {
+  for (const party of [launch.deployer, launch.feeRecipient]) {
+    if (party?.walletAddress?.toLowerCase() === wallet) {
+      if (party.xUsername && !author.twitter) {
+        author.twitter = String(party.xUsername).replace(/^@/, '');
+      }
+      if (party.xProfileImageUrl && !author.profileImage) {
+        author.profileImage = party.xProfileImageUrl;
+      }
+    }
+  }
+}
+
+const cached = (await appKV.get('user_profiles')) || {};
+cached[wallet] = { ...author, updatedAt: Date.now() };
+await appKV.set('user_profiles', cached);
+
 const postId = `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 const newPost = {
   id: postId,
   wallet,
+  author,
   content,
   reactions: { '👍': [], '❤️': [], '🔥': [] },
   timestamp: Date.now(),
@@ -60,4 +100,4 @@ const uniqueWallets = new Set(posts.map((p) => p.wallet));
 community.memberCount = uniqueWallets.size;
 await appKV.set('communities', communities);
 
-return { success: true, postId };
+return { success: true, postId, author };

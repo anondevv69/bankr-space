@@ -297,6 +297,101 @@
       margin-top: 8px;
     }
 
+    .contract-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .contract-label {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .contract-addr {
+      font-family: ui-monospace, monospace;
+      color: var(--accent-hover);
+      word-break: break-all;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .post-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .author-avatar-placeholder {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .author-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .author-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .author-handle {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .author-badge {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+
+    .author-badge.x { color: #60a5fa; }
+    .author-badge.fc { color: #a78bfa; }
+
+    .author-wallet-row {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
     .holder-banner {
       margin-top: 16px;
       padding: 12px 16px;
@@ -571,6 +666,11 @@
       <div class="detail-header">
         <div class="detail-symbol" id="detailSymbol"></div>
         <div class="detail-name" id="detailName"></div>
+        <div class="contract-row">
+          <span class="contract-label">Contract</span>
+          <code class="contract-addr" id="detailContract"></code>
+          <button class="btn btn-secondary btn-sm" onclick="copyContract()">Copy</button>
+        </div>
         <div class="detail-desc" id="detailDesc"></div>
         <div id="verificationBadge"></div>
         <div id="verifyBanner"></div>
@@ -613,6 +713,7 @@
     let searchResults = [];
     let communities = [];
     let allPosts = {};
+    let userProfiles = {};
     let currentCommunity = null;
     let pendingCreateToken = null;
     let pendingCreateSymbol = null;
@@ -641,15 +742,17 @@
 
     async function loadData() {
       try {
-        const [launchData, communityData, postsData, syncMeta] = await Promise.all([
+        const [launchData, communityData, postsData, syncMeta, profilesData] = await Promise.all([
           bankr.appKV.get('token_launches'),
           bankr.appKV.get('communities'),
           bankr.appKV.get('community_posts'),
           bankr.appKV.get('meta.syncUpdatedAt'),
+          bankr.appKV.get('user_profiles'),
         ]);
         launches = launchData || [];
         communities = communityData || [];
         allPosts = postsData || {};
+        userProfiles = profilesData || {};
 
         if (syncMeta) {
           document.getElementById('syncMeta').textContent =
@@ -660,6 +763,69 @@
         renderCommunities();
       } catch (err) {
         console.error('Load error:', err);
+      }
+    }
+
+    function copyContract() {
+      if (!currentCommunity?.tokenAddress) return;
+      bankr.copy(currentCommunity.tokenAddress);
+    }
+
+    function getPostAuthor(post) {
+      const wallet = (post.author?.wallet || post.wallet || '').toLowerCase();
+      return post.author || userProfiles[wallet] || { wallet: post.wallet };
+    }
+
+    function renderAuthorBlock(post) {
+      const author = getPostAuthor(post);
+      const wallet = author.wallet || post.wallet;
+      const avatar = author.profileImage
+        ? `<img class="author-avatar" src="${escapeHtml(author.profileImage)}" alt="" />`
+        : `<div class="author-avatar-placeholder">👤</div>`;
+
+      const badges = [];
+      if (author.twitter) {
+        badges.push(`<span class="author-badge x">𝕏 @${escapeHtml(author.twitter)}</span>`);
+      }
+      if (author.farcaster) {
+        badges.push(`<span class="author-badge fc">FC @${escapeHtml(author.farcaster)}</span>`);
+      }
+
+      const displayName = author.twitter
+        ? '@' + escapeHtml(author.twitter)
+        : author.farcaster
+          ? '@' + escapeHtml(author.farcaster)
+          : shortAddr(wallet);
+
+      return `
+        <div class="post-author">
+          ${avatar}
+          <div class="author-info">
+            <div class="author-name-row">
+              <span class="author-handle">${displayName}</span>
+              ${badges.join('')}
+            </div>
+            <div class="author-wallet-row">${wallet}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function enrichPostAuthors(posts) {
+      const missing = [...new Set(
+        posts
+          .filter(p => !p.author?.twitter && !p.author?.farcaster && !userProfiles[p.wallet?.toLowerCase()])
+          .map(p => p.wallet)
+          .filter(Boolean)
+      )];
+
+      if (!missing.length) return;
+
+      try {
+        const result = await bankr.scripts.run('resolveUserProfiles', { wallets: missing });
+        userProfiles = { ...userProfiles, ...(result.profiles || {}) };
+      } catch (err) {
+        console.error('Profile enrich error:', err);
       }
     }
 
@@ -827,12 +993,13 @@
 
       document.getElementById('detailSymbol').textContent = comm.symbol;
       document.getElementById('detailName').textContent = comm.name;
+      document.getElementById('detailContract').textContent = comm.tokenAddress;
       document.getElementById('detailDesc').textContent =
         comm.description || 'A community for ' + comm.name + ' token holders.';
 
       renderVerificationUI(comm);
       await checkHolderStatus(tokenAddress);
-      renderFeed(tokenAddress);
+      await renderFeed(tokenAddress);
     }
 
     function renderVerificationUI(comm) {
@@ -923,7 +1090,7 @@
       }
     }
 
-    function renderFeed(tokenAddress) {
+    async function renderFeed(tokenAddress) {
       const key = tokenAddress.toLowerCase();
       const posts = (allPosts[key] || allPosts[tokenAddress] || []).slice().reverse();
       const el = document.getElementById('communityFeed');
@@ -933,6 +1100,8 @@
         el.innerHTML = '<div class="empty">No posts yet. Be the first holder to share something!</div>';
         return;
       }
+
+      await enrichPostAuthors(posts);
 
       el.innerHTML = posts.map(post => {
         const reactions = post.reactions || {};
@@ -947,9 +1116,9 @@
 
         return `
           <div class="post">
+            ${renderAuthorBlock(post)}
             <div class="post-header">
-              <span class="post-wallet">${shortAddr(post.wallet)}</span>
-              <span class="post-badge">Holder · ${Number(post.balance).toLocaleString()} tokens</span>
+              <span class="post-badge">Holder · ${Number(post.balance).toLocaleString()} ${escapeHtml(currentCommunity.symbol)} tokens</span>
             </div>
             <div class="post-content">${escapeHtml(post.content)}</div>
             <div class="post-time">${formatTime(post.timestamp)}</div>
@@ -979,8 +1148,9 @@
         if (result.success) {
           document.getElementById('postContent').value = '';
           allPosts = await bankr.appKV.get('community_posts') || {};
+          userProfiles = await bankr.appKV.get('user_profiles') || userProfiles;
           communities = await bankr.appKV.get('communities') || [];
-          renderFeed(currentCommunity.tokenAddress);
+          await renderFeed(currentCommunity.tokenAddress);
         } else {
           alert(result.error || 'Failed to create post');
         }
@@ -1004,7 +1174,7 @@
         });
         if (result.success) {
           allPosts = await bankr.appKV.get('community_posts') || {};
-          renderFeed(currentCommunity.tokenAddress);
+          await renderFeed(currentCommunity.tokenAddress);
         }
       } catch (err) {
         console.error('Reaction error:', err);
