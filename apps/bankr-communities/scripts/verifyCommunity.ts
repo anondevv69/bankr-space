@@ -7,8 +7,20 @@ if (!tokenAddress) {
 const me = await bankr.wallet.me();
 const wallet = me.evmAddress.toLowerCase();
 
-const launches = (await appKV.get('token_launches')) || [];
-const launch = launches.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
+let launch = null;
+const cached = (await appKV.get('token_launches')) || [];
+launch = cached.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
+
+if (!launch) {
+  try {
+    const data = await http.fetch(
+      `https://api.bankr.bot/token-launches/${tokenAddress}`
+    );
+    launch = data?.launch || null;
+  } catch (err) {
+    log('launch lookup failed', err);
+  }
+}
 
 if (!launch) {
   return { success: false, error: 'Token not found in Bankr launches' };

@@ -8,11 +8,33 @@ if (!tokenAddress) {
 const me = await bankr.wallet.me();
 const wallet = me.evmAddress.toLowerCase();
 
-const launches = (await appKV.get('token_launches')) || [];
-const launch = launches.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
+let launch = null;
+const cached = (await appKV.get('token_launches')) || [];
+launch = cached.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
 
 if (!launch) {
-  return { success: false, error: 'Token not found in Bankr launches. Run syncTokens first.' };
+  try {
+    const data = await http.fetch(
+      `https://api.bankr.bot/token-launches/${tokenAddress}`
+    );
+    launch = data?.launch || null;
+    if (launch) {
+      const merged = [launch, ...cached.filter((l) => l.activityId !== launch.activityId)];
+      await appKV.set(
+        'token_launches',
+        merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      );
+    }
+  } catch (err) {
+    log('launch lookup failed', err);
+  }
+}
+
+if (!launch) {
+  return {
+    success: false,
+    error: 'Token not found in Bankr launches. It must be deployed via Bankr.',
+  };
 }
 
 const feeRecipient = launch.feeRecipient?.walletAddress?.toLowerCase();

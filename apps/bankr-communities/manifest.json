@@ -5,6 +5,7 @@
   "tags": ["community", "tokens", "social", "bankr"],
   "permissions": [
     "read:wallet",
+    "read:tokens",
     "read:portfolio",
     "read:appdata",
     "write:appdata",
@@ -12,6 +13,8 @@
   ],
   "scripts": [
     "syncTokens",
+    "searchTokens",
+    "lookupLaunch",
     "verifyHolder",
     "createPost",
     "createCommunity",

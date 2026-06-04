@@ -5,10 +5,11 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 ## How it works
 
 1. **Find Token** — Search all Bankr deployments by name, symbol, or contract address.
-2. **Start Community** — Anyone signed in can start a community for any Bankr token.
-3. **Owner Verification** — The token owner (fee recipient or deployer) verifies the community as official. If the owner starts it themselves, it's auto-verified.
-4. **View** — Anyone can browse communities and read posts.
-5. **Post & React** — Only token holders can post and react (verified server-side via `bankr.wallet.balances()`).
+2. **Find Token** — Live search via Bankr API (`/tokens/search` + `/token-launches/:address`). Finds any Bankr-deployed token, not just the 50 most recent.
+3. **Start Community** — Anyone signed in can start a community for any Bankr token.
+4. **Owner Verification** — The token owner (fee recipient or deployer) verifies the community as official. If the owner starts it themselves, it's auto-verified.
+5. **View** — Anyone can browse communities and read posts.
+6. **Post & React** — Only token holders can post and react (verified server-side via `bankr.wallet.balances()`).
 
 ## Deploy to Bankr
 
@@ -24,7 +25,9 @@ apps/bankr-communities/
 ├── manifest.json          # Permissions, schedule, public data keys
 ├── index.html             # Frontend UI (runs in Bankr iframe)
 └── scripts/
-    ├── syncTokens.ts      # Fetch token launches from api.bankr.bot
+    ├── syncTokens.ts      # Hourly fetch of 50 recent launches
+    ├── searchTokens.ts    # Live API search by name/symbol/address
+    ├── lookupLaunch.ts    # Lookup single token launch by address
     ├── createCommunity.ts # Anyone can start; owner auto-verified if creator
     ├── verifyCommunity.ts # Token owner verifies community as official
     ├── verifyHolder.ts    # Check if viewer holds the token
