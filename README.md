@@ -4,10 +4,11 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 
 ## How it works
 
-1. **Token Launches** — A scheduled script syncs all deployments from the [Bankr Token Launch API](https://docs.bankr.bot/token-launching/api-reference/list-token-launches/) hourly.
-2. **Create Community** — The fee recipient (or deployer) of a token can create a community for it.
-3. **View** — Anyone can browse launches, communities, and read posts (public `appKV` keys).
-4. **Post & React** — Only wallets that hold the token can post and react (verified server-side via `bankr.wallet.balances()`).
+1. **Find Token** — Search all Bankr deployments by name, symbol, or contract address.
+2. **Start Community** — Anyone signed in can start a community for any Bankr token.
+3. **Owner Verification** — The token owner (fee recipient or deployer) verifies the community as official. If the owner starts it themselves, it's auto-verified.
+4. **View** — Anyone can browse communities and read posts.
+5. **Post & React** — Only token holders can post and react (verified server-side via `bankr.wallet.balances()`).
 
 ## Deploy to Bankr
 
@@ -24,7 +25,8 @@ apps/bankr-communities/
 ├── index.html             # Frontend UI (runs in Bankr iframe)
 └── scripts/
     ├── syncTokens.ts      # Fetch token launches from api.bankr.bot
-    ├── createCommunity.ts # Fee recipient creates a community
+    ├── createCommunity.ts # Anyone can start; owner auto-verified if creator
+    ├── verifyCommunity.ts # Token owner verifies community as official
     ├── verifyHolder.ts    # Check if viewer holds the token
     ├── createPost.ts      # Token-gated posting
     └── addReaction.ts     # Token-gated reactions
