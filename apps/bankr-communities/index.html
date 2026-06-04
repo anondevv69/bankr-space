@@ -213,6 +213,37 @@
       margin-bottom: 16px;
     }
 
+    .section {
+      margin-bottom: 36px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .create-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
     .verify-banner {
       margin-top: 16px;
       padding: 14px 16px;
@@ -618,7 +649,7 @@
   <div class="container">
     <header>
       <h1>Bankr Communities</h1>
-      <p>Search any Bankr token, start a community, and get it verified by the token owner</p>
+      <p>Token-gated communities for Bankr-deployed tokens</p>
       <div class="wallet-bar">
         <span id="walletDisplay">Connecting...</span>
         <span class="sync-meta" id="syncMeta"></span>
@@ -626,39 +657,45 @@
     </header>
 
     <div id="mainView">
-      <div class="tabs">
-        <button class="tab active" data-tab="discover">Find Token</button>
-        <button class="tab" data-tab="communities">Communities</button>
-      </div>
-
-      <div id="discoverPanel" class="panel active">
-        <div class="search-bar">
-          <input
-            type="text"
-            class="search-input"
-            id="tokenSearch"
-            placeholder="Search by name, symbol, or contract address…"
-            oninput="onSearchInput()"
-          />
+      <section class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Communities</div>
+            <div class="section-subtitle">Browse active token communities</div>
+          </div>
         </div>
-        <p class="search-hint">Search queries the Bankr API live — by name, symbol, or contract address. Only Bankr-deployed tokens can have communities.</p>
-        <div id="discoverList"><div class="loading">Loading tokens...</div></div>
-      </div>
-
-      <div id="communitiesPanel" class="panel">
         <div class="search-bar">
           <input
             type="text"
             class="search-input"
             id="communitySearch"
-            placeholder="Search communities…"
+            placeholder="Filter communities…"
             oninput="onCommunitySearchInput()"
           />
         </div>
         <div class="grid" id="communitiesGrid">
           <div class="loading">Loading communities...</div>
         </div>
-      </div>
+      </section>
+
+      <section class="section create-section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Create Community</div>
+            <div class="section-subtitle">Search for a Bankr token by name or contract address</div>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="tokenSearch"
+            placeholder="Token name, symbol, or contract address…"
+            oninput="onSearchInput()"
+          />
+        </div>
+        <div id="createSearchResults"></div>
+      </section>
     </div>
 
     <div id="detailView" style="display: none;">
@@ -759,8 +796,8 @@
             'Last synced: ' + formatTime(syncMeta);
         }
 
-        renderDiscover();
         renderCommunities();
+        renderCreateSearch();
       } catch (err) {
         console.error('Load error:', err);
       }
@@ -850,12 +887,12 @@
       if (!searchQuery.trim()) {
         searchResults = [];
         searchLoading = false;
-        renderDiscover();
+        renderCreateSearch();
         return;
       }
 
       searchLoading = true;
-      renderDiscover();
+      renderCreateSearch();
 
       searchTimer = setTimeout(async () => {
         try {
@@ -867,7 +904,7 @@
           searchResults = [];
         } finally {
           searchLoading = false;
-          renderDiscover();
+          renderCreateSearch();
         }
       }, 350);
     }
@@ -886,27 +923,26 @@
       );
     }
 
-    function renderDiscover() {
-      const el = document.getElementById('discoverList');
+    function renderCreateSearch() {
+      const el = document.getElementById('createSearchResults');
       const hasQuery = searchQuery.trim().length > 0;
-      const list = hasQuery ? searchResults : launches.slice(0, 50);
+
+      if (!hasQuery) {
+        el.innerHTML = '<p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>';
+        return;
+      }
 
       if (searchLoading) {
         el.innerHTML = '<div class="loading">Searching Bankr tokens…</div>';
         return;
       }
 
-      if (!hasQuery && !launches.length) {
-        el.innerHTML = '<div class="empty">No tokens cached yet. Run syncTokens, or search above to query the Bankr API directly.</div>';
-        return;
-      }
-
-      if (hasQuery && !list.length) {
+      if (!searchResults.length) {
         el.innerHTML = '<div class="empty">No Bankr-launched tokens found for "' + escapeHtml(searchQuery.trim()) + '". Try a name, symbol, or full contract address.</div>';
         return;
       }
 
-      el.innerHTML = list.map(l => {
+      el.innerHTML = searchResults.map(l => {
         const addr = l.tokenAddress;
         const comm = communityForToken(addr);
         const owner = isTokenOwner(l);
@@ -956,7 +992,7 @@
       const filtered = communities.filter(c => matchesSearch(c, communitySearchQuery));
 
       if (!communities.length) {
-        el.innerHTML = '<div class="empty">No communities yet. Search for a token in Find Token and start one.</div>';
+        el.innerHTML = '<div class="empty">No communities yet. Use Create Community below to search for a token and start one.</div>';
         return;
       }
 
@@ -1047,8 +1083,8 @@
             currentCommunity = communities.find(c => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase());
             renderVerificationUI(currentCommunity);
           }
-          renderDiscover();
           renderCommunities();
+          renderCreateSearch();
         } else {
           alert(result.error || 'Verification failed');
         }
@@ -1214,8 +1250,8 @@
           closeCreateModal();
           communities = await bankr.appKV.get('communities') || [];
           allPosts = await bankr.appKV.get('community_posts') || {};
-          renderDiscover();
           renderCommunities();
+          renderCreateSearch();
           if (result.autoVerified) {
             alert('Community created and verified — you are the token owner!');
           }
@@ -1242,15 +1278,6 @@
         await bankr.auth.requireSignIn();
       } catch (_) {}
     }
-
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab + 'Panel').classList.add('active');
-      });
-    });
 
     bankr.on('ready', async () => {
       isAuthenticated = bankr.auth.isAuthenticated;
