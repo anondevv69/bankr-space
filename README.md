@@ -4,12 +4,11 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 
 ## How it works
 
-1. **Find Token** — Search all Bankr deployments by name, symbol, or contract address.
-2. **Find Token** — Live search via Bankr API (`/tokens/search` + `/token-launches/:address`). Finds any Bankr-deployed token, not just the 50 most recent.
-3. **Start Community** — Anyone signed in can start a community for any Bankr token.
-4. **Owner Verification** — The token owner (fee recipient or deployer) verifies the community as official. If the owner starts it themselves, it's auto-verified.
-5. **View** — Anyone can browse communities and read posts.
-6. **Post & React** — Only token holders can post and react (verified server-side via `bankr.wallet.balances()`).
+1. **Communities** — Browse active token communities on the home page.
+2. **Create Community** — Search any Bankr token by name, symbol, or contract address, then start a community.
+3. **Owner Verification** — The token owner verifies the community as official (auto-verified if the owner creates it).
+4. **View** — Anyone can browse communities and read posts.
+5. **Post & React** — Only token holders can post and react.
 
 ## Deploy to Bankr
 
