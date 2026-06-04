@@ -546,7 +546,7 @@
             oninput="onSearchInput()"
           />
         </div>
-        <p class="search-hint">Anyone can start a community for a Bankr token. Token owners can verify it as official.</p>
+        <p class="search-hint">Search queries the Bankr API live — by name, symbol, or contract address. Only Bankr-deployed tokens can have communities.</p>
         <div id="discoverList"><div class="loading">Loading tokens...</div></div>
       </div>
 
@@ -610,6 +610,7 @@
     let wallet = null;
     let isAuthenticated = false;
     let launches = [];
+    let searchResults = [];
     let communities = [];
     let allPosts = {};
     let currentCommunity = null;
@@ -618,6 +619,8 @@
     let holderStatus = {};
     let searchQuery = '';
     let communitySearchQuery = '';
+    let searchLoading = false;
+    let searchTimer = null;
 
     function shortAddr(addr) {
       if (!addr) return '—';
@@ -676,7 +679,31 @@
 
     function onSearchInput() {
       searchQuery = document.getElementById('tokenSearch').value;
+      clearTimeout(searchTimer);
+
+      if (!searchQuery.trim()) {
+        searchResults = [];
+        searchLoading = false;
+        renderDiscover();
+        return;
+      }
+
+      searchLoading = true;
       renderDiscover();
+
+      searchTimer = setTimeout(async () => {
+        try {
+          const result = await bankr.scripts.run('searchTokens', { query: searchQuery.trim() });
+          searchResults = result.launches || [];
+          launches = await bankr.appKV.get('token_launches') || launches;
+        } catch (err) {
+          console.error('Search error:', err);
+          searchResults = [];
+        } finally {
+          searchLoading = false;
+          renderDiscover();
+        }
+      }, 350);
     }
 
     function onCommunitySearchInput() {
@@ -695,19 +722,25 @@
 
     function renderDiscover() {
       const el = document.getElementById('discoverList');
-      const filtered = launches.filter(l => matchesSearch(l, searchQuery));
+      const hasQuery = searchQuery.trim().length > 0;
+      const list = hasQuery ? searchResults : launches.slice(0, 50);
 
-      if (!launches.length) {
-        el.innerHTML = '<div class="empty">No tokens yet. Run the syncTokens script to fetch Bankr deployments.</div>';
+      if (searchLoading) {
+        el.innerHTML = '<div class="loading">Searching Bankr tokens…</div>';
         return;
       }
 
-      if (!filtered.length) {
-        el.innerHTML = '<div class="empty">No tokens match your search.</div>';
+      if (!hasQuery && !launches.length) {
+        el.innerHTML = '<div class="empty">No tokens cached yet. Run syncTokens, or search above to query the Bankr API directly.</div>';
         return;
       }
 
-      el.innerHTML = filtered.map(l => {
+      if (hasQuery && !list.length) {
+        el.innerHTML = '<div class="empty">No Bankr-launched tokens found for "' + escapeHtml(searchQuery.trim()) + '". Try a name, symbol, or full contract address.</div>';
+        return;
+      }
+
+      el.innerHTML = list.map(l => {
         const addr = l.tokenAddress;
         const comm = communityForToken(addr);
         const owner = isTokenOwner(l);
@@ -815,7 +848,10 @@
       badgeEl.innerHTML = '<span class="badge badge-unverified" style="margin-top:12px;display:inline-block;">Unverified — awaiting token owner</span>';
 
       const launch = launches.find(l => l.tokenAddress?.toLowerCase() === comm.tokenAddress.toLowerCase());
-      const owner = launch && isTokenOwner(launch);
+      const owner = wallet && (
+        wallet.toLowerCase() === comm.ownerWallet?.toLowerCase() ||
+        (launch && isTokenOwner(launch))
+      );
 
       if (owner && isAuthenticated) {
         verifyEl.innerHTML = `
@@ -1052,7 +1088,7 @@
 
       document.getElementById('walletDisplay').innerHTML = wallet
         ? 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>'
-        : 'Browsing as guest — sign in to post';
+        : 'Browsing as guest — sign in to search and post';
 
       await loadData();
     });
