@@ -174,6 +174,64 @@
       text-transform: uppercase;
     }
 
+    .badge-unverified {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .badge-verified {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-input::placeholder { color: var(--muted); }
+
+    .search-hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .verify-banner {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .verify-banner p {
+      font-size: 14px;
+      color: var(--warning);
+      margin: 0;
+    }
+
     .btn {
       padding: 10px 18px;
       border: none;
@@ -441,6 +499,20 @@
       margin-top: 16px;
     }
 
+    footer {
+      text-align: center;
+      padding: 32px 20px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    footer a {
+      color: var(--accent-hover);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
     @media (max-width: 600px) {
       .launch-row { flex-direction: column; align-items: stretch; }
       .launch-actions { justify-content: flex-end; }
@@ -451,7 +523,7 @@
   <div class="container">
     <header>
       <h1>Bankr Communities</h1>
-      <p>Token-gated discussions for Bankr-deployed tokens</p>
+      <p>Search any Bankr token, start a community, and get it verified by the token owner</p>
       <div class="wallet-bar">
         <span id="walletDisplay">Connecting...</span>
         <span class="sync-meta" id="syncMeta"></span>
@@ -460,15 +532,34 @@
 
     <div id="mainView">
       <div class="tabs">
-        <button class="tab active" data-tab="launches">Token Launches</button>
+        <button class="tab active" data-tab="discover">Find Token</button>
         <button class="tab" data-tab="communities">Communities</button>
       </div>
 
-      <div id="launchesPanel" class="panel active">
-        <div id="launchesList"><div class="loading">Loading launches...</div></div>
+      <div id="discoverPanel" class="panel active">
+        <div class="search-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="tokenSearch"
+            placeholder="Search by name, symbol, or contract address…"
+            oninput="onSearchInput()"
+          />
+        </div>
+        <p class="search-hint">Anyone can start a community for a Bankr token. Token owners can verify it as official.</p>
+        <div id="discoverList"><div class="loading">Loading tokens...</div></div>
       </div>
 
       <div id="communitiesPanel" class="panel">
+        <div class="search-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="communitySearch"
+            placeholder="Search communities…"
+            oninput="onCommunitySearchInput()"
+          />
+        </div>
         <div class="grid" id="communitiesGrid">
           <div class="loading">Loading communities...</div>
         </div>
@@ -481,6 +572,8 @@
         <div class="detail-symbol" id="detailSymbol"></div>
         <div class="detail-name" id="detailName"></div>
         <div class="detail-desc" id="detailDesc"></div>
+        <div id="verificationBadge"></div>
+        <div id="verifyBanner"></div>
         <div id="holderBanner"></div>
       </div>
       <div id="postFormWrap" class="post-form" style="display: none;">
@@ -496,10 +589,15 @@
     </div>
   </div>
 
+  <footer>
+    build with &lt;3 rayblanco.eth
+  </footer>
+
   <div class="modal-overlay" id="createModal">
     <div class="modal">
       <h3>Create Community</h3>
       <p id="createModalToken"></p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">If you're the token owner, the community will be verified automatically. Otherwise, the owner can verify it later.</p>
       <textarea id="communityDesc" placeholder="Community description (optional)" rows="3"></textarea>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
@@ -516,7 +614,10 @@
     let allPosts = {};
     let currentCommunity = null;
     let pendingCreateToken = null;
+    let pendingCreateSymbol = null;
     let holderStatus = {};
+    let searchQuery = '';
+    let communitySearchQuery = '';
 
     function shortAddr(addr) {
       if (!addr) return '—';
@@ -552,7 +653,7 @@
             'Last synced: ' + formatTime(syncMeta);
         }
 
-        renderLaunches();
+        renderDiscover();
         renderCommunities();
       } catch (err) {
         console.error('Load error:', err);
@@ -563,31 +664,71 @@
       return communities.find(c => c.tokenAddress.toLowerCase() === addr.toLowerCase());
     }
 
-    function renderLaunches() {
-      const el = document.getElementById('launchesList');
+    function matchesSearch(item, query) {
+      if (!query) return true;
+      const q = query.toLowerCase().trim();
+      return (
+        (item.tokenName || item.name || '').toLowerCase().includes(q) ||
+        (item.tokenSymbol || item.symbol || '').toLowerCase().includes(q) ||
+        (item.tokenAddress || '').toLowerCase().includes(q)
+      );
+    }
+
+    function onSearchInput() {
+      searchQuery = document.getElementById('tokenSearch').value;
+      renderDiscover();
+    }
+
+    function onCommunitySearchInput() {
+      communitySearchQuery = document.getElementById('communitySearch').value;
+      renderCommunities();
+    }
+
+    function isTokenOwner(launch) {
+      if (!wallet) return false;
+      const w = wallet.toLowerCase();
+      return (
+        w === launch.feeRecipient?.walletAddress?.toLowerCase() ||
+        w === launch.deployer?.walletAddress?.toLowerCase()
+      );
+    }
+
+    function renderDiscover() {
+      const el = document.getElementById('discoverList');
+      const filtered = launches.filter(l => matchesSearch(l, searchQuery));
+
       if (!launches.length) {
-        el.innerHTML = '<div class="empty">No token launches yet. Run the syncTokens script to fetch deployments.</div>';
+        el.innerHTML = '<div class="empty">No tokens yet. Run the syncTokens script to fetch Bankr deployments.</div>';
         return;
       }
 
-      el.innerHTML = launches.map(l => {
+      if (!filtered.length) {
+        el.innerHTML = '<div class="empty">No tokens match your search.</div>';
+        return;
+      }
+
+      el.innerHTML = filtered.map(l => {
         const addr = l.tokenAddress;
         const comm = communityForToken(addr);
-        const isOwner = wallet && (
-          wallet.toLowerCase() === l.feeRecipient?.walletAddress?.toLowerCase() ||
-          wallet.toLowerCase() === l.deployer?.walletAddress?.toLowerCase()
-        );
+        const owner = isTokenOwner(l);
 
         let actions = '';
         if (comm) {
           actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCommunity('${addr}')">Open Community</button>`;
-        } else if (isOwner && isAuthenticated) {
-          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCreateModal('${addr}', '${escapeHtml(l.tokenSymbol)}')">Create Community</button>`;
-        } else if (isOwner) {
-          actions = `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); requireAuth()">Sign in to Create</button>`;
+          if (!comm.verified && owner && isAuthenticated) {
+            actions += ` <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); verifyCommunity('${addr}')">Verify</button>`;
+          }
+        } else if (isAuthenticated) {
+          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCreateModal('${addr}', '${escapeHtml(l.tokenSymbol)}')">Start Community</button>`;
         } else {
-          actions = `<span class="badge badge-new">No community yet</span>`;
+          actions = `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); requireAuth()">Sign in to Start</button>`;
         }
+
+        const verifiedBadge = comm
+          ? (comm.verified
+            ? '<span class="badge badge-verified">✓ Verified</span>'
+            : '<span class="badge badge-unverified">Unverified</span>')
+          : '';
 
         return `
           <div class="launch-row">
@@ -596,11 +737,12 @@
                 <span class="card-symbol">${escapeHtml(l.tokenSymbol)}</span>
                 <span class="badge badge-chain">${escapeHtml(l.chain || 'base')}</span>
                 ${comm ? '<span class="badge badge-live">Community Live</span>' : ''}
+                ${verifiedBadge}
               </div>
               <div class="card-name">${escapeHtml(l.tokenName)}</div>
               <div class="card-meta">
                 <span>${shortAddr(addr)}</span>
-                <span>Fee: ${shortAddr(l.feeRecipient?.walletAddress)}</span>
+                <span>Owner: ${shortAddr(l.feeRecipient?.walletAddress)}</span>
                 <span>${formatTime(l.timestamp)}</span>
               </div>
             </div>
@@ -612,14 +754,26 @@
 
     function renderCommunities() {
       const el = document.getElementById('communitiesGrid');
+      const filtered = communities.filter(c => matchesSearch(c, communitySearchQuery));
+
       if (!communities.length) {
-        el.innerHTML = '<div class="empty">No communities yet. Fee recipients can create one from the Token Launches tab.</div>';
+        el.innerHTML = '<div class="empty">No communities yet. Search for a token in Find Token and start one.</div>';
         return;
       }
 
-      el.innerHTML = communities.map(c => `
+      if (!filtered.length) {
+        el.innerHTML = '<div class="empty">No communities match your search.</div>';
+        return;
+      }
+
+      el.innerHTML = filtered.map(c => `
         <div class="card" onclick="openCommunity('${c.tokenAddress}')">
-          <div class="card-symbol">${escapeHtml(c.symbol)}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="card-symbol">${escapeHtml(c.symbol)}</div>
+            ${c.verified
+              ? '<span class="badge badge-verified">✓ Verified</span>'
+              : '<span class="badge badge-unverified">Unverified</span>'}
+          </div>
           <div class="card-name">${escapeHtml(c.name)}</div>
           <div class="card-meta">
             <span class="badge badge-chain">${escapeHtml(c.chain || 'base')}</span>
@@ -643,8 +797,61 @@
       document.getElementById('detailDesc').textContent =
         comm.description || 'A community for ' + comm.name + ' token holders.';
 
+      renderVerificationUI(comm);
       await checkHolderStatus(tokenAddress);
       renderFeed(tokenAddress);
+    }
+
+    function renderVerificationUI(comm) {
+      const badgeEl = document.getElementById('verificationBadge');
+      const verifyEl = document.getElementById('verifyBanner');
+
+      if (comm.verified) {
+        badgeEl.innerHTML = '<span class="badge badge-verified" style="margin-top:12px;display:inline-block;">✓ Verified by token owner</span>';
+        verifyEl.innerHTML = '';
+        return;
+      }
+
+      badgeEl.innerHTML = '<span class="badge badge-unverified" style="margin-top:12px;display:inline-block;">Unverified — awaiting token owner</span>';
+
+      const launch = launches.find(l => l.tokenAddress?.toLowerCase() === comm.tokenAddress.toLowerCase());
+      const owner = launch && isTokenOwner(launch);
+
+      if (owner && isAuthenticated) {
+        verifyEl.innerHTML = `
+          <div class="verify-banner">
+            <p>You are the token owner. Verify this community to mark it as official.</p>
+            <button class="btn btn-primary btn-sm" onclick="verifyCommunity('${comm.tokenAddress}')">Verify Community</button>
+          </div>
+        `;
+      } else {
+        verifyEl.innerHTML = `
+          <div class="verify-banner">
+            <p>Started by ${shortAddr(comm.founderWallet)} — waiting for owner ${shortAddr(comm.ownerWallet)} to verify.</p>
+          </div>
+        `;
+      }
+    }
+
+    async function verifyCommunity(tokenAddress) {
+      if (!isAuthenticated) return requireAuth();
+
+      try {
+        const result = await bankr.scripts.run('verifyCommunity', { tokenAddress });
+        if (result.success) {
+          communities = await bankr.appKV.get('communities') || [];
+          if (currentCommunity?.tokenAddress === tokenAddress) {
+            currentCommunity = communities.find(c => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase());
+            renderVerificationUI(currentCommunity);
+          }
+          renderDiscover();
+          renderCommunities();
+        } else {
+          alert(result.error || 'Verification failed');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
     }
 
     async function checkHolderStatus(tokenAddress) {
@@ -771,8 +978,9 @@
     function openCreateModal(tokenAddress, symbol) {
       if (!isAuthenticated) return requireAuth();
       pendingCreateToken = tokenAddress;
+      pendingCreateSymbol = symbol;
       document.getElementById('createModalToken').textContent =
-        'Create a community for $' + symbol + '. Only you (fee recipient) can do this.';
+        'Start a community for $' + symbol;
       document.getElementById('communityDesc').value = '';
       document.getElementById('createModal').classList.add('open');
     }
@@ -796,12 +1004,16 @@
         });
 
         if (result.success) {
+          const createdAddr = pendingCreateToken;
           closeCreateModal();
           communities = await bankr.appKV.get('communities') || [];
           allPosts = await bankr.appKV.get('community_posts') || {};
-          renderLaunches();
+          renderDiscover();
           renderCommunities();
-          openCommunity(pendingCreateToken || result.community.tokenAddress);
+          if (result.autoVerified) {
+            alert('Community created and verified — you are the token owner!');
+          }
+          openCommunity(createdAddr || result.community.tokenAddress);
         } else {
           alert(result.error || 'Failed to create community');
         }

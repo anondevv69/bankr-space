@@ -17,18 +17,12 @@ if (!launch) {
 
 const feeRecipient = launch.feeRecipient?.walletAddress?.toLowerCase();
 const deployer = launch.deployer?.walletAddress?.toLowerCase();
-
-if (wallet !== feeRecipient && wallet !== deployer) {
-  return {
-    success: false,
-    error: 'Only the fee recipient or deployer can create a community for this token',
-  };
-}
+const isOwner = wallet === feeRecipient || wallet === deployer;
 
 const communities = (await appKV.get('communities')) || [];
 const existing = communities.find((c) => c.tokenAddress.toLowerCase() === tokenAddress);
 if (existing) {
-  return { success: false, error: 'Community already exists for this token' };
+  return { success: false, error: 'A community already exists for this token' };
 }
 
 const community = {
@@ -36,7 +30,11 @@ const community = {
   name: launch.tokenName,
   symbol: launch.tokenSymbol,
   chain: launch.chain,
-  creatorWallet: feeRecipient || deployer,
+  founderWallet: wallet,
+  ownerWallet: feeRecipient || deployer,
+  verified: isOwner,
+  verifiedAt: isOwner ? Date.now() : null,
+  verifiedBy: isOwner ? wallet : null,
   description: description || `${launch.tokenName} holder community`,
   postCount: 0,
   memberCount: 0,
@@ -53,4 +51,4 @@ if (!allPosts[tokenAddress]) {
   await appKV.set('community_posts', allPosts);
 }
 
-return { success: true, community };
+return { success: true, community, autoVerified: isOwner };
