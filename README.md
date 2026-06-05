@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Bankr Communities logo" width="160" />
+</p>
+
 # Bankr Communities
 
 A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated community discussions around Bankr-deployed tokens.
