@@ -10,20 +10,30 @@ const wallet = me.evmAddress.toLowerCase();
 
 let launch = null;
 const cached = (await appKV.get('token_launches')) || [];
-launch = cached.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
+for (let i = 0; i < cached.length; i++) {
+  const item = cached[i];
+  if (item.tokenAddress && item.tokenAddress.toLowerCase() === tokenAddress) {
+    launch = item;
+    break;
+  }
+}
 
 if (!launch) {
   try {
-    const data = await http.fetch(
-      `https://api.bankr.bot/token-launches/${tokenAddress}`
-    );
-    launch = data?.launch || null;
+    const url = 'https://api.bankr.bot/token-launches/' + tokenAddress;
+    const data = await http.fetch(url);
+    launch = data && data.launch ? data.launch : null;
     if (launch) {
-      const merged = [launch, ...cached.filter((l) => l.activityId !== launch.activityId)];
-      await appKV.set(
-        'token_launches',
-        merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-      );
+      const merged = [launch];
+      for (let i = 0; i < cached.length; i++) {
+        if (cached[i].activityId !== launch.activityId) {
+          merged.push(cached[i]);
+        }
+      }
+      merged.sort(function(a, b) {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+      await appKV.set('token_launches', merged);
     }
   } catch (err) {
     log('launch lookup failed', err);
@@ -37,16 +47,24 @@ if (!launch) {
   };
 }
 
-const feeRecipient = launch.feeRecipient?.walletAddress?.toLowerCase();
-const deployer = launch.deployer?.walletAddress?.toLowerCase();
+const feeRecipientObj = launch.feeRecipient || {};
+const deployerObj = launch.deployer || {};
+const feeRecipient = feeRecipientObj.walletAddress
+  ? feeRecipientObj.walletAddress.toLowerCase()
+  : '';
+const deployer = deployerObj.walletAddress
+  ? deployerObj.walletAddress.toLowerCase()
+  : '';
 const isOwner = wallet === feeRecipient || wallet === deployer;
 
 const communities = (await appKV.get('communities')) || [];
-const existing = communities.find((c) => c.tokenAddress.toLowerCase() === tokenAddress);
-if (existing) {
-  return { success: false, error: 'A community already exists for this token' };
+for (let i = 0; i < communities.length; i++) {
+  if (communities[i].tokenAddress.toLowerCase() === tokenAddress) {
+    return { success: false, error: 'A community already exists for this token' };
+  }
 }
 
+const defaultDesc = launch.tokenName + ' holder community';
 const community = {
   tokenAddress: launch.tokenAddress,
   name: launch.tokenName,
@@ -57,7 +75,7 @@ const community = {
   verified: isOwner,
   verifiedAt: isOwner ? Date.now() : null,
   verifiedBy: isOwner ? wallet : null,
-  description: description || `${launch.tokenName} holder community`,
+  description: description || defaultDesc,
   postCount: 0,
   memberCount: 0,
   createdAt: Date.now(),
@@ -73,4 +91,4 @@ if (!allPosts[tokenAddress]) {
   await appKV.set('community_posts', allPosts);
 }
 
-return { success: true, community, autoVerified: isOwner };
+return { success: true, community: community, autoVerified: isOwner };

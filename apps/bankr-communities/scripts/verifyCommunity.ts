@@ -9,14 +9,19 @@ const wallet = me.evmAddress.toLowerCase();
 
 let launch = null;
 const cached = (await appKV.get('token_launches')) || [];
-launch = cached.find((l) => l.tokenAddress?.toLowerCase() === tokenAddress);
+for (let i = 0; i < cached.length; i++) {
+  const item = cached[i];
+  if (item.tokenAddress && item.tokenAddress.toLowerCase() === tokenAddress) {
+    launch = item;
+    break;
+  }
+}
 
 if (!launch) {
   try {
-    const data = await http.fetch(
-      `https://api.bankr.bot/token-launches/${tokenAddress}`
-    );
-    launch = data?.launch || null;
+    const url = 'https://api.bankr.bot/token-launches/' + tokenAddress;
+    const data = await http.fetch(url);
+    launch = data && data.launch ? data.launch : null;
   } catch (err) {
     log('launch lookup failed', err);
   }
@@ -26,8 +31,14 @@ if (!launch) {
   return { success: false, error: 'Token not found in Bankr launches' };
 }
 
-const feeRecipient = launch.feeRecipient?.walletAddress?.toLowerCase();
-const deployer = launch.deployer?.walletAddress?.toLowerCase();
+const feeRecipientObj = launch.feeRecipient || {};
+const deployerObj = launch.deployer || {};
+const feeRecipient = feeRecipientObj.walletAddress
+  ? feeRecipientObj.walletAddress.toLowerCase()
+  : '';
+const deployer = deployerObj.walletAddress
+  ? deployerObj.walletAddress.toLowerCase()
+  : '';
 
 if (wallet !== feeRecipient && wallet !== deployer) {
   return {
@@ -37,7 +48,13 @@ if (wallet !== feeRecipient && wallet !== deployer) {
 }
 
 const communities = (await appKV.get('communities')) || [];
-const community = communities.find((c) => c.tokenAddress.toLowerCase() === tokenAddress);
+let community = null;
+for (let i = 0; i < communities.length; i++) {
+  if (communities[i].tokenAddress.toLowerCase() === tokenAddress) {
+    community = communities[i];
+    break;
+  }
+}
 
 if (!community) {
   return { success: false, error: 'Community not found' };
@@ -53,4 +70,4 @@ community.verifiedBy = wallet;
 
 await appKV.set('communities', communities);
 
-return { success: true, community };
+return { success: true, community: community };

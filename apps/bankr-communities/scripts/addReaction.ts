@@ -3,7 +3,7 @@ const postId = String(args.postId || '');
 const reaction = String(args.reaction || '');
 
 const allowed = ['👍', '❤️', '🔥'];
-if (!tokenAddress || !postId || !allowed.includes(reaction)) {
+if (!tokenAddress || !postId || allowed.indexOf(reaction) === -1) {
   return { success: false, error: 'Invalid arguments' };
 }
 
@@ -13,12 +13,17 @@ const wallet = me.evmAddress.toLowerCase();
 const portfolio = await bankr.wallet.balances({ showLowValueTokens: true });
 let balance = 0;
 
-for (const chainData of Object.values(portfolio.balances || {})) {
+const balanceMap = portfolio.balances || {};
+for (const chainKey of Object.keys(balanceMap)) {
+  const chainData = balanceMap[chainKey];
   const tokens = chainData.tokenBalances || [];
-  for (const entry of tokens) {
-    const addr = entry.token?.baseToken?.address;
+  for (let i = 0; i < tokens.length; i++) {
+    const entry = tokens[i];
+    const tokenObj = entry.token || {};
+    const baseToken = tokenObj.baseToken || {};
+    const addr = baseToken.address;
     if (addr && addr.toLowerCase() === tokenAddress) {
-      balance = Number(entry.token.balance) || 0;
+      balance = Number(tokenObj.balance) || 0;
       break;
     }
   }
@@ -31,22 +36,32 @@ if (balance <= 0) {
 
 const allPosts = (await appKV.get('community_posts')) || {};
 const posts = allPosts[tokenAddress] || [];
-const post = posts.find((p) => p.id === postId);
+let post = null;
+for (let i = 0; i < posts.length; i++) {
+  if (posts[i].id === postId) {
+    post = posts[i];
+    break;
+  }
+}
 
 if (!post) {
   return { success: false, error: 'Post not found' };
 }
 
 if (!post.reactions) post.reactions = {};
-for (const emoji of allowed) {
+for (let i = 0; i < allowed.length; i++) {
+  const emoji = allowed[i];
   if (!post.reactions[emoji]) post.reactions[emoji] = [];
 }
 
-for (const emoji of allowed) {
-  post.reactions[emoji] = post.reactions[emoji].filter((w) => w !== wallet);
+for (let i = 0; i < allowed.length; i++) {
+  const emoji = allowed[i];
+  post.reactions[emoji] = post.reactions[emoji].filter(function(w) {
+    return w !== wallet;
+  });
 }
 
-if (!post.reactions[reaction].includes(wallet)) {
+if (post.reactions[reaction].indexOf(wallet) === -1) {
   post.reactions[reaction].push(wallet);
 }
 
