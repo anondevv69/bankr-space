@@ -16,26 +16,44 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 
 ## Deploy to Bankr
 
-1. Ask Bankr to install this app, or copy the `apps/bankr-communities/` folder into your Bankr file storage at `/apps/bankr-communities/`.
-2. Run the **syncTokens** script once from the Scripts drawer to populate token launches.
-3. Open the app — fee recipients will see a **Create Community** button on their tokens.
-4. Make the app public when ready: `make this app public`
+**→ See [INSTALL.md](./INSTALL.md) for the full install prompt.**
+
+Quick install — paste into Bankr chat:
+
+```text
+Install my Bankr app from GitHub. Read the install manifest first:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/bankr-install.json
+
+Create NEW app slug bankr-communities-v2 (do not update broken bankr-communities).
+Fetch all files from apps/bankr-communities-v2/ using http.fetch. Do not rewrite the UI.
+Footer must say v11. Dry-run syncTokens after install.
+```
+
+After install:
+1. Run **syncTokens** once from the Scripts drawer
+2. Open **bankr-communities-v2** in the Apps panel
+3. Click **Refresh** if needed
 
 ## File structure
 
 ```
-apps/bankr-communities/
-├── manifest.json          # Permissions, schedule, public data keys
-├── index.html             # Frontend UI (runs in Bankr iframe)
+apps/bankr-communities-v2/     ← install this (canonical)
+├── bankr-install.json         ← install manifest for Bankr agent
+├── manifest.json
+├── index.html
 └── scripts/
-    ├── syncTokens.ts      # Hourly fetch of 50 recent launches
-    ├── searchTokens.ts    # Live API search by name/symbol/address
-    ├── lookupLaunch.ts    # Lookup single token launch by address
-    ├── createCommunity.ts # Anyone can start; owner auto-verified if creator
-    ├── verifyCommunity.ts # Token owner verifies community as official
-    ├── verifyHolder.ts    # Check if viewer holds the token
-    ├── createPost.ts      # Token-gated posting
-    └── addReaction.ts     # Token-gated reactions
+    ├── syncTokens.ts
+    ├── searchTokens.ts
+    ├── lookupLaunch.ts
+    ├── resolveUserProfiles.ts
+    ├── verifyHolder.ts
+    ├── createPost.ts
+    ├── createCommunity.ts
+    ├── verifyCommunity.ts
+    └── addReaction.ts
+
+apps/bankr-communities/        ← legacy slug (deprecated if storage corrupted)
 ```
 
 ## Permissions
@@ -44,20 +62,11 @@ apps/bankr-communities/
 |---|---|
 | `read:wallet` | Identify the connected wallet |
 | `read:portfolio` | Verify token holdings for gating |
+| `read:chain` | On-chain balanceOf fallback for holder checks |
 | `read:appdata` / `write:appdata` | Community and post storage |
 | `fetch:http` | Pull token launches from Bankr API |
 
 `frontendIdentity` is set to `"viewer"` so holder checks run against each visitor's wallet, not the app owner's.
-
-## Push to GitHub
-
-```bash
-git init
-git add .
-git commit -m "Add Bankr Communities native app"
-git remote add origin https://github.com/anondevv69/bankr-community.git
-git push -u origin main
-```
 
 ## Docs
 
