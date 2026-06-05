@@ -639,15 +639,6 @@
 
     footer a:hover { text-decoration: underline; }
 
-    .view-hidden { display: none !important; }
-
-    #detailView[hidden],
-    #createModal[hidden],
-    #postFormWrap[hidden],
-    #viewOnlyNotice[hidden] {
-      display: none !important;
-    }
-
     @media (max-width: 600px) {
       .launch-row { flex-direction: column; align-items: stretch; }
       .launch-actions { justify-content: flex-end; }
@@ -703,11 +694,13 @@
             oninput="onSearchInput()"
           />
         </div>
-        <div id="createSearchResults"></div>
+        <div id="createSearchResults">
+          <p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>
+        </div>
       </section>
     </div>
 
-    <div id="detailView" hidden>
+    <div id="detailView" style="display: none;">
       <button class="btn btn-secondary btn-sm back-btn" onclick="backToMain()">← Back</button>
       <div class="detail-header">
         <div class="detail-symbol" id="detailSymbol"></div>
@@ -722,11 +715,11 @@
         <div id="verifyBanner"></div>
         <div id="holderBanner"></div>
       </div>
-      <div id="postFormWrap" class="post-form" hidden>
-        <textarea id="postContent" placeholder="Share your thoughts with fellow holders" maxlength="2000"></textarea>
+      <div id="postFormWrap" class="post-form" style="display: none;">
+        <textarea id="postContent" placeholder="Share your thoughts with fellow holders..." maxlength="2000"></textarea>
         <button class="btn btn-primary" id="submitPostBtn" onclick="submitPost()">Post</button>
       </div>
-      <div id="viewOnlyNotice" class="sign-in-prompt" hidden>
+      <div id="viewOnlyNotice" class="sign-in-prompt" style="display: none;">
         <p>👀 View-only mode — hold this token to post and react.</p>
       </div>
       <div class="feed" id="communityFeed">
@@ -736,10 +729,10 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · v8
+    made with love &lt;3 rayblanco.eth · v9
   </footer>
 
-  <div class="modal-overlay" id="createModal" hidden>
+  <div class="modal-overlay" id="createModal">
     <div class="modal">
       <h3>Create Community</h3>
       <p id="createModalToken"></p>
@@ -827,34 +820,15 @@
         return;
       }
 
-      isAuthenticated = bankr.auth?.isAuthenticated ?? false;
-      wallet = bankr.ctx?.walletAddress || bankr.wallet?.address || null;
+      isAuthenticated = bankr.auth && bankr.auth.isAuthenticated;
+      wallet = (bankr.ctx && bankr.ctx.walletAddress) || (bankr.wallet && bankr.wallet.address) || null;
 
       el.innerHTML = wallet
         ? 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>'
         : 'Browsing as guest — sign in to search and post';
     }
 
-    function showEl(id) {
-      const el = document.getElementById(id);
-      if (el) el.hidden = false;
-    }
-
-    function hideEl(id) {
-      const el = document.getElementById(id);
-      if (el) el.hidden = true;
-    }
-
-    function resetViews() {
-      showEl('mainView');
-      hideEl('detailView');
-      hideEl('createModal');
-      hideEl('postFormWrap');
-      hideEl('viewOnlyNotice');
-    }
-
     async function boot() {
-      resetViews();
       updateWalletBar();
       try {
         await loadData();
@@ -1088,8 +1062,8 @@
       if (!comm) return;
 
       currentCommunity = comm;
-      hideEl('mainView');
-      showEl('detailView');
+      document.getElementById('mainView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'block';
 
       document.getElementById('detailSymbol').textContent = comm.symbol;
       document.getElementById('detailName').textContent = comm.name;
@@ -1164,8 +1138,8 @@
 
       if (!isAuthenticated) {
         banner.innerHTML = '<div class="holder-banner not-holding">Sign in to check your holder status and post.</div>';
-        hideEl('postFormWrap');
-        showEl('viewOnlyNotice');
+        postForm.style.display = 'none';
+        viewOnly.style.display = 'block';
         holderStatus[tokenAddress] = { holds: false };
         return;
       }
@@ -1178,25 +1152,25 @@
         holderStatus[tokenAddress] = result;
 
         if (result.error) {
-          banner.innerHTML = '<div class="error">' + escapeHtml(result.error) + '</div>';
-          hideEl('postFormWrap');
-          showEl('viewOnlyNotice');
+          banner.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+          postForm.style.display = 'none';
+          viewOnly.style.display = 'block';
           return;
         }
 
         if (result.holds) {
-          banner.innerHTML = '<div class="holder-banner holding">✓ You hold ' + result.balance.toLocaleString() + ' ' + currentCommunity.symbol + ' — you can post and react</div>';
-          showEl('postFormWrap');
-          hideEl('viewOnlyNotice');
+          banner.innerHTML = `<div class="holder-banner holding">✓ You hold ${result.balance.toLocaleString()} ${currentCommunity.symbol} — you can post and react</div>`;
+          postForm.style.display = 'block';
+          viewOnly.style.display = 'none';
         } else {
-          banner.innerHTML = '<div class="holder-banner not-holding">You do not hold this token yet. Viewing only.</div>';
-          hideEl('postFormWrap');
-          showEl('viewOnlyNotice');
+          banner.innerHTML = '<div class="holder-banner not-holding">You don\'t hold this token. Buy some to participate — viewing only for now.</div>';
+          postForm.style.display = 'none';
+          viewOnly.style.display = 'block';
         }
       } catch (err) {
-        banner.innerHTML = '<div class="error">Could not verify holder status: ' + escapeHtml(err.message) + '</div>';
-        hideEl('postFormWrap');
-        showEl('viewOnlyNotice');
+        banner.innerHTML = `<div class="error">Could not verify holder status: ${escapeHtml(err.message)}</div>`;
+        postForm.style.display = 'none';
+        viewOnly.style.display = 'block';
       }
     }
 
@@ -1299,13 +1273,11 @@
         'Start a community for $' + symbol;
       document.getElementById('communityDesc').value = '';
       document.getElementById('createModal').classList.add('open');
-      showEl('createModal');
     }
 
     function closeCreateModal() {
       pendingCreateToken = null;
       document.getElementById('createModal').classList.remove('open');
-      hideEl('createModal');
     }
 
     async function confirmCreateCommunity() {
@@ -1345,7 +1317,8 @@
 
     function backToMain() {
       currentCommunity = null;
-      resetViews();
+      document.getElementById('detailView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
     }
 
     async function requireAuth() {
@@ -1354,15 +1327,14 @@
       } catch (_) {}
     }
 
-    resetViews();
-
     if (typeof bankr !== 'undefined') {
       bankr.on('ready', boot);
       bankr.on('refresh', boot);
 
       // Fallback if ready already fired before listener attached
-      setTimeout(() => {
-        if (document.getElementById('walletDisplay')?.textContent === 'Connecting...') {
+      setTimeout(function() {
+        var wd = document.getElementById('walletDisplay');
+        if (wd && wd.textContent === 'Connecting...') {
           boot();
         }
       }, 1500);
