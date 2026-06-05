@@ -1,112 +1,188 @@
-# Install Bankr Communities on Bankr
+# Install Bankr Communities — Piece by Piece
 
-Use this when asking the Bankr agent to install or reinstall the app from GitHub.
+Send **one piece at a time** to Bankr. Wait for each to finish before sending the next.
 
-**Install path:** `apps/bankr-communities-v2/`  
 **Slug:** `bankr-communities-v2`  
-**Version:** `11` (footer must show `v11`)
-
-The old slug `bankr-communities` has corrupted runtime storage — always install as **v2**.
+**Version:** `11` (footer must show `v11`)  
+**Do NOT update** the broken `bankr-communities` app.
 
 ---
 
-## One-shot install prompt (paste into Bankr chat)
+## Piece 1 of 12 — Read install manifest
 
 ```text
-Install my Bankr app from GitHub. Read the install manifest first:
+Fetch and read this file using http.fetch (NOT curl):
 
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/bankr-install.json
 
-Then create a NEW app (do not update the broken bankr-communities app):
+Confirm slug is bankr-communities-v2 and list all files to install. Do not write anything yet.
+```
+
+---
+
+## Piece 2 of 12 — Create app + manifest.json
+
+```text
+Create a NEW Bankr app (do not update bankr-communities):
 - slug: bankr-communities-v2
 - title: Bankr Communities
 - visibility: public
 
-Fetch each file listed in bankr-install.json using http.fetch (NOT curl) from:
-https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/
-
-Write every file byte-for-byte. Do NOT merge, rewrite, or redesign the UI.
-
-After install:
-1. Dry-run syncTokens — must return ok:true, NOT "File not found"
-2. Confirm footer says "rayblanco.eth · v11"
-3. List all files written
-```
-
----
-
-## File list (raw GitHub URLs)
-
-| File | URL |
-|------|-----|
-| Install manifest | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/bankr-install.json |
-| manifest.json | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/manifest.json |
-| index.html | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html |
-| syncTokens.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/syncTokens.ts |
-| searchTokens.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/searchTokens.ts |
-| lookupLaunch.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/lookupLaunch.ts |
-| resolveUserProfiles.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/resolveUserProfiles.ts |
-| verifyHolder.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/verifyHolder.ts |
-| createPost.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/createPost.ts |
-| createCommunity.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/createCommunity.ts |
-| verifyCommunity.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/verifyCommunity.ts |
-| addReaction.ts | https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/addReaction.ts |
-
----
-
-## Step-by-step (if one-shot hits step limit)
-
-Send one prompt per step:
-
-**Step 1 — Read install manifest**
-```text
-Fetch and read https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/bankr-install.json
-Confirm slug bankr-communities-v2 and list all files to install.
-```
-
-**Step 2 — Create app + manifest**
-```text
-Create new Bankr app slug bankr-communities-v2. Write manifest.json from:
+Write ONLY manifest.json using http.fetch from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/manifest.json
-```
 
-**Step 3 — Write index.html**
-```text
-Write index.html for bankr-communities-v2 from:
-https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html
-Footer must say v11. Do not modify content.
-```
-
-**Step 4 — Write scripts batch 1**
-```text
-Write these scripts for bankr-communities-v2 from raw.githubusercontent.com (apps/bankr-communities-v2/scripts/):
-syncTokens.ts, searchTokens.ts, lookupLaunch.ts
-```
-
-**Step 5 — Write scripts batch 2**
-```text
-Write these scripts for bankr-communities-v2:
-resolveUserProfiles.ts, verifyHolder.ts, createPost.ts
-```
-
-**Step 6 — Write scripts batch 3 + verify**
-```text
-Write these scripts for bankr-communities-v2:
-createCommunity.ts, verifyCommunity.ts, addReaction.ts
-
-Then dry-run syncTokens. Confirm ok:true and footer v11.
+Do not modify content. Confirm version is "11" and slug is "bankr-communities-v2".
 ```
 
 ---
 
-## Verify install worked
+## Piece 3 of 12 — index.html
+
+```text
+For app bankr-communities-v2, write ONLY index.html using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html
+
+Do not modify, merge, or redesign the UI. Confirm footer contains "rayblanco.eth · v11".
+```
+
+---
+
+## Piece 4 of 12 — syncTokens.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/syncTokens.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/syncTokens.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 5 of 12 — searchTokens.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/searchTokens.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/searchTokens.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 6 of 12 — lookupLaunch.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/lookupLaunch.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/lookupLaunch.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 7 of 12 — resolveUserProfiles.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/resolveUserProfiles.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/resolveUserProfiles.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 8 of 12 — verifyHolder.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/verifyHolder.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/verifyHolder.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 9 of 12 — createPost.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/createPost.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/createPost.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 10 of 12 — createCommunity.ts
+
+```text
+For app bankr-communities-v2, write ONLY scripts/createCommunity.ts using http.fetch from:
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/createCommunity.ts
+
+Do not modify content. Confirm file was written.
+```
+
+---
+
+## Piece 11 of 12 — verifyCommunity.ts + addReaction.ts
+
+```text
+For app bankr-communities-v2, write these 2 scripts using http.fetch (do not modify content):
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/verifyCommunity.ts
+
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/addReaction.ts
+
+Confirm both files were written.
+```
+
+---
+
+## Piece 12 of 12 — Verify install
+
+```text
+For app bankr-communities-v2:
+
+1. List all files that exist in the app
+2. Dry-run syncTokens — must return ok:true, NOT "File not found"
+3. Dry-run createCommunity — should return tokenAddress required (NOT SyntaxError, NOT File not found)
+4. Confirm index.html footer says "rayblanco.eth · v11"
+5. Enable syncTokens schedule: 0 * * * *
+6. Make the app public
+```
+
+---
+
+## After all 12 pieces
+
+1. Open **bankr-communities-v2** in Apps panel
+2. Click **Refresh**
+3. Run **syncTokens** once
+4. Search for a token in Create Community
+
+## Expected results
 
 | Check | Expected |
 |-------|----------|
 | App slug | `bankr-communities-v2` |
-| App panel | Loads (no "Failed to load app") |
 | Footer | `made with love <3 rayblanco.eth · v11` |
-| syncTokens dry-run | `{ "ok": true, ... }` |
-| Other scripts dry-run | validation error like `tokenAddress required` — NOT File not found |
+| syncTokens | `{ "ok": true, "totalLaunches": ... }` |
+| App panel | Loads — no "Failed to load app" |
 
-Then click **Refresh** on the app panel and run **syncTokens** once to populate token launches.
+## If a piece fails with "File not found"
+
+Stop and tell Bankr:
+
+```text
+App bankr-communities-v2 storage is broken. The registry exists but runtime files are missing.
+Please create a fresh app storage bucket or escalate to platform support.
+Do not write to CLI sandbox /apps/ — that does not reach runtime storage.
+```
