@@ -6,6 +6,8 @@ import {
 import { getLaunches, setLaunches } from '@/lib/db';
 import type { TokenLaunch } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const query = String(searchParams.get('q') || '').trim();

@@ -3,6 +3,8 @@ import { getCommunity } from '@/lib/db';
 import { holdsToken } from '@/lib/holder';
 import { normalizeAddr } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ address: string }> };
 
 export async function GET(req: Request, { params }: RouteParams) {
