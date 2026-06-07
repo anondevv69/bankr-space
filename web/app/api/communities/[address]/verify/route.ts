@@ -3,6 +3,8 @@ import { getCommunity, getCommunities, getLaunches, setCommunities } from '@/lib
 import { fetchLaunchByAddress, isLaunchOwner } from '@/lib/bankr-api';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ address: string }> };
 
 export async function POST(req: Request, { params }: RouteParams) {

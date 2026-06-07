@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { fetchTokenLaunches } from '@/lib/bankr-api';
 import { getLaunches, setLaunches, setSyncUpdatedAt } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

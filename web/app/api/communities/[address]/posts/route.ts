@@ -10,6 +10,8 @@ import { resolveAuthorProfile } from '@/lib/profiles';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import type { Post } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ address: string }> };
 
 export async function POST(req: Request, { params }: RouteParams) {

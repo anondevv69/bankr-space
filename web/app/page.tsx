@@ -35,12 +35,11 @@ export default function HomePage() {
 
   const filtered = communities.filter((c) => {
     if (!filter.trim()) return true;
-    const q = filter.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.symbol.toLowerCase().includes(q) ||
-      c.tokenAddress.toLowerCase().includes(q)
-    );
+    const q = filter.toLowerCase().replace(/\s+/g, '');
+    const name = c.name.toLowerCase().replace(/\s+/g, '');
+    const symbol = c.symbol.toLowerCase();
+    const address = c.tokenAddress.toLowerCase();
+    return name.includes(q) || symbol.includes(q) || address.includes(q);
   });
 
   return (

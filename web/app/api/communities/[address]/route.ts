@@ -14,6 +14,8 @@ import {
 } from '@/lib/bankr-api';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ address: string }> };
 
 export async function GET(_req: Request, { params }: RouteParams) {

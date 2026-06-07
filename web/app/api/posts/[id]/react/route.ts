@@ -5,6 +5,8 @@ import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 
 const ALLOWED = ['👍', '❤️', '🔥'];
 
+export const dynamic = 'force-dynamic';
+
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, { params }: RouteParams) {

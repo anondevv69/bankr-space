@@ -58,7 +58,15 @@ export function CreateCommunity({
       setDesc('');
       onCreated();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create community');
+      const message = err instanceof Error ? err.message : 'Failed to create community';
+      if (message.toLowerCase().includes('already exists') && modal) {
+        setModal(null);
+        setDesc('');
+        onCreated();
+        window.location.href = `/community/${modal.tokenAddress}`;
+        return;
+      }
+      alert(message);
     } finally {
       setCreating(false);
     }
