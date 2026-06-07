@@ -7,6 +7,7 @@ import {
   getSyncUpdatedAt,
 } from '@/lib/db';
 import { fetchLaunchByAddress } from '@/lib/bankr-api';
+import { communityUrl, getSiteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +78,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+    const siteUrl = getSiteUrl();
 
     return NextResponse.json({
       ok: true,
@@ -103,10 +104,9 @@ export async function GET(req: Request) {
       })),
       opportunities,
       links: {
-        communityPage: community
-          ? `${siteUrl}/community/${community.tokenAddress}`
-          : null,
-        allCommunities: siteUrl || null,
+        communityPage: community ? communityUrl(community.tokenAddress) : null,
+        allCommunities: siteUrl,
+        agentGuide: `${siteUrl}/agent.md`,
       },
       agentActions: {
         briefing: 'GET /api/agent/briefing?token=0x… or ?symbol=TMP',

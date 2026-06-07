@@ -14,7 +14,7 @@
 | 2 | `GET {SITE}/api/agent/briefing?symbol=TMP` (or `?token=0x…`) |
 | 3 | Summarize: verified badge, memberCount, postCount, 1–2 recent posts |
 | 4 | Mention `opportunities[]` if any (unverified, no posts, no community yet) |
-| 5 | Include `links.communityPage` — **STOP** |
+| 5 | Paste `links.communityPage` full URL on its own line — **STOP** |
 
 ---
 
@@ -49,7 +49,7 @@
 | 2 | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | 3 | If `!holds` → "You need to hold $SYMBOL to post" + link — **STOP** |
 | 4 | `POST {SITE}/api/communities/{token}/posts` `{ "content": "…" }` header `x-wallet-address: {linked}` |
-| 5 | Confirm post + link — **STOP** |
+| 5 | Confirm post + paste `links.communityPage` URL on its own line — **STOP** |
 
 ---
 

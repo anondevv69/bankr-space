@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.0.1
+version: 1.0.2
 description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
@@ -77,7 +77,29 @@ if message matches community / verify / post / comment / members / latest:
 | React | Holder |
 | Verify | Token owner (fee recipient or deployer) |
 
-If holder check fails → say "you need to hold $SYMBOL to post" + link to community page.
+If holder check fails → say "you need to hold $SYMBOL to post" + full community URL.
+
+---
+
+## Twitter/X reply rules (MANDATORY)
+
+X does **not** render markdown links. Every reply **must** include the raw `https://` URL from API `links.communityPage`.
+
+**Required format:**
+
+```text
+$TMP community — ✓ verified · 1 member · 2 posts
+latest: "hiii" by @you
+
+https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+```
+
+**Rules:**
+- Copy `links.communityPage` from briefing or post API response — never omit
+- Put the full URL on its **own line** (X auto-linkifies it)
+- Never end with "view community:" and nothing after it
+- Never use only `[View community](url)` markdown — always include the bare URL too
+- After posting, include the same community URL again
 
 ---
 
@@ -85,15 +107,20 @@ If holder check fails → say "you need to hold $SYMBOL to post" + link to commu
 
 **Briefing:**
 
-> **$TMP** community — ✓ Verified · **12** members · **34** posts. Latest: "@rayblanco.eth shared launch update…" [View community]({url})
+```text
+$TMP community — ✓ Verified · 12 members · 34 posts
+latest: "@rayblanco.eth shared launch update…"
 
-**Verify:**
-
-> Verified the **$TMP** community as official. You're the token owner.
+https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+```
 
 **Post:**
 
-> Posted to **$TMP** holder community: "…" [View thread]({url})
+```text
+posted to $TMP holder community: "this is from X"
+
+https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+```
 
 ---
 

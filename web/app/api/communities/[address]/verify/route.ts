@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCommunity, getCommunities, getLaunches, setCommunities } from '@/lib/db';
 import { fetchLaunchByAddress, isLaunchOwner } from '@/lib/bankr-api';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
+import { communityUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     community.verifiedBy = wallet;
     await setCommunities(communities);
 
-    return NextResponse.json({ success: true, community });
+    return NextResponse.json({
+      success: true,
+      community,
+      links: { communityPage: communityUrl(tokenAddress) },
+    });
   } catch (err) {
     console.error('POST verify', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

@@ -1,19 +1,9 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
-
-function getSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
-  }
-  if (process.env.VERCEL_URL) {
-    const v = process.env.VERCEL_URL;
-    return (v.startsWith('http') ? v : `https://${v}`).replace(/\/$/, '');
-  }
-  return 'http://localhost:3000';
-}
 
 function getAgentMarkdown(): string {
   const path = join(process.cwd(), 'content', 'agent.md');

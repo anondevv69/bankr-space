@@ -13,6 +13,7 @@ import {
   getLaunchOwnerWallets,
 } from '@/lib/bankr-api';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
+import { communityUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +98,14 @@ export async function POST(req: Request, { params }: RouteParams) {
       await setPostsForToken(tokenAddress, []);
     }
 
-    return NextResponse.json({ success: true, community, autoVerified: isOwner });
+    return NextResponse.json({
+      success: true,
+      community,
+      autoVerified: isOwner,
+      links: {
+        communityPage: communityUrl(launch.tokenAddress),
+      },
+    });
   } catch (err) {
     console.error('POST community', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
