@@ -30,6 +30,24 @@ Quick summary:
 3. Set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `CRON_SECRET`
 4. Deploy
 
+## Bankr skill (tweet / terminal)
+
+Install alongside TMP skills so users can `@bankrbot` community actions:
+
+```text
+install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+```
+
+Set `COMMUNITIES_SITE_URL` on Bankr to your Vercel URL. See [skills/bankr-communities/ONE-LINE-INTENTS.md](./skills/bankr-communities/ONE-LINE-INTENTS.md).
+
+Example tweets:
+
+```text
+@bankrbot what's the latest on the TMP community?
+@bankrbot post in TMP community: gm holders
+@bankrbot verify the TMP community
+```
+
 ## File structure
 
 ```
@@ -49,6 +67,9 @@ apps/bankr-communities-v2/     ← install this (canonical)
     └── addReaction.ts
 
 apps/bankr-communities/        ← legacy slug (deprecated if storage corrupted)
+
+web/                           ← Vercel Next.js site
+skills/bankr-communities/      ← Bankr agent skill (tweet/terminal)
 ```
 
 ## Permissions
