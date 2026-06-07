@@ -1,7 +1,10 @@
 ---
 name: bankr-communities
-version: 1.0.6
-description: Token-gated Bankr community reads and writes on https://bankr-community.vercel.app. Use for community posts, links, verify, members, latest. NEVER link bankr.bot for communities — always use bankr-community.vercel.app/community/0x{contract}.
+version: 1.0.7
+description: >-
+  Bankr token communities on https://bankr-community.vercel.app. TRIGGER link questions:
+  "what's the link to $TMP community" → GET /api/agent/community-link?symbol=TMP → reply communityLink only.
+  Never bankr.bot. Never FAQ when user asks for a link.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 communityUrlTemplate: https://bankr-community.vercel.app/community/{tokenContractAddress}
@@ -13,9 +16,16 @@ metadata:
 
 # Bankr Communities — Agent skill
 
-## LINK RULES (read first — mandatory)
+## ⚡ LINK QUESTIONS — DO THIS FIRST (before anything else)
 
-**Community links ALWAYS use this format:**
+If user message contains **"link"** or **"URL"** and a token/community → read **`LINK-INTENT-ONLY.md`** and follow exactly.
+
+**One-line rule:** `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=TMP` → tweet = `communityLink` field only.
+
+**Never** respond with a FAQ when they asked for a link. **Never** use bankr.bot.
+
+---
+## LINK RULES (mandatory for every community reply)
 
 ```text
 https://bankr-community.vercel.app/community/{tokenContractAddress}
@@ -74,6 +84,12 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 ## Mandatory routing guard
 
 ```
+if message contains "link" OR "url" OR "where is" + community/token:
+  1. use_skill("bankr-communities")
+  2. Read LINK-INTENT-ONLY.md FIRST
+  3. GET /api/agent/community-link?symbol=…
+  4. Reply = communityLink only → STOP (no FAQ)
+
 if message matches community / verify / post / comment / members / latest:
   1. use_skill("bankr-communities")
   2. Read ONE-LINE-INTENTS.md + references/AGENT-ROUTING-COMMUNITIES.md
@@ -162,6 +178,7 @@ TMP marketplace ops → TMP skills. Community social layer → **this skill**.
 
 | File | Purpose |
 |------|---------|
+| `LINK-INTENT-ONLY.md` | **Link questions — highest priority, read first** |
 | `ONE-LINE-INTENTS.md` | Full intent table |
 | `community-autopilot.md` | Step-by-step execution |
 | `references/COMMUNITY-LINK-RULES.md` | **Mandatory link format — never bankr.bot** |

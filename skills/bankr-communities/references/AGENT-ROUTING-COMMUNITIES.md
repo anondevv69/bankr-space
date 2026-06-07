@@ -4,7 +4,9 @@
 
 ## TRIGGER
 
-**Match:** community, members, posts, verify community, post in, comment in, latest on $TICKER community, start community.
+**Link (highest priority):** link, URL, "where is the community" → **`LINK-INTENT-ONLY.md`** first.
+
+**Other:** community, members, posts, verify community, post in, comment in, latest on $TICKER community, start community.
 
 **Load:** `bankr-communities` → **`references/COMMUNITY-LINK-RULES.md`** + **`community-autopilot.md`** + **`ONE-LINE-INTENTS.md`**.
 
