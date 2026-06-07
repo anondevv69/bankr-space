@@ -1,6 +1,6 @@
 # Communities site API reference (agent)
 
-**Base:** `{COMMUNITIES_SITE_URL}`
+**Base:** `https://bankr-community.vercel.app` (default; override with `COMMUNITIES_SITE_URL`)
 
 All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
 

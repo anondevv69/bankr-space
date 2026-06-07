@@ -1,6 +1,6 @@
 # Bankr Communities — agent guide
 
-**Human site:** `{COMMUNITIES_SITE_URL}` (Vercel Next.js app in `web/`)
+**Human site:** https://bankr-community.vercel.app (Vercel Next.js app in `web/`)
 
 **Live mirror for humans and other bots:** `{{SITE_URL}}/agent.md`
 
@@ -41,7 +41,7 @@ install TMP skills at https://github.com/anondevv69/bankr-tmp-skill
 install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
-Set `COMMUNITIES_SITE_URL` on Bankr to your Vercel deployment URL.
+Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bankr-community.vercel.app`.
 
 **Live agent guide (fetch at runtime):** `{YOUR_VERCEL_URL}/agent.md`
 

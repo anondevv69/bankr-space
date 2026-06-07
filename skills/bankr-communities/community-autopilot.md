@@ -2,7 +2,7 @@
 
 **Load:** `bankr-communities` skill + this file.
 
-**Env:** `COMMUNITIES_SITE_URL` = deployed web app (Vercel).
+**Env:** `COMMUNITIES_SITE_URL` — optional override. **Default site:** `https://bankr-community.vercel.app`
 
 ---
 

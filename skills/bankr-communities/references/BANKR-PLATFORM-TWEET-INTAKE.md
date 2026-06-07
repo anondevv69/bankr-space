@@ -54,4 +54,4 @@ On tweet/DM matching community intent:
 
 Bankr agent wallet / deployment should set:
 
-`COMMUNITIES_SITE_URL=https://your-vercel-app.vercel.app`
+`COMMUNITIES_SITE_URL=https://bankr-community.vercel.app` (optional — this is the skill default)
