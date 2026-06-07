@@ -8,6 +8,7 @@ import {
 import { holdsToken } from '@/lib/holder';
 import { resolveAuthorProfile } from '@/lib/profiles';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
+import { communityUrl } from '@/lib/site-url';
 import type { Post } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -67,7 +68,15 @@ export async function POST(req: Request, { params }: RouteParams) {
     await setPostsForToken(tokenAddress, posts);
     await updateCommunityCounts(tokenAddress, posts);
 
-    return NextResponse.json({ success: true, postId, author, post: newPost });
+    return NextResponse.json({
+      success: true,
+      postId,
+      author,
+      post: newPost,
+      links: {
+        communityPage: communityUrl(tokenAddress),
+      },
+    });
   } catch (err) {
     console.error('POST /posts', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
