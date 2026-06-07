@@ -1,12 +1,15 @@
 'use client';
 
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { createConfig, http } from 'wagmi';
 import { base } from 'wagmi/chains';
+import { injected } from 'wagmi/connectors';
 
-export const config = getDefaultConfig({
-  appName: 'Bankr Communities',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '00000000000000000000000000000000',
+export const config = createConfig({
   chains: [base],
+  connectors: [injected({ shimDisconnect: true })],
+  transports: {
+    [base.id]: http(),
+  },
   ssr: true,
 });
 

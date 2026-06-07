@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useConnectWallet } from '@/components/WalletButton';
 import type { Community, TokenLaunch } from '@/lib/types';
 import { shortAddr, formatTime } from '@/lib/utils';
 import { apiFetch } from '@/lib/wagmi';
@@ -16,7 +16,7 @@ export function CreateCommunity({
   onCreated: () => void;
 }) {
   const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { connectWallet } = useConnectWallet();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TokenLaunch[]>([]);
   const [loading, setLoading] = useState(false);
@@ -131,7 +131,7 @@ export function CreateCommunity({
                     </button>
                   ) : (
                     <button
-                      onClick={openConnectModal}
+                      onClick={connectWallet}
                       className="px-4 py-2 text-sm font-medium bg-surface-2 border border-border rounded-lg"
                     >
                       Connect to Start

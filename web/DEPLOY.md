@@ -38,11 +38,12 @@ In Vercel → **Settings** → **Environment Variables**, add:
 
 | Variable | Value |
 |----------|--------|
-| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Your WalletConnect project ID |
 | `NEXT_PUBLIC_SITE_URL` | Your Vercel URL (for links + Bankr skill) |
 | `CRON_SECRET` | Random string (e.g. `openssl rand -hex 32`) |
 
 `KV_*` vars are set automatically when you connect KV.
+
+**Wallet connect:** uses **browser extension wallets only** (MetaMask, Rabby, etc.) — no WalletConnect Cloud account needed.
 
 ---
 
