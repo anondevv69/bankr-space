@@ -1,8 +1,10 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Communities",
-  "skillVersion": "1.0.5",
+  "skillVersion": "1.0.6",
   "defaultSiteUrl": "https://bankr-community.vercel.app",
+  "communityUrlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
+  "forbiddenLinkDomains": ["bankr.bot", "t.co"],
   "installUrl": "https://github.com/anondevv69/bankr-community",
   "installCommand": "install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
   "siteEnvVar": "COMMUNITIES_SITE_URL",
@@ -19,6 +21,7 @@
   "allReferences": [
     "ONE-LINE-INTENTS.md",
     "community-autopilot.md",
+    "references/COMMUNITY-LINK-RULES.md",
     "references/AGENT-ROUTING-COMMUNITIES.md",
     "references/BANKR-PLATFORM-TWEET-INTAKE.md",
     "references/community-api-reference.md",
