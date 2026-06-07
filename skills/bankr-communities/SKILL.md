@@ -1,10 +1,23 @@
 ---
 name: bankr-communities
-version: 1.0.0
+version: 1.0.1
 description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
+siteUrl: https://bankr-community.vercel.app
+communitiesSiteUrl: https://bankr-community.vercel.app
+metadata:
+  siteEnvVar: COMMUNITIES_SITE_URL
+  defaultSiteUrl: https://bankr-community.vercel.app
 ---
 
 # Bankr Communities — Agent skill
+
+**Default site (use this unless `COMMUNITIES_SITE_URL` env is set):**
+
+```text
+https://bankr-community.vercel.app
+```
+
+All `{SITE}` references below = that URL (or env override).
 
 **Install:**
 
@@ -12,8 +25,8 @@ description: Token-gated Bankr community reads and writes via the Vercel site AP
 install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
-**Site API base:** set `COMMUNITIES_SITE_URL` to your Vercel deploy (e.g. `https://your-app.vercel.app`).  
-**Public agent guide:** `{SITE}/agent.md` — same content as TMP's tokenmarketplace.shop/agent.md pattern.  
+**Site API base:** `https://bankr-community.vercel.app` (override via `COMMUNITIES_SITE_URL` env if needed).  
+**Public agent guide:** `https://bankr-community.vercel.app/agent.md`  
 **Public reads** need no wallet. **Writes** use the user's **linked Bankr wallet** in header `x-wallet-address`.
 
 ---

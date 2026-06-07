@@ -2,7 +2,7 @@
 
 > User gives **one sentence** → agent runs **full flow** without interview.
 
-**Site base:** `{COMMUNITIES_SITE_URL}` — your Vercel deploy.
+**Site base:** `https://bankr-community.vercel.app` (or `{COMMUNITIES_SITE_URL}` env override)
 
 ---
 

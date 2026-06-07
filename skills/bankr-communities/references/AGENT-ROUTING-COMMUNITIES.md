@@ -17,7 +17,7 @@
 ```
 if message matches community intent:
   1. use_skill("bankr-communities")
-  2. SITE = env COMMUNITIES_SITE_URL
+  2. SITE = env COMMUNITIES_SITE_URL or default https://bankr-community.vercel.app
   3. if read-only (latest, members, list, search):
        GET briefing or communities API → plain English → STOP
   4. if write (post, verify, create, react):
