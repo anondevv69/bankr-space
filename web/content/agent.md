@@ -66,7 +66,15 @@ GET {{SITE_URL}}/api/agent/briefing?token=0x935e13a28849095db45e63040f109c34b757
 GET {{SITE_URL}}/api/agent/briefing?q=search
 ```
 
-**Returns:** `community`, `stats` (postCount, memberCount, verified), `recentPosts`, `opportunities[]`, `links.communityPage`.
+**Returns:** `community`, `stats`, `recentPosts`, `communityLink`, `linkReply`, `replyText` (URL on line 2).
+
+**Link-only requests:**
+
+```http
+GET {{SITE_URL}}/api/agent/community-link?symbol=ARCHIVE
+```
+
+Reply with `communityLink` only — one URL line.
 
 **Example curl:**
 

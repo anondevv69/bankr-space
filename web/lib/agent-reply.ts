@@ -23,16 +23,18 @@ export function buildBriefingReplyText(
 
   return [
     `$${community.symbol} community — ${status} · ${community.memberCount} member · ${community.postCount} post${community.postCount === 1 ? '' : 's'}`,
-    '',
-    latestLine,
-    '',
     link,
+    latestLine,
   ].join('\n');
+}
+
+export function buildLinkOnlyReply(symbol: string, tokenAddress: string): string {
+  return communityUrl(tokenAddress);
 }
 
 export function buildPostReplyText(symbol: string, content: string, tokenAddress: string): string {
   const link = communityUrl(tokenAddress);
-  return [`posted to $${symbol} holder community: "${content}"`, '', link].join('\n');
+  return [`posted to $${symbol} holder community: "${content}"`, link].join('\n');
 }
 
 export function buildLinkReplyText(symbol: string, tokenAddress: string): string {
