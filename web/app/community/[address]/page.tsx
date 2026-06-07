@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useConnectWallet } from '@/components/WalletButton';
 import { Header, Footer } from '@/components/Header';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import type { Community, Post } from '@/lib/types';
@@ -12,7 +12,7 @@ import { apiFetch } from '@/lib/wagmi';
 export default function CommunityPage({ params }: { params: { address: string } }) {
   const tokenAddress = params.address;
   const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { connectWallet } = useConnectWallet();
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [holder, setHolder] = useState<{ holds: boolean; balance: number } | null>(null);
@@ -57,7 +57,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   }, [checkHolder]);
 
   async function verifyCommunity() {
-    if (!address) return openConnectModal?.();
+    if (!address) return connectWallet();
     try {
       await apiFetch(`/api/communities/${tokenAddress}/verify`, {
         method: 'POST',

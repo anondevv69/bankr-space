@@ -1,6 +1,6 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletButton } from '@/components/WalletButton';
 import { formatTime } from '@/lib/utils';
 
 export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
@@ -11,7 +11,7 @@ export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
         Token-gated communities for Bankr-deployed tokens
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4 px-3.5 py-2.5 bg-surface border border-border rounded-xl text-[13px]">
-        <ConnectButton chainStatus="none" showBalance={false} />
+        <WalletButton />
         {syncUpdatedAt ? (
           <span className="text-muted text-xs">
             Last synced: {formatTime(syncUpdatedAt)}
