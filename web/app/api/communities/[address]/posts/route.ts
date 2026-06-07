@@ -9,6 +9,7 @@ import { holdsToken } from '@/lib/holder';
 import { resolveAuthorProfile } from '@/lib/profiles';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
+import { buildPostReplyText } from '@/lib/agent-reply';
 import type { Post } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -73,6 +74,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       postId,
       author,
       post: newPost,
+      communityLink: communityUrl(tokenAddress),
+      replyText: buildPostReplyText(community.symbol, content, tokenAddress),
       links: {
         communityPage: communityUrl(tokenAddress),
       },

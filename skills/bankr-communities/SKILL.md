@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.0.2
+version: 1.0.3
 description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
@@ -18,6 +18,14 @@ https://bankr-community.vercel.app
 ```
 
 All `{SITE}` references below = that URL (or env override).
+
+**NEVER ask the user for the site URL** — it is in this skill's frontmatter and every API response (`siteUrl`, `communityLink`, `replyText`).
+
+**Community URL path uses the token contract address, NOT the symbol:**
+`https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
+(not `/community/TMP`)
+
+**After any briefing or post API call:** if the response has `replyText`, **paste it verbatim** as the tweet reply (it already includes the full link).
 
 **Install:**
 
@@ -37,11 +45,12 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 
 | User says | Agent does |
 |-----------|------------|
-| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → plain English summary |
+| what's the link to **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → reply with `communityLink` or paste `replyText` — **never ask for site URL** |
+| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste `replyText` verbatim |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
 | show recent posts in **0x935e…** community | `GET {SITE}/api/communities/0x935e…` |
 | **verify** the **TMP** community | linked wallet = owner? → `POST …/verify` |
-| **post** in **TMP** community: hello holders | holder check → `POST …/posts` `{ content }` |
+| **post** in **TMP** community: hello holders | holder check → `POST …/posts` → paste `replyText` from response |
 | **comment** on **$CTO** community | same as post |
 | start a community for **$PEPE** | search token → `POST …/communities/{addr}` |
 | list all communities | `GET {SITE}/api/communities` |
