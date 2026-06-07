@@ -1,3 +1,9 @@
+---
+name: bankr-communities
+version: 1.0.0
+description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
+---
+
 # Bankr Communities — Agent skill
 
 **Install:**
