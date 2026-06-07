@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kvGet, kvSet } from './kv-store';
 import type { Community, Post, TokenLaunch, UserProfile } from './types';
 
 const KEYS = {
@@ -10,11 +10,11 @@ const KEYS = {
 } as const;
 
 export async function getCommunities(): Promise<Community[]> {
-  return (await kv.get<Community[]>(KEYS.communities)) || [];
+  return (await kvGet<Community[]>(KEYS.communities)) || [];
 }
 
 export async function setCommunities(communities: Community[]): Promise<void> {
-  await kv.set(KEYS.communities, communities);
+  await kvSet(KEYS.communities, communities);
 }
 
 export async function getCommunity(tokenAddress: string): Promise<Community | null> {
@@ -26,7 +26,7 @@ export async function getCommunity(tokenAddress: string): Promise<Community | nu
 }
 
 export async function getAllPosts(): Promise<Record<string, Post[]>> {
-  return (await kv.get<Record<string, Post[]>>(KEYS.posts)) || {};
+  return (await kvGet<Record<string, Post[]>>(KEYS.posts)) || {};
 }
 
 export async function getPosts(tokenAddress: string): Promise<Post[]> {
@@ -37,31 +37,31 @@ export async function getPosts(tokenAddress: string): Promise<Post[]> {
 export async function setPostsForToken(tokenAddress: string, posts: Post[]): Promise<void> {
   const all = await getAllPosts();
   all[tokenAddress.toLowerCase()] = posts;
-  await kv.set(KEYS.posts, all);
+  await kvSet(KEYS.posts, all);
 }
 
 export async function getLaunches(): Promise<TokenLaunch[]> {
-  return (await kv.get<TokenLaunch[]>(KEYS.launches)) || [];
+  return (await kvGet<TokenLaunch[]>(KEYS.launches)) || [];
 }
 
 export async function setLaunches(launches: TokenLaunch[]): Promise<void> {
-  await kv.set(KEYS.launches, launches);
+  await kvSet(KEYS.launches, launches);
 }
 
 export async function getProfiles(): Promise<Record<string, UserProfile>> {
-  return (await kv.get<Record<string, UserProfile>>(KEYS.profiles)) || {};
+  return (await kvGet<Record<string, UserProfile>>(KEYS.profiles)) || {};
 }
 
 export async function setProfiles(profiles: Record<string, UserProfile>): Promise<void> {
-  await kv.set(KEYS.profiles, profiles);
+  await kvSet(KEYS.profiles, profiles);
 }
 
 export async function getSyncUpdatedAt(): Promise<number | null> {
-  return kv.get<number>(KEYS.syncAt);
+  return kvGet<number>(KEYS.syncAt);
 }
 
 export async function setSyncUpdatedAt(ts: number): Promise<void> {
-  await kv.set(KEYS.syncAt, ts);
+  await kvSet(KEYS.syncAt, ts);
 }
 
 export async function updateCommunityCounts(
