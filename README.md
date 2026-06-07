@@ -16,24 +16,19 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 
 ## Deploy to Bankr
 
-**→ See [INSTALL.md](./INSTALL.md) for the full install prompt.**
+The Bankr native app lives in `apps/bankr-communities-v2/`. See [INSTALL.md](./INSTALL.md).
 
-Quick install — paste into Bankr chat:
+## Deploy as a website (Vercel)
 
-```text
-Install my Bankr app from GitHub. Read the install manifest first:
+**Recommended** if Bankr app storage is broken. Full Next.js app in `web/`:
 
-https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/bankr-install.json
+→ **[web/DEPLOY.md](./web/DEPLOY.md)** — step-by-step Vercel setup
 
-Create NEW app slug bankr-communities-v2 (do not update broken bankr-communities).
-Fetch all files from apps/bankr-communities-v2/ using http.fetch. Do not rewrite the UI.
-Footer must say v11. Dry-run syncTokens after install.
-```
-
-After install:
-1. Run **syncTokens** once from the Scripts drawer
-2. Open **bankr-communities-v2** in the Apps panel
-3. Click **Refresh** if needed
+Quick summary:
+1. Import repo on Vercel with **Root Directory: `web`**
+2. Add **Vercel KV** storage
+3. Set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `CRON_SECRET`
+4. Deploy
 
 ## File structure
 
