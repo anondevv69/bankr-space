@@ -24,8 +24,17 @@ export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
 
 export function Footer() {
   return (
-    <footer className="text-center py-8 text-muted text-[13px]">
-      made with love &lt;3 rayblanco.eth · web v1
-    </footer>
+  <footer className="text-center py-8 text-muted text-[13px]">
+    made with love &lt;3 rayblanco.eth · web v1
+    {' · '}
+    <a
+      href="/agent.md"
+      className="text-accent-hover hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      agent.md
+    </a>
+  </footer>
   );
 }
