@@ -86,6 +86,7 @@ export async function GET(req: Request) {
       ok: true,
       siteUrl,
       communityLink: pageLink,
+      linkReply: pageLink,
       replyText: community ? buildBriefingReplyText(community, recentPosts) : null,
       syncedAt: syncAt,
       totalCommunities: communities.length,

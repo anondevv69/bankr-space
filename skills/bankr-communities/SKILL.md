@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.0.4
+version: 1.0.5
 description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
@@ -25,7 +25,14 @@ All `{SITE}` references below = that URL (or env override).
 `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
 (not `/community/TMP`)
 
-**After any briefing or post API call:** if the response has `replyText`, **paste it verbatim** as the tweet reply (it already includes the full link).
+**After any briefing or post API call:** paste `replyText` verbatim. The URL is on **line 2** of `replyText`.
+
+**When user asks for the link only** ("what's the link", "community URL", "send link"):
+1. `GET {SITE}/api/agent/community-link?symbol=TMP` (or `?token=0x…`)
+2. Reply with **only** the `communityLink` / `linkReply` value — one line, nothing else:
+   `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3`
+
+**FORBIDDEN:** summarizing briefing data without the URL. If you include stats, you MUST also include `communityLink` on the next line.
 
 **Install:**
 
@@ -45,8 +52,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 
 | User says | Agent does |
 |-----------|------------|
-| what's the link to **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → reply with `communityLink` or paste `replyText` — **never ask for site URL** |
-| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste `replyText` verbatim |
+| what's the link to **$TMP** community? | `GET {SITE}/api/agent/community-link?symbol=TMP` → reply **only** with `communityLink` (single URL line) |
+| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste full `replyText` (URL is line 2) |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
 | show recent posts in **0x935e…** community | `GET {SITE}/api/communities/0x935e…` |
 | **verify** the **TMP** community | linked wallet = owner? → `POST …/verify` |
