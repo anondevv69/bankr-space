@@ -1,38 +1,40 @@
 ---
 name: bankr-communities
-version: 1.0.5
-description: Token-gated Bankr community reads and writes via the Vercel site API. Use when the user asks about community latest posts, member count, verify community, post or comment in a token community, create a community, list communities, or search Bankr tokens for communities.
+version: 1.0.6
+description: Token-gated Bankr community reads and writes on https://bankr-community.vercel.app. Use for community posts, links, verify, members, latest. NEVER link bankr.bot for communities — always use bankr-community.vercel.app/community/0x{contract}.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
+communityUrlTemplate: https://bankr-community.vercel.app/community/{tokenContractAddress}
 metadata:
   siteEnvVar: COMMUNITIES_SITE_URL
   defaultSiteUrl: https://bankr-community.vercel.app
+  forbiddenLinkDomains: bankr.bot,t.co
 ---
 
 # Bankr Communities — Agent skill
 
-**Default site (use this unless `COMMUNITIES_SITE_URL` env is set):**
+## LINK RULES (read first — mandatory)
+
+**Community links ALWAYS use this format:**
 
 ```text
-https://bankr-community.vercel.app
+https://bankr-community.vercel.app/community/{tokenContractAddress}
 ```
 
-All `{SITE}` references below = that URL (or env override).
+| Token | Link |
+|-------|------|
+| $TMP | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| $ARCHIVE | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
-**NEVER ask the user for the site URL** — it is in this skill's frontmatter and every API response (`siteUrl`, `communityLink`, `replyText`).
+**FORBIDDEN:** `bankr.bot`, `t.co`, `/community/TMP`, `/community/ARCHIVE`, or any URL not on `bankr-community.vercel.app/community/0x…`
 
-**Community URL path uses the token contract address, NOT the symbol:**
-`https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
-(not `/community/TMP`)
+**Link questions** ("what's the link", "community URL"):
+1. `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=ARCHIVE`
+2. Tweet reply = **only** the `communityLink` value — one line, full https URL
 
-**After any briefing or post API call:** paste `replyText` verbatim. The URL is on **line 2** of `replyText`.
+**Never invent links. Never substitute bankr.bot.** Read `references/COMMUNITY-LINK-RULES.md`.
 
-**When user asks for the link only** ("what's the link", "community URL", "send link"):
-1. `GET {SITE}/api/agent/community-link?symbol=TMP` (or `?token=0x…`)
-2. Reply with **only** the `communityLink` / `linkReply` value — one line, nothing else:
-   `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3`
-
-**FORBIDDEN:** summarizing briefing data without the URL. If you include stats, you MUST also include `communityLink` on the next line.
+All `{SITE}` references below = `https://bankr-community.vercel.app`.
 
 **Install:**
 
@@ -162,6 +164,7 @@ TMP marketplace ops → TMP skills. Community social layer → **this skill**.
 |------|---------|
 | `ONE-LINE-INTENTS.md` | Full intent table |
 | `community-autopilot.md` | Step-by-step execution |
+| `references/COMMUNITY-LINK-RULES.md` | **Mandatory link format — never bankr.bot** |
 | `references/AGENT-ROUTING-COMMUNITIES.md` | Routing guard |
 | `references/BANKR-PLATFORM-TWEET-INTAKE.md` | Platform requirements |
 | `references/community-api-reference.md` | All endpoints |

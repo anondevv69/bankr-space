@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCommunities } from '@/lib/db';
 import { communityUrl } from '@/lib/site-url';
-import { buildLinkOnlyReply } from '@/lib/agent-reply';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +39,12 @@ export async function GET(req: Request) {
       tokenAddress: community.tokenAddress,
       communityLink: link,
       linkReply: link,
-      replyText: buildLinkOnlyReply(community.symbol, community.tokenAddress),
+      replyText: link,
+      tweetReply: link,
+      communityUrlTemplate: 'https://bankr-community.vercel.app/community/{tokenContractAddress}',
+      forbiddenLinks: ['https://bankr.bot', 'bankr.bot', 't.co'],
+      instruction:
+        'Paste communityLink exactly as the tweet reply. Never use bankr.bot — communities live on bankr-community.vercel.app/community/0x{contract}.',
     });
   } catch (err) {
     console.error('GET /api/agent/community-link', err);

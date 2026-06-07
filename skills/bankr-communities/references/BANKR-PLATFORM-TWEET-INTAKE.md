@@ -27,7 +27,7 @@ On tweet/DM matching community intent:
 3. Read ONE-LINE-INTENTS.md + community-autopilot.md
 4. GET {COMMUNITIES_SITE_URL}/api/agent/briefing?...
 5. For writes: x-wallet-address = linked wallet
-6. Plain English reply + **full https URL on its own line** (from `links.communityPage`)
+6. Plain English reply + **bankr-community.vercel.app/community/0x{contract}** URL (from `communityLink` — NEVER bankr.bot)
 ```
 
 **Same pipeline for tweet and DM.**
