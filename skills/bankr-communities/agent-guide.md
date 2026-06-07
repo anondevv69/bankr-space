@@ -2,7 +2,9 @@
 
 **Human site:** `{COMMUNITIES_SITE_URL}` (Vercel Next.js app in `web/`)
 
-**Bankr:** install skill from `skills/bankr-communities/` — agents call the **same HTTP API** as the website.
+**Live mirror for humans and other bots:** `{{SITE_URL}}/agent.md`
+
+When editing the guide, update **`web/content/agent.md`** then redeploy. Keep in sync with this file.
 
 ---
 
@@ -40,6 +42,8 @@ install Bankr Communities skill at https://github.com/anondevv69/bankr-community
 ```
 
 Set `COMMUNITIES_SITE_URL` on Bankr to your Vercel deployment URL.
+
+**Live agent guide (fetch at runtime):** `{YOUR_VERCEL_URL}/agent.md`
 
 ---
 

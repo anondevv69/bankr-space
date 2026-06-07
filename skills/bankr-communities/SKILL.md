@@ -7,6 +7,7 @@ install Bankr Communities skill at https://github.com/anondevv69/bankr-community
 ```
 
 **Site API base:** set `COMMUNITIES_SITE_URL` to your Vercel deploy (e.g. `https://your-app.vercel.app`).  
+**Public agent guide:** `{SITE}/agent.md` — same content as TMP's tokenmarketplace.shop/agent.md pattern.  
 **Public reads** need no wallet. **Writes** use the user's **linked Bankr wallet** in header `x-wallet-address`.
 
 ---

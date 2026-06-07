@@ -48,6 +48,8 @@ Example tweets:
 @bankrbot verify the TMP community
 ```
 
+**Public agent guide:** after deploy, bots can fetch `https://your-app.vercel.app/agent.md` (linked in site footer).
+
 ## File structure
 
 ```

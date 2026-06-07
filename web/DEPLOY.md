@@ -77,6 +77,8 @@ Or wait for the hourly cron (configured in `vercel.json`).
 
 Footer should say: `made with love <3 rayblanco.eth · web v1`
 
+**Agent guide:** `https://YOUR-APP.vercel.app/agent.md` (public markdown for bots)
+
 ---
 
 ## Local development
