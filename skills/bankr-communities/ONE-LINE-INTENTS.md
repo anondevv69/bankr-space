@@ -10,7 +10,8 @@
 
 | User says | API | Reply |
 |-----------|-----|-------|
-| what's latest on **$TMP** community? | `GET /api/agent/briefing?symbol=TMP` | members, posts, recent activity, opportunities |
+| what's the link to **$TMP** community? | `GET /api/agent/briefing?symbol=TMP` → reply with `communityLink` only |
+| what's the latest on **$TMP** community? | briefing → paste `replyText` verbatim |
 | how many **members** in **CTO** community? | `GET /api/agent/briefing?symbol=CTO` → `stats.memberCount` | "N members in $CTO community" |
 | show **recent posts** for **0x935e…** | `GET /api/communities/0x935e…` | summarize last 5 posts |
 | **list** all communities | `GET /api/communities` | count + top symbols |

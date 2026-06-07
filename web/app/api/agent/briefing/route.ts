@@ -8,6 +8,7 @@ import {
 } from '@/lib/db';
 import { fetchLaunchByAddress } from '@/lib/bankr-api';
 import { communityUrl, getSiteUrl } from '@/lib/site-url';
+import { buildBriefingReplyText } from '@/lib/agent-reply';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,9 +80,13 @@ export async function GET(req: Request) {
     }
 
     const siteUrl = getSiteUrl();
+    const pageLink = community ? communityUrl(community.tokenAddress) : null;
 
     return NextResponse.json({
       ok: true,
+      siteUrl,
+      communityLink: pageLink,
+      replyText: community ? buildBriefingReplyText(community, recentPosts) : null,
       syncedAt: syncAt,
       totalCommunities: communities.length,
       community: community || null,
@@ -104,7 +109,7 @@ export async function GET(req: Request) {
       })),
       opportunities,
       links: {
-        communityPage: community ? communityUrl(community.tokenAddress) : null,
+        communityPage: pageLink,
         allCommunities: siteUrl,
         agentGuide: `${siteUrl}/agent.md`,
       },
