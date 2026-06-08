@@ -22,13 +22,20 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 On tweet/DM matching community intent:
 
 ```
-1. MATCH trigger (community, members, post in, verify, latest on $TICKER)
+1. MATCH trigger (link, community, members, post in, verify, latest on $TICKER)
 2. use_skill("bankr-communities")     ← BEFORE tool selection
-3. Read ONE-LINE-INTENTS.md + community-autopilot.md
-4. GET {COMMUNITIES_SITE_URL}/api/agent/briefing?...
+3. Link question → GET /api/agent/link?q={TICKER} → tweet = response body (plain text)
+4. Other questions → GET /api/agent/briefing?...
 5. For writes: x-wallet-address = linked wallet
-6. Plain English reply + **bankr-community.vercel.app/community/0x{contract}** URL (from `communityLink` — NEVER bankr.bot)
+6. Plain English reply + **bankr-community.vercel.app/community/0x{contract}** URL
 ```
+
+**Link acceptance test:** `@bankrbot what's the link to the TMP community?`
+
+Must log: `GET …/api/agent/link?q=TMP`  
+Must reply: `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
+
+**Fail:** "I wasn't able to generate a response" (use known-communities.json fallback instead)
 
 **Same pipeline for tweet and DM.**
 

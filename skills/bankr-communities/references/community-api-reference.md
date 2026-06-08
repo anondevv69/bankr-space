@@ -9,11 +9,14 @@ All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked 
 ## Agent resolve & search (links)
 
 ```
-GET /api/agent/resolve-community?q=TMP
-GET /api/agent/resolve-community?q=0x935e13a28849095db45e63040f109c34b757aba3
-GET /api/agent/resolve-community?q=TokenMarketplace&format=text
+GET /api/agent/link?q=TMP                    ← plain text reply (preferred for link questions)
+GET /api/agent/link?q=ARCHIVE
+GET /api/agent/resolve-community?q=TMP       ← JSON with communityLink / tweetReply
+GET /api/agent/resolve-community?q=TMP&format=text
 GET /api/agent/search-communities?q=archive
 ```
+
+**link (plain text):** response body = tweet reply. Same as `curl "…/api/agent/link?q=TMP"`. No JSON parsing.
 
 **resolve-community:** search existing communities → if found `communityLink` → if token on Bankr but no community `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
 
