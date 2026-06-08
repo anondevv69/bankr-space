@@ -26,9 +26,12 @@ export async function GET(req: Request, { params }: RouteParams) {
     const chain = community?.chain || 'base';
     const result = await checkParticipation(wallet.toLowerCase(), tokenAddress, chain);
     const isBeneficiary = await isTokenBeneficiary(wallet.toLowerCase(), tokenAddress);
+    const isFounder =
+      community?.founderWallet?.toLowerCase() === wallet.toLowerCase();
     return NextResponse.json({
       ...result,
       isBeneficiary,
+      isFounder,
       canEditProfile: isBeneficiary,
       canPinPosts: isBeneficiary && !!community?.verified,
       wallet: wallet.toLowerCase(),

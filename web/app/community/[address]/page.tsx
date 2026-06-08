@@ -27,6 +27,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     canPost: boolean;
     isOwner: boolean;
     isBeneficiary: boolean;
+    isFounder: boolean;
     canEditProfile: boolean;
     canPinPosts: boolean;
   } | null>(null);
@@ -63,6 +64,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPost: data.canPost,
         isOwner: data.isOwner,
         isBeneficiary: data.isBeneficiary,
+        isFounder: data.isFounder,
         canEditProfile: data.canEditProfile,
         canPinPosts: data.canPinPosts,
       });
@@ -73,6 +75,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPost: false,
         isOwner: false,
         isBeneficiary: false,
+        isFounder: false,
         canEditProfile: false,
         canPinPosts: false,
       });
@@ -170,7 +173,11 @@ export default function CommunityPage({ params }: { params: { address: string } 
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-600 dark:text-green-400">
           {holder.holds
             ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
-            : `✓ You are the token owner — you can post and react without holding`}
+            : `✓ You are the token beneficiary — you can post and react without holding`}
+        </div>
+      ) : holder?.isFounder ? (
+        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+          You created this space. Hold {community.symbol} to post and react — only the token beneficiary can verify it.
         </div>
       ) : (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">

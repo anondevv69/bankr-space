@@ -29,14 +29,10 @@ export async function checkParticipation(
     }
     if (launch) {
       isOwner = isLaunchOwner(launch, w);
-    }
-
-    if (!isOwner) {
+    } else {
       const community = await getCommunity(token);
-      if (community) {
-        isOwner =
-          w === community.ownerWallet?.toLowerCase() ||
-          w === community.founderWallet?.toLowerCase();
+      if (community?.ownerWallet) {
+        isOwner = w === community.ownerWallet.toLowerCase();
       }
     }
   }
