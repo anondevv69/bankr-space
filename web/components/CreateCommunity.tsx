@@ -18,12 +18,19 @@ export function CreateCommunity({
 }) {
   const { address, isConnected } = useAppWallet();
   const { connectWallet } = useConnectWallet();
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TokenLaunch[]>([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<TokenLaunch | null>(null);
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
+
+  function closeSearch() {
+    setOpen(false);
+    setQuery('');
+    setResults([]);
+  }
 
   async function onSearch(q: string) {
     setQuery(q);
@@ -57,12 +64,14 @@ export function CreateCommunity({
       });
       setModal(null);
       setDesc('');
+      closeSearch();
       onCreated();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create space';
       if (message.toLowerCase().includes('already exists') && modal) {
         setModal(null);
         setDesc('');
+        closeSearch();
         onCreated();
         window.location.href = `/community/${modal.tokenAddress}`;
         return;
@@ -74,90 +83,128 @@ export function CreateCommunity({
   }
 
   return (
-    <section className="mt-10">
-      <div className="mb-5">
-        <div className="text-lg font-semibold">Create Space</div>
-        <div className="text-sm text-muted">Search for a Bankr token by name or contract address</div>
-      </div>
-      <input
-        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm mb-5"
-        placeholder="Token name, symbol, or contract address…"
-        value={query}
-        onChange={(e) => onSearch(e.target.value)}
-      />
-      {!query.trim() ? (
-        <p className="text-muted text-sm italic">
-          Search above to find a Bankr-deployed token and start a space for it.
-        </p>
-      ) : loading ? (
-        <p className="text-muted text-sm">Searching Bankr tokens…</p>
-      ) : results.length === 0 ? (
-        <p className="text-muted text-sm">
-          No Bankr-launched tokens found for &quot;{query.trim()}&quot;.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {results.map((l) => {
-            const comm = communityFor(l.tokenAddress);
-            return (
-              <div
-                key={l.tokenAddress}
-                className="flex flex-wrap items-center justify-between gap-3 p-4 bg-surface border border-border rounded-xl"
-              >
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <TokenAvatar symbol={l.tokenSymbol} imageUrl={l.imageUrl} size={40} />
-                  <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-accent-hover">{l.tokenSymbol}</span>
-                    <span className="text-[11px] uppercase text-muted bg-surface-2 px-2 py-0.5 rounded-full">
-                      {l.chain || 'base'}
-                    </span>
-                    {comm ? (
-                      <span className="text-[11px] font-semibold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
-                        Space Live
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="font-semibold mt-1">{l.tokenName}</div>
-                  <div className="text-xs text-muted mt-2 flex gap-3 flex-wrap">
-                    <span>{shortAddr(l.tokenAddress)}</span>
-                    <span>Owner: {shortAddr(l.feeRecipient?.walletAddress)}</span>
-                    <span>{formatTime(l.timestamp)}</span>
-                  </div>
-                  </div>
-                </div>
-                <div>
-                  {comm ? (
-                    <Link
-                      href={`/community/${l.tokenAddress}`}
-                      className="inline-block px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
-                    >
-                      Open Space
-                    </Link>
-                  ) : isConnected ? (
-                    <button
-                      onClick={() => setModal(l)}
-                      className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
-                    >
-                      Start Space
-                    </button>
-                  ) : (
-                    <button
-                      onClick={connectWallet}
-                      className="px-4 py-2 text-sm font-medium bg-surface-2 border border-border rounded-lg"
-                    >
-                      Connect to Start
-                    </button>
-                  )}
-                </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors shrink-0"
+      >
+        Create Space
+      </button>
+
+      {open ? (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-start justify-center p-5 z-50 overflow-y-auto"
+          onClick={closeSearch}
+        >
+          <div
+            className="bg-surface border border-border rounded-xl p-6 max-w-lg w-full mt-[10vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Create Space</h3>
+                <p className="text-sm text-muted mt-1">
+                  Search by token name, ticker, or contract address
+                </p>
               </div>
-            );
-          })}
+              <button
+                type="button"
+                onClick={closeSearch}
+                className="text-muted hover:text-text px-2 py-1 text-lg leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <input
+              className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-sm mb-4"
+              placeholder="Token name, symbol, or contract address…"
+              value={query}
+              onChange={(e) => onSearch(e.target.value)}
+              autoFocus
+            />
+
+            {!query.trim() ? (
+              <p className="text-muted text-sm">
+                Find a Bankr-deployed token to start a space for it.
+              </p>
+            ) : loading ? (
+              <p className="text-muted text-sm">Searching Bankr tokens…</p>
+            ) : results.length === 0 ? (
+              <p className="text-muted text-sm">
+                No Bankr-launched tokens found for &quot;{query.trim()}&quot;.
+              </p>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+                {results.map((l) => {
+                  const comm = communityFor(l.tokenAddress);
+                  return (
+                    <div
+                      key={l.tokenAddress}
+                      className="flex flex-wrap items-center justify-between gap-3 p-4 bg-surface-2 border border-border rounded-xl"
+                    >
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <TokenAvatar symbol={l.tokenSymbol} imageUrl={l.imageUrl} size={40} />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-accent-hover">{l.tokenSymbol}</span>
+                            <span className="text-[11px] uppercase text-muted bg-surface px-2 py-0.5 rounded-full">
+                              {l.chain || 'base'}
+                            </span>
+                            {comm ? (
+                              <span className="text-[11px] font-semibold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                Space Live
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="font-semibold mt-1">{l.tokenName}</div>
+                          <div className="text-xs text-muted mt-2 flex gap-3 flex-wrap">
+                            <span>{shortAddr(l.tokenAddress)}</span>
+                            <span>Owner: {shortAddr(l.feeRecipient?.walletAddress)}</span>
+                            <span>{formatTime(l.timestamp)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        {comm ? (
+                          <Link
+                            href={`/community/${l.tokenAddress}`}
+                            className="inline-block px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
+                            onClick={closeSearch}
+                          >
+                            Open Space
+                          </Link>
+                        ) : isConnected ? (
+                          <button
+                            type="button"
+                            onClick={() => setModal(l)}
+                            className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
+                          >
+                            Start Space
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={connectWallet}
+                            className="px-4 py-2 text-sm font-medium bg-surface border border-border rounded-lg"
+                          >
+                            Connect to Start
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      ) : null}
 
       {modal ? (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-5 z-50">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-5 z-[60]">
           <div className="bg-surface border border-border rounded-xl p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-2">Create Space</h3>
             <p className="text-muted text-sm mb-4">Start a space for ${modal.tokenSymbol}</p>
@@ -170,12 +217,14 @@ export function CreateCommunity({
             />
             <div className="flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setModal(null)}
                 className="px-4 py-2 text-sm border border-border rounded-lg"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={confirmCreate}
                 disabled={creating}
                 className="px-4 py-2 text-sm bg-accent text-white rounded-lg disabled:opacity-50"
@@ -186,6 +235,6 @@ export function CreateCommunity({
           </div>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
