@@ -22,6 +22,7 @@ export type ResolveResult = {
   query: string;
   source: ResolveSource;
   communityExists: boolean;
+  suggestCreateCommunity: boolean;
   symbol: string | null;
   tokenName: string | null;
   tokenAddress: string | null;
@@ -31,6 +32,7 @@ export type ResolveResult = {
   tweetReply: string | null;
   matches: ResolveMatch[];
   hint: string | null;
+  createCommunityAction: string | null;
   error?: string;
 };
 
@@ -40,6 +42,7 @@ function emptyResult(query: string, error?: string): ResolveResult {
     query,
     source: 'not_found',
     communityExists: false,
+    suggestCreateCommunity: false,
     symbol: null,
     tokenName: null,
     tokenAddress: null,
@@ -49,6 +52,7 @@ function emptyResult(query: string, error?: string): ResolveResult {
     tweetReply: null,
     matches: [],
     hint: null,
+    createCommunityAction: null,
     error,
   };
 }
@@ -70,7 +74,7 @@ function toMatchFromLaunch(launch: TokenLaunch, exists: boolean): ResolveMatch {
     name: launch.tokenName,
     tokenAddress: launch.tokenAddress,
     communityExists: exists,
-    communityLink: communityUrl(launch.tokenAddress),
+    communityLink: exists ? communityUrl(launch.tokenAddress) : '',
   };
 }
 
@@ -152,10 +156,8 @@ async function findBestTokenLaunch(query: string): Promise<TokenLaunch | null> {
   return exact || results[0];
 }
 
-function successResult(
+function existingCommunityResult(
   query: string,
-  source: ResolveSource,
-  communityExists: boolean,
   symbol: string,
   tokenName: string,
   tokenAddress: string,
@@ -167,8 +169,9 @@ function successResult(
   return {
     ok: true,
     query,
-    source,
-    communityExists,
+    source: 'existing_community',
+    communityExists: true,
+    suggestCreateCommunity: false,
     symbol,
     tokenName,
     tokenAddress,
@@ -178,6 +181,35 @@ function successResult(
     tweetReply: link,
     matches,
     hint,
+    createCommunityAction: null,
+  };
+}
+
+function noCommunityAskCreateResult(
+  query: string,
+  launch: TokenLaunch
+): ResolveResult {
+  const symbol = launch.tokenSymbol;
+  const tokenName = launch.tokenName;
+  const tokenAddress = launch.tokenAddress;
+  const reply = `No $${symbol} community yet — ${tokenName} is on Bankr. Would you like me to create the community?`;
+
+  return {
+    ok: true,
+    query,
+    source: 'token_launch',
+    communityExists: false,
+    suggestCreateCommunity: true,
+    symbol,
+    tokenName,
+    tokenAddress,
+    communityLink: null,
+    linkReply: null,
+    replyText: reply,
+    tweetReply: reply,
+    matches: [toMatchFromLaunch(launch, false)],
+    hint: 'If user says yes → POST /api/communities/{tokenAddress} with linked wallet, then reply with communityLink.',
+    createCommunityAction: `POST /api/communities/${tokenAddress} header x-wallet-address`,
   };
 }
 
@@ -192,10 +224,8 @@ export async function resolveCommunityLink(rawQuery: string): Promise<ResolveRes
 
   if (communityMatches.length >= 1) {
     const best = communityMatches[0];
-    return successResult(
+    return existingCommunityResult(
       query,
-      'existing_community',
-      true,
       best.symbol,
       best.name,
       best.tokenAddress,
@@ -208,16 +238,7 @@ export async function resolveCommunityLink(rawQuery: string): Promise<ResolveRes
 
   const launch = await findBestTokenLaunch(query);
   if (launch?.tokenAddress) {
-    return successResult(
-      query,
-      'token_launch',
-      false,
-      launch.tokenSymbol,
-      launch.tokenName,
-      launch.tokenAddress,
-      [toMatchFromLaunch(launch, false)],
-      `No community for $${launch.tokenSymbol} yet — link uses token contract. Anyone can start the community at this URL.`
-    );
+    return noCommunityAskCreateResult(query, launch);
   }
 
   return emptyResult(

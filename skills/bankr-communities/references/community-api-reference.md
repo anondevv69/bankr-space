@@ -15,7 +15,7 @@ GET /api/agent/resolve-community?q=TokenMarketplace&format=text
 GET /api/agent/search-communities?q=archive
 ```
 
-**resolve-community:** search existing communities by ticker/name/address → else Bankr token → returns `communityLink`, `tweetReply`, `communityExists`, `source`.
+**resolve-community:** search existing communities → if found `communityLink` → if token on Bankr but no community `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
 
 **search-communities:** list only communities already created matching query.
 

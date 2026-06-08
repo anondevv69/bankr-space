@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   try {
     const result = await resolveCommunityLink(q);
 
-    if (!result.ok || !result.communityLink) {
+    if (!result.ok) {
       return NextResponse.json(
         {
           ok: false,
@@ -27,7 +27,8 @@ export async function GET(req: Request) {
     }
 
     if (searchParams.get('format') === 'text') {
-      return new NextResponse(result.communityLink, {
+      const text = result.communityLink || result.tweetReply || '';
+      return new NextResponse(text, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       });
     }
@@ -37,18 +38,21 @@ export async function GET(req: Request) {
       symbol: result.symbol,
       tokenAddress: result.tokenAddress,
       communityExists: result.communityExists,
+      suggestCreateCommunity: result.suggestCreateCommunity,
       communityLink: result.communityLink,
       linkReply: result.linkReply,
       replyText: result.replyText,
       tweetReply: result.tweetReply,
       source: result.source,
       hint: result.hint,
+      createCommunityAction: result.createCommunityAction,
       matches: result.matches,
       communityUrlTemplate:
         'https://bankr-community.vercel.app/community/{tokenContractAddress}',
       forbiddenLinks: ['https://bankr.bot', 'bankr.bot', 't.co'],
-      instruction:
-        'Paste communityLink exactly as the tweet reply. Never use bankr.bot.',
+      instruction: result.suggestCreateCommunity
+        ? 'Paste tweetReply asking to create. On yes use createCommunityAction.'
+        : 'Paste communityLink exactly as the tweet reply. Never use bankr.bot.',
     });
   } catch (err) {
     console.error('GET /api/agent/community-link', err);
