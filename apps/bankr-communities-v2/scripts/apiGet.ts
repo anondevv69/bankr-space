@@ -10,7 +10,16 @@ const url = SITE + rawPath + (query ? (query.startsWith('?') ? query : '?' + que
 
 try {
   const data = await http.fetch(url);
-  return { ok: true, data };
+  const out = { ok: true, data };
+  if (args.includeSession) {
+    const caller = ctx.caller || {};
+    out.session = {
+      wallet: caller.walletAddress
+        ? String(caller.walletAddress).toLowerCase()
+        : null,
+    };
+  }
+  return out;
 } catch (err) {
   log('apiGet failed', url, err);
   return {
