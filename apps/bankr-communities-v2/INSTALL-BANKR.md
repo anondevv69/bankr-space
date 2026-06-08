@@ -1,6 +1,8 @@
-# Install Bankr Space v16 (slug: `bankr-communities-v2`)
+# Install Bankr Space (slug: `bankr-communities-v2`)
 
-> **Stuck on "dry run app script"?** Skip dry-run during install. Install files only, open the app, test manually. See below.
+> **Source release** in GitHub `manifest.json` (e.g. `"17"`) is **not** the Bankr platform app version. Bankr auto-increments its own version (v10, v11, …) on each publish. Use the **footer** in `index.html` (`Bankr Space · v17`) to confirm the UI file loaded.
+
+> **Stuck on "dry run app script"?** Skip dry-run during install. Install files only, open the app, test manually.
 
 **Raw base:** `https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2`
 
@@ -24,7 +26,7 @@ Create a NEW public Bankr app slug bankr-communities-v2 titled "Bankr Space".
 Write ONLY manifest.json from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/manifest.json
 
-Confirm version "16", scripts ONLY ["apiGet","apiWrite"], schedule [].
+Confirm source release "17" in manifest, scripts ONLY ["apiGet","apiWrite"], schedule [].
 Do NOT write index.html yet. Do NOT run dry-run yet.
 Stop after manifest is written.
 ```
@@ -53,7 +55,7 @@ Stop. Do not run dry-run yet.
 For app bankr-communities-v2, write ONLY index.html from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html
 
-Footer must contain "Bankr Space · v16".
+Footer must contain "Bankr Space · v17".
 Make the app public.
 Do NOT run dry-run.
 ```
@@ -75,7 +77,7 @@ If this hangs too, **skip it** — open the app in Bankr UI. If spaces load, api
 
 | Check | Good |
 |-------|------|
-| Footer | `Bankr Space · v16` |
+| Footer | `Bankr Space · v17` |
 | Title | Bankr Space + TV logo |
 | Create | **Create Space** button |
 | Spaces list | Loads (not black screen) |
