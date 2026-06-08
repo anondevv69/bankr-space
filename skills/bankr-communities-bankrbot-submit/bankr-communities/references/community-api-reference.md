@@ -2,7 +2,7 @@
 
 **Base:** `https://bankr-community.vercel.app` (default; override with `COMMUNITIES_SITE_URL`)
 
-All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
+All responses JSON unless noted. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
 
 ---
 
@@ -32,7 +32,9 @@ GET /api/agent/briefing?token=0x935e13a28849095db45e63040f109c34b757aba3
 GET /api/agent/briefing?q=search term
 ```
 
-Returns: `community`, `stats`, `recentPosts`, `opportunities`, `links`, `agentActions`.
+Returns: `community`, `stats`, `recentPosts`, `opportunities`, `links`, `agentActions`, `replyText`, `tweetReply`.
+
+Paste **`replyText`** verbatim in replies — URL is on the last line.
 
 ---
 
@@ -99,6 +101,6 @@ Token launches also available at `https://api.bankr.bot/token-launches` — comm
 |--------|---------|
 | 401 | Wallet header missing |
 | 403 | Not holder / not owner |
-| 404 | Space not found |
-| 409 | Space already exists |
+| 404 | Community not found |
+| 409 | Community already exists |
 | 503 | KV not configured |

@@ -38,6 +38,10 @@ export interface Community {
   verifiedAt: number | null;
   verifiedBy: string | null;
   description: string;
+  /** Bankr launch image (ipfs://…), stored at create time when available */
+  imageUri?: string | null;
+  /** Resolved HTTPS URL for UI — set by API responses, not persisted */
+  imageUrl?: string | null;
   socialLinks?: SocialLinks;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
@@ -65,6 +69,8 @@ export interface TokenLaunch {
   tokenSymbol: string;
   chain: string;
   timestamp: number;
+  imageUri?: string | null;
+  imageUrl?: string | null;
   feeRecipient?: {
     walletAddress?: string;
     xUsername?: string;

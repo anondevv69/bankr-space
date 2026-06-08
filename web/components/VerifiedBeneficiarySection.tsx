@@ -129,7 +129,7 @@ export function VerifiedBeneficiarySection({
         </div>
       ) : (
         <p className="text-xs text-muted mt-1">
-          The token fee beneficiary can verify this community on Bankr.
+          The token fee beneficiary can verify this space on Bankr.
         </p>
       )}
     </div>

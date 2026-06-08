@@ -1,4 +1,4 @@
-# One-line intents — Bankr Space
+# One-line intents — Bankr Communities
 
 > User gives **one sentence** → agent runs **full flow** without interview.
 
@@ -61,11 +61,11 @@
 
 ---
 
-## Combined with TMP
+## Combined with TMP marketplace
 
 | Domain | Skill |
 |--------|-------|
-| List / buy / claim fees / launch | `bankr-tmp-skill` |
+| List / buy / claim fees / launch | `bankr-tmp-skill` or Bankr core |
 | Community posts / verify / members | `bankr-communities` (this) |
 
 Example thread:

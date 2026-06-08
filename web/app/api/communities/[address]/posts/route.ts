@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   try {
     const community = await getCommunity(tokenAddress);
     if (!community) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
 
     const participation = await checkParticipation(

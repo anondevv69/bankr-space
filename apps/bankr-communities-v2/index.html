@@ -136,6 +136,37 @@
       color: var(--accent-hover);
     }
 
+    .token-avatar-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+
+    .token-avatar {
+      display: block;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .token-avatar-fallback {
+      display: none;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--accent-hover);
+    }
+
+    .token-avatar-wrap.fallback .token-avatar-fallback {
+      display: flex;
+    }
+
     .card-name {
       font-size: 15px;
       font-weight: 600;
@@ -649,7 +680,7 @@
   <div class="container">
     <header>
       <h1>Bankr Space</h1>
-      <p>Token-gated communities for Bankr-launched tokens</p>
+      <p>Token-gated spaces for Bankr-launched tokens</p>
       <div class="wallet-bar">
         <span id="walletDisplay">Connecting...</span>
         <span class="sync-meta" id="syncMeta"></span>
@@ -660,8 +691,8 @@
       <section class="section">
         <div class="section-header">
           <div>
-            <div class="section-title">Communities</div>
-            <div class="section-subtitle">Browse active token communities</div>
+            <div class="section-title">Spaces</div>
+            <div class="section-subtitle">Browse active token spaces</div>
           </div>
         </div>
         <div class="search-bar">
@@ -669,19 +700,19 @@
             type="text"
             class="search-input"
             id="communitySearch"
-            placeholder="Filter communities…"
+            placeholder="Filter spaces…"
             oninput="onCommunitySearchInput()"
           />
         </div>
         <div class="grid" id="communitiesGrid">
-          <div class="loading">Loading communities...</div>
+          <div class="loading">Loading spaces...</div>
         </div>
       </section>
 
       <section class="section create-section">
         <div class="section-header">
           <div>
-            <div class="section-title">Create Community</div>
+            <div class="section-title">Create Space</div>
             <div class="section-subtitle">Search for a Bankr token by name or contract address</div>
           </div>
         </div>
@@ -695,7 +726,7 @@
           />
         </div>
         <div id="createSearchResults">
-          <p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>
+          <p class="search-hint">Search above to find a Bankr-deployed token and start a space for it.</p>
         </div>
       </section>
     </div>
@@ -703,6 +734,9 @@
     <div id="detailView" style="display: none;">
       <button class="btn btn-secondary btn-sm back-btn" onclick="backToMain()">← Back</button>
       <div class="detail-header">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div id="detailTokenAvatar"></div>
+          <div style="min-width:0;flex:1;">
         <div class="detail-symbol" id="detailSymbol"></div>
         <div class="detail-name" id="detailName"></div>
         <div class="contract-row">
@@ -719,6 +753,8 @@
         <div id="holderBanner"></div>
         <div style="margin-top:12px;">
           <button class="btn btn-secondary btn-sm" type="button" onclick="openFullSite()">Open full site (edit profile)</button>
+        </div>
+          </div>
         </div>
       </div>
       <div id="postFormWrap" class="post-form" style="display: none;">
@@ -740,10 +776,10 @@
 
   <div class="modal-overlay" id="createModal">
     <div class="modal">
-      <h3>Create Community</h3>
+      <h3>Create Space</h3>
       <p id="createModalToken"></p>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">If you're the token owner, the community will be verified automatically. Otherwise, the owner can verify it later.</p>
-      <textarea id="communityDesc" placeholder="Community description (optional)" rows="3"></textarea>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">If you're the token owner, the space will be verified automatically. Otherwise, the owner can verify it later.</p>
+      <textarea id="communityDesc" placeholder="Space description (optional)" rows="3"></textarea>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
         <button class="btn btn-primary" id="confirmCreateBtn" onclick="confirmCreateCommunity()">Create</button>
@@ -778,6 +814,33 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function resolveTokenImageUrl(imageUri) {
+      if (!imageUri || !String(imageUri).trim()) return null;
+      const uri = String(imageUri).trim();
+      if (uri.startsWith('http://') || uri.startsWith('https://')) return uri;
+      if (uri.startsWith('ipfs://')) {
+        return 'https://gateway.pinata.cloud/ipfs/' + uri.slice(7);
+      }
+      if (uri.startsWith('baf') || uri.startsWith('Qm')) {
+        return 'https://gateway.pinata.cloud/ipfs/' + uri;
+      }
+      return null;
+    }
+
+    function tokenAvatarHtml(symbol, imageUrl, size) {
+      size = size || 44;
+      const initials = escapeHtml((symbol || '?').slice(0, 2).toUpperCase());
+      const fontSize = Math.max(11, Math.round(size * 0.32));
+      if (imageUrl) {
+        return '<span class="token-avatar-wrap" style="width:' + size + 'px;height:' + size + 'px">' +
+          '<img class="token-avatar" src="' + escapeHtml(imageUrl) + '" alt="" width="' + size + '" height="' + size + '" ' +
+          'onerror="this.parentElement.classList.add(\'fallback\');this.remove();" />' +
+          '<span class="token-avatar-fallback" style="font-size:' + fontSize + 'px">' + initials + '</span></span>';
+      }
+      return '<span class="token-avatar-wrap fallback" style="width:' + size + 'px;height:' + size + 'px">' +
+        '<span class="token-avatar-fallback" style="font-size:' + fontSize + 'px;display:flex">' + initials + '</span></span>';
     }
 
     function formatTime(ts) {
@@ -858,9 +921,9 @@
       } catch (err) {
         console.error('Boot error:', err);
         document.getElementById('communitiesGrid').innerHTML =
-          '<div class="error">Could not load communities from Vercel API. Click Refresh in the app header.</div>';
+          '<div class="error">Could not load spaces from Vercel API. Click Refresh in the app header.</div>';
         document.getElementById('createSearchResults').innerHTML =
-          '<p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>';
+          '<p class="search-hint">Search above to find a Bankr-deployed token and start a space for it.</p>';
       }
     }
 
@@ -963,7 +1026,7 @@
       const hasQuery = searchQuery.trim().length > 0;
 
       if (!hasQuery) {
-        el.innerHTML = '<p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>';
+        el.innerHTML = '<p class="search-hint">Search above to find a Bankr-deployed token and start a space for it.</p>';
         return;
       }
 
@@ -982,9 +1045,9 @@
         const comm = communityForToken(addr);
         let actions = '';
         if (comm) {
-          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCommunity('${addr}')">Open Community</button>`;
+          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCommunity('${addr}')">Open Space</button>`;
         } else if (isAuthenticated) {
-          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCreateModal('${addr}', '${escapeHtml(l.tokenSymbol)}')">Start Community</button>`;
+          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCreateModal('${addr}', '${escapeHtml(l.tokenSymbol)}')">Start Space</button>`;
         } else {
           actions = `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); requireAuth()">Sign in to Start</button>`;
         }
@@ -997,11 +1060,13 @@
 
         return `
           <div class="launch-row">
-            <div class="launch-info">
+            <div class="launch-info" style="display:flex;gap:12px;align-items:flex-start;">
+              ${tokenAvatarHtml(l.tokenSymbol, l.imageUrl || resolveTokenImageUrl(l.imageUri), 40)}
+              <div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span class="card-symbol">${escapeHtml(l.tokenSymbol)}</span>
                 <span class="badge badge-chain">${escapeHtml(l.chain || 'base')}</span>
-                ${comm ? '<span class="badge badge-live">Community Live</span>' : ''}
+                ${comm ? '<span class="badge badge-live">Space Live</span>' : ''}
                 ${verifiedBadge}
               </div>
               <div class="card-name">${escapeHtml(l.tokenName)}</div>
@@ -1009,6 +1074,7 @@
                 <span>${shortAddr(addr)}</span>
                 <span>Owner: ${shortAddr(l.feeRecipient?.walletAddress)}</span>
                 <span>${formatTime(l.timestamp)}</span>
+              </div>
               </div>
             </div>
             <div class="launch-actions">${actions}</div>
@@ -1022,17 +1088,20 @@
       const filtered = communities.filter(c => matchesSearch(c, communitySearchQuery));
 
       if (!communities.length) {
-        el.innerHTML = '<div class="empty">No communities yet. Use Create Community below to search for a token and start one.</div>';
+        el.innerHTML = '<div class="empty">No spaces yet. Use Create Space below to search for a token and start one.</div>';
         return;
       }
 
       if (!filtered.length) {
-        el.innerHTML = '<div class="empty">No communities match your search.</div>';
+        el.innerHTML = '<div class="empty">No spaces match your search.</div>';
         return;
       }
 
       el.innerHTML = filtered.map(c => `
         <div class="card" onclick="openCommunity('${c.tokenAddress}')">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            ${tokenAvatarHtml(c.symbol, c.imageUrl || resolveTokenImageUrl(c.imageUri), 44)}
+            <div style="min-width:0;flex:1;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <div class="card-symbol">${escapeHtml(c.symbol)}</div>
             ${c.verified
@@ -1044,6 +1113,8 @@
             <span class="badge badge-chain">${escapeHtml(c.chain || 'base')}</span>
             <span>💬 ${c.postCount || 0}</span>
             <span>👥 ${c.memberCount || 0}</span>
+          </div>
+            </div>
           </div>
         </div>
       `).join('');
@@ -1153,7 +1224,7 @@
     async function openCommunity(tokenAddress) {
       document.getElementById('mainView').style.display = 'none';
       document.getElementById('detailView').style.display = 'block';
-      document.getElementById('communityFeed').innerHTML = '<div class="loading">Loading community…</div>';
+      document.getElementById('communityFeed').innerHTML = '<div class="loading">Loading space…</div>';
 
       try {
         const data = await apiGet('/api/communities/' + tokenAddress);
@@ -1167,11 +1238,16 @@
         if (idx >= 0) communities[idx] = currentCommunity;
         else communities.unshift(currentCommunity);
 
+        document.getElementById('detailTokenAvatar').innerHTML = tokenAvatarHtml(
+          currentCommunity.symbol,
+          currentCommunity.imageUrl || resolveTokenImageUrl(currentCommunity.imageUri),
+          64
+        );
         document.getElementById('detailSymbol').textContent = currentCommunity.symbol;
         document.getElementById('detailName').textContent = currentCommunity.name;
         document.getElementById('detailContract').textContent = currentCommunity.tokenAddress;
         document.getElementById('detailDesc').textContent =
-          currentCommunity.description || 'A community for ' + currentCommunity.name + ' token holders.';
+          currentCommunity.description || 'A space for ' + currentCommunity.name + ' token holders.';
 
         renderSocialLinks(currentCommunity);
         renderVerificationUI(currentCommunity);
@@ -1181,7 +1257,7 @@
         await renderFeed(tokenAddress);
       } catch (err) {
         document.getElementById('communityFeed').innerHTML =
-          '<div class="error">' + escapeHtml(err.message || 'Failed to load community') + '</div>';
+          '<div class="error">' + escapeHtml(err.message || 'Failed to load space') + '</div>';
       }
     }
 
@@ -1203,8 +1279,8 @@
       if (canVerify) {
         verifyEl.innerHTML = `
           <div class="verify-banner">
-            <p>You are the token owner. Verify this community to mark it as official.</p>
-            <button class="btn btn-primary btn-sm" onclick="verifyCommunity('${comm.tokenAddress}')">Verify Community</button>
+            <p>You are the token owner. Verify this space to mark it as official.</p>
+            <button class="btn btn-primary btn-sm" onclick="verifyCommunity('${comm.tokenAddress}')">Verify Space</button>
           </div>
         `;
       } else {
@@ -1307,7 +1383,7 @@
             ${pinned ? '<span class="badge badge-verified">' + (mostRecentPin ? '📌 Pinned · most recent' : '📌 Pinned') + '</span> ' : ''}
             ${renderAuthorBlock(post)}
             <div class="post-header">
-              <span class="post-badge">${post.balance ? 'Holder · ' + Number(post.balance).toLocaleString() + ' tokens' : 'Community post'}</span>
+              <span class="post-badge">${post.balance ? 'Holder · ' + Number(post.balance).toLocaleString() + ' tokens' : 'Space post'}</span>
             </div>
             <div class="post-content">${escapeHtml(post.content)}</div>
             <div class="post-time">${formatTime(post.timestamp)} ${pinBtn}</div>
@@ -1377,7 +1453,7 @@
       pendingCreateToken = tokenAddress;
       pendingCreateSymbol = symbol;
       document.getElementById('createModalToken').textContent =
-        'Start a community for $' + symbol;
+        'Start a space for $' + symbol;
       document.getElementById('communityDesc').value = '';
       document.getElementById('createModal').classList.add('open');
     }
@@ -1402,7 +1478,7 @@
         closeCreateModal();
         await loadData();
         if (data.autoVerified) {
-          alert('Community created and verified — you are the token owner!');
+          alert('Space created and verified — you are the token owner!');
         }
         openCommunity(createdAddr || data.community.tokenAddress);
       } catch (err) {

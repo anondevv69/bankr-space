@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: result.error || 'Community not found',
+          error: result.error || 'Space not found',
           communityLink: null,
           hint: 'Try GET /api/agent/resolve-community?q=' + q,
         },

@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getCommunities, getSyncUpdatedAt } from '@/lib/db';
+import { getCommunities, getLaunches, getSyncUpdatedAt } from '@/lib/db';
+import { enrichCommunitiesWithImages } from '@/lib/community-image';
+import { mergeCommunityDefaults } from '@/lib/community-posts';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const [communities, syncAt] = await Promise.all([
+    const [communities, launches, syncAt] = await Promise.all([
       getCommunities(),
+      getLaunches(),
       getSyncUpdatedAt(),
     ]);
-    return NextResponse.json({ communities, syncUpdatedAt: syncAt });
+    const normalized = communities.map(mergeCommunityDefaults);
+    const enriched = await enrichCommunitiesWithImages(normalized, launches);
+    return NextResponse.json({ communities: enriched, syncUpdatedAt: syncAt });
   } catch (err) {
     console.error('GET /api/communities', err);
     return NextResponse.json(

@@ -17,7 +17,7 @@ const wallet = me.evmAddress.toLowerCase();
 const communities = (await appKV.get('communities')) || [];
 const community = communities.find((c) => c.tokenAddress.toLowerCase() === tokenAddress);
 if (!community) {
-  return { success: false, error: 'Community not found' };
+  return { success: false, error: 'Space not found' };
 }
 
 const chain = String(community.chain || 'base').toLowerCase();

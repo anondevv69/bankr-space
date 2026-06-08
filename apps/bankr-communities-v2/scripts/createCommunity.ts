@@ -60,7 +60,7 @@ const isOwner = wallet === feeRecipient || wallet === deployer;
 const communities = (await appKV.get('communities')) || [];
 for (let i = 0; i < communities.length; i++) {
   if (communities[i].tokenAddress.toLowerCase() === tokenAddress) {
-    return { success: false, error: 'A community already exists for this token' };
+    return { success: false, error: 'A space already exists for this token' };
   }
 }
 

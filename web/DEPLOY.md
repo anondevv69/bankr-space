@@ -1,4 +1,4 @@
-# Deploy Bankr Communities to Vercel
+# Deploy Bankr Space to Vercel
 
 This is the standalone web version — no Bankr app sandbox required.
 
@@ -72,9 +72,9 @@ Or wait for the hourly cron (configured in `vercel.json`).
 
 1. Open your Vercel URL
 2. Click **Connect Wallet** (Base network)
-3. Communities list loads (empty until someone creates one)
-4. Search a Bankr token under **Create Community**
-5. Create a community → open it → post if you hold the token
+3. Spaces list loads (empty until someone creates one)
+4. Search a Bankr token under **Create Space**
+5. Create a space → open it → post if you hold the token
 
 Footer should say: `made with love <3 rayblanco.eth · web v1`
 

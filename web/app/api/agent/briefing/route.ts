@@ -61,21 +61,21 @@ export async function GET(req: Request) {
     if (!community && launch) {
       opportunities.push({
         type: 'create_community',
-        message: `No community for ${launch.tokenSymbol} yet — anyone can start one at the site.`,
+        message: `No space for ${launch.tokenSymbol} yet — anyone can start one at the site.`,
       });
     }
 
     if (community && !community.verified) {
       opportunities.push({
         type: 'verify_pending',
-        message: `Community for $${community.symbol} is unverified — token owner can verify.`,
+        message: `Space for $${community.symbol} is unverified — token owner can verify.`,
       });
     }
 
     if (community && community.postCount === 0) {
       opportunities.push({
         type: 'first_post',
-        message: `No posts yet in $${community.symbol} community — holders can be first.`,
+        message: `No posts yet in $${community.symbol} space — holders can be first.`,
       });
     }
 
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
 
     if (searchParams.get('format') === 'text') {
       if (!replyText) {
-        return new NextResponse('Community not found', { status: 404 });
+        return new NextResponse('Space not found', { status: 404 });
       }
       return new NextResponse(replyText, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
