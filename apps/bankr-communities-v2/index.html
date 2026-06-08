@@ -1006,7 +1006,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v17
+    made with love &lt;3 rayblanco.eth · Bankr Space · v18
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1328,9 +1328,38 @@
       throw new Error('Bankr script API unavailable');
     }
 
-    async function apiGet(path, query) {
-      const result = await invokeBankrScript('apiGet', { path, query: query || '' });
+    function applyBackendSession(session) {
+      if (!session || !session.wallet) return false;
+      wallet = String(session.wallet).toLowerCase();
+      isAuthenticated = true;
+      return true;
+    }
+
+    function resolveSdkSession() {
+      if (typeof bankr === 'undefined') return;
+
+      const ctx = bankr.ctx || {};
+      const auth = bankr.auth || {};
+      const w = bankr.wallet || {};
+
+      const addr = ctx.walletAddress || w.evmAddress || wallet || null;
+      wallet = addr ? String(addr).toLowerCase() : null;
+      isAuthenticated = !!(
+        (auth && auth.isAuthenticated) ||
+        (ctx && ctx.isAuthenticated) ||
+        wallet
+      );
+    }
+
+    async function apiGet(path, query, options) {
+      const opts = options || {};
+      const result = await invokeBankrScript('apiGet', {
+        path,
+        query: query || '',
+        includeSession: !!opts.includeSession,
+      });
       if (!result.ok) throw new Error(result.error || 'Request failed');
+      applyBackendSession(result.session);
       return result.data;
     }
 
@@ -1345,7 +1374,7 @@
     }
 
     async function loadData() {
-      const data = await apiGet('/api/communities');
+      const data = await apiGet('/api/communities', '', { includeSession: true });
       communities = data.communities || [];
       syncUpdatedAt = data.syncUpdatedAt || null;
 
@@ -1376,12 +1405,31 @@
         return;
       }
 
-      isAuthenticated = bankr.auth && bankr.auth.isAuthenticated;
-      wallet = (bankr.ctx && bankr.ctx.walletAddress) || null;
+      resolveSdkSession();
 
-      el.innerHTML = wallet
-        ? 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>'
-        : 'Browsing as guest — sign in to search and post';
+      if (wallet) {
+        el.innerHTML = 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>';
+      } else if (isAuthenticated) {
+        el.textContent = 'Connected — syncing wallet…';
+      } else {
+        el.innerHTML =
+          'Browsing as guest — <a href="#" onclick="event.preventDefault(); requireAuth();">sign in</a> to search and post';
+      }
+    }
+
+    async function syncSessionFromBackend() {
+      try {
+        const result = await invokeBankrScript('apiGet', {
+          path: '/api/communities',
+          includeSession: true,
+        });
+        if (result.ok && applyBackendSession(result.session)) {
+          updateWalletBar();
+          if (currentCommunity) {
+            await checkHolderStatus(currentCommunity.tokenAddress);
+          }
+        }
+      } catch (_) {}
     }
 
     async function boot() {
@@ -1389,6 +1437,10 @@
       updateWalletBar();
       try {
         await loadData();
+        updateWalletBar();
+        if (currentCommunity && wallet) {
+          await checkHolderStatus(currentCommunity.tokenAddress);
+        }
       } catch (err) {
         console.error('Boot error:', err);
         document.getElementById('communitiesGrid').innerHTML =
@@ -2024,8 +2076,13 @@
     async function requireAuth() {
       try {
         await bankr.auth.requireSignIn();
+        resolveSdkSession();
         updateWalletBar();
+        await syncSessionFromBackend();
         await loadData();
+        if (currentCommunity) {
+          await openCommunity(currentCommunity.tokenAddress);
+        }
       } catch (_) {}
     }
 
@@ -2036,8 +2093,10 @@
       // Fallback if ready already fired before listener attached
       setTimeout(function() {
         var wd = document.getElementById('walletDisplay');
-        if (wd && wd.textContent === 'Connecting...') {
-          boot();
+        if (wd && (wd.textContent === 'Connecting...' || wd.textContent.indexOf('guest') !== -1)) {
+          resolveSdkSession();
+          if (!wallet) syncSessionFromBackend();
+          if (wd.textContent === 'Connecting...') boot();
         }
       }, 1500);
     } else {
