@@ -99,6 +99,6 @@ Token launches also available at `https://api.bankr.bot/token-launches` — comm
 |--------|---------|
 | 401 | Wallet header missing |
 | 403 | Not holder / not owner |
-| 404 | Community not found |
-| 409 | Community already exists |
+| 404 | Space not found |
+| 409 | Space already exists |
 | 503 | KV not configured |

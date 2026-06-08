@@ -1,4 +1,4 @@
-# One-line intents — Bankr Communities
+# One-line intents — Bankr Space
 
 > User gives **one sentence** → agent runs **full flow** without interview.
 

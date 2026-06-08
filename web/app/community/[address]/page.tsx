@@ -100,16 +100,16 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
   if (loading) {
     return (
-      <div className="max-w-[1100px] mx-auto px-5 py-12 text-muted">Loading community…</div>
+      <div className="max-w-[1100px] mx-auto px-5 py-12 text-muted">Loading space…</div>
     );
   }
 
   if (!community) {
     return (
       <div className="max-w-[1100px] mx-auto px-5 py-12">
-        <p className="text-red-400">Community not found.</p>
+        <p className="text-red-400">Space not found.</p>
         <Link href="/" className="text-accent-hover text-sm mt-4 inline-block">
-          ← Back to communities
+          ← Back to spaces
         </Link>
       </div>
     );
@@ -123,7 +123,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
       <Link href="/" className="text-sm text-muted hover:text-text mb-4 inline-block">
-        ← Back to communities
+        ← Back to spaces
       </Link>
 
       <CommunityProfile
@@ -138,7 +138,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
           onClick={verifyCommunity}
           className="mb-6 px-4 py-2 text-sm bg-accent text-white rounded-lg"
         >
-          Verify Community
+          Verify Space
         </button>
       ) : null}
 

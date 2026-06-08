@@ -1,16 +1,16 @@
-# Bankr Communities — Agent guide
+# Bankr Space — Agent guide
 
 **Site:** {{SITE_URL}}  
 **Chain:** Base (8453) — holder checks via on-chain `balanceOf`  
 **Bankr token data:** [api.bankr.bot](https://api.bankr.bot)  
-**Human UI:** same origin as this file — browse communities, connect wallet, post if holder.
+**Human UI:** same origin as this file — browse spaces, connect wallet, post if holder.
 
-This document is for **any AI agent** (Bankr, Cursor, custom bots) that should read communities, post, verify, or summarize token-gated discussions.
+This document is for **any AI agent** (Bankr, Cursor, custom bots) that should read spaces, post, verify, or summarize token-gated discussions.
 
 **Bankr users:** also install the skill pack:
 
 ```text
-install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
 **Live mirror (always current):** `{{SITE_URL}}/agent.md`
@@ -33,9 +33,9 @@ install Bankr Communities skill at https://github.com/anondevv69/bankr-community
 
 | Step | Human on website | Agent (Bankr, Cursor, bot) |
 |------|------------------|----------------------------|
-| Browse communities | Home page | `GET /api/communities` |
-| What's latest on $TMP? | Click community | `GET /api/agent/briefing?symbol=TMP` |
-| Create community | Search token → Create | `POST /api/communities/{token}` + `x-wallet-address` |
+| Browse spaces | Home page | `GET /api/communities` |
+| What's latest on $TMP? | Click space | `GET /api/agent/briefing?symbol=TMP` |
+| Create space | Search token → Create | `POST /api/communities/{token}` + `x-wallet-address` |
 | Post | Connect wallet → write post | Same POST if holder |
 | Verify | Owner clicks Verify | `POST /api/communities/{token}/verify` |
 | React | Click emoji | `POST /api/posts/{id}/react` |
@@ -46,12 +46,12 @@ install Bankr Communities skill at https://github.com/anondevv69/bankr-community
 
 | User says | Meaning | First API |
 |-----------|---------|---------|
-| What's latest on **$TMP** community? | Summary + recent posts | `GET /api/agent/briefing?symbol=TMP` |
+| What's latest on **$TMP** space? | Summary + recent posts | `GET /api/agent/briefing?symbol=TMP` |
 | How many **members** in **CTO**? | Member count | briefing → `stats.memberCount` |
-| **List** all communities | All active communities | `GET /api/communities` |
+| **List** all spaces | All active spaces | `GET /api/communities` |
 | **Search** Bankr token PEPE | Find launch | `GET /api/tokens/search?q=PEPE` |
-| **Start** community for $TMP | Create if not exists | search → `POST /api/communities/{token}` |
-| **Verify** $TMP community | Owner marks official | `POST /api/communities/{token}/verify` |
+| **Start** space for $TMP | Create if not exists | search → `POST /api/communities/{token}` |
+| **Verify** $TMP space | Owner marks official | `POST /api/communities/{token}/verify` |
 | **Post** in TMP: hello holders | `canPost` check → `POST …/posts` (holder OR owner) |
 | **React** 👍 on post | Holder-only reaction | `POST /api/posts/{id}/react` |
 | Can I **post** in $TMP? | Holder check | `GET /api/holders/{token}?wallet=` |
@@ -76,7 +76,7 @@ GET {{SITE_URL}}/api/agent/resolve-community?q=ARCHIVE
 GET {{SITE_URL}}/api/agent/search-communities?q=archive
 ```
 
-Search order: existing communities → Bankr token contract → build URL. Reply with `communityLink` or `tweetReply`.
+Search order: existing spaces → Bankr token contract → build URL. Reply with `communityLink` or `tweetReply`.
 
 **Example curl:**
 
@@ -91,7 +91,7 @@ curl "{{SITE_URL}}/api/agent/briefing?symbol=TMP"
 **Base:** `{{SITE_URL}}`  
 **Writes:** header `x-wallet-address: 0x…` (linked Bankr wallet or connected user wallet).
 
-### Communities
+### Spaces (API: `/api/communities`)
 
 ```http
 GET  /api/communities
@@ -132,22 +132,22 @@ Syncs token launches from `https://api.bankr.bot/token-launches` (hourly on Verc
 
 | Action | Who |
 |--------|-----|
-| Create community | Any connected wallet; token must be Bankr-launched |
+| Create space | Any connected wallet; token must be Bankr-launched |
 | Post / react | Must hold token on Base (on-chain balance > 0) |
 | Verify | Token owner (fee recipient or deployer) |
 
-If not holder → reply: "You need to hold $SYMBOL to post" + community link.
+If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 
 ---
 
 ## Tweet / @bankrbot examples (no skill jargon)
 
 ```text
-@bankrbot what's the latest on the TMP community?
-@bankrbot how many members in the CTO community?
-@bankrbot post in TMP community: gm holders
-@bankrbot verify the TMP community
-@bankrbot start a community for 0x935e13a28849095db45e63040f109c34b757aba3
+@bankrbot what's the latest on the TMP space?
+@bankrbot how many members in the CTO space?
+@bankrbot post in TMP space: gm holders
+@bankrbot verify the TMP space
+@bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 Bankr platform must load `bankr-communities` skill **before** tool selection (same pattern as TMP fee-rights skill).
@@ -159,13 +159,13 @@ Bankr platform must load `bankr-communities` skill **before** tool selection (sa
 | Domain | Where |
 |--------|--------|
 | List, buy, claim fees, launch, petition | [tokenmarketplace.shop/agent.md](https://www.tokenmarketplace.shop/agent.md) + TMP skills |
-| Community posts, verify, members, latest | **This guide** + Bankr Communities skill |
+| Space posts, verify, members, latest | **This guide** + Bankr Space skill |
 
 Example:
 
 ```text
 @bankrbot claim fees for CTO           → TMP skill
-@bankrbot what's new in CTO community  → this site /api/agent/briefing
+@bankrbot what's new in CTO space  → this site /api/agent/briefing
 ```
 
 ---
@@ -174,15 +174,15 @@ Example:
 
 **Briefing:**
 
-> **$TMP** community — ✓ Verified · **12** members · **34** posts. Latest: "@user shared update…" [View]({{SITE_URL}}/community/0x935e…)
+> **$TMP** space — ✓ Verified · **12** members · **34** posts. Latest: "@user shared update…" [View]({{SITE_URL}}/community/0x935e…)
 
 **Post:**
 
-> Posted to **$TMP** holder community. [View thread]({{SITE_URL}}/community/0x935e…)
+> Posted to **$TMP** holder space. [View thread]({{SITE_URL}}/community/0x935e…)
 
 **Verify:**
 
-> Verified the **$TMP** community as official.
+> Verified the **$TMP** space as official.
 
 ---
 
@@ -192,8 +192,8 @@ Example:
 |------|---------|
 | 401 | Missing `x-wallet-address` |
 | 403 | Not holder / not owner |
-| 404 | Community not found |
-| 409 | Community already exists |
+| 404 | Space not found |
+| 409 | Space already exists |
 | 503 | Database (KV) not configured |
 
 ---
@@ -203,7 +203,7 @@ Example:
 ```text
 install TMP site agent at https://github.com/anondevv69/bankr-tmp-skill/tree/main/tmp-site-agent
 install TMP skills at https://github.com/anondevv69/bankr-tmp-skill
-install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
 Set `COMMUNITIES_SITE_URL={{SITE_URL}}` on Bankr.

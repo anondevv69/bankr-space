@@ -37,7 +37,7 @@ export default function HomePage() {
         setMarkets({});
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load communities');
+      setError(err instanceof Error ? err.message : 'Failed to load spaces');
     } finally {
       setLoading(false);
     }
@@ -62,17 +62,17 @@ export default function HomePage() {
 
       <section>
         <div className="mb-5">
-          <div className="text-lg font-semibold">Communities</div>
-          <div className="text-sm text-muted">Browse active token communities</div>
+          <div className="text-lg font-semibold">Spaces</div>
+          <div className="text-sm text-muted">Browse active token spaces</div>
         </div>
         <input
           className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm mb-5"
-          placeholder="Filter communities…"
+          placeholder="Filter spaces…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
         {loading ? (
-          <p className="text-muted text-sm">Loading communities…</p>
+          <p className="text-muted text-sm">Loading spaces…</p>
         ) : error ? (
           <div className="text-red-400 text-sm p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
             {error}
@@ -80,8 +80,8 @@ export default function HomePage() {
         ) : filtered.length === 0 ? (
           <p className="text-muted text-sm p-8 text-center border border-dashed border-border rounded-xl">
             {communities.length === 0
-              ? 'No communities yet. Use Create Community below to search for a token and start one.'
-              : 'No communities match your search.'}
+              ? 'No spaces yet. Use Create Space below to search for a token and start one.'
+              : 'No spaces match your search.'}
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">

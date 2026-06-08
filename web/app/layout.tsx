@@ -4,7 +4,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Bankr Space',
-  description: 'Token-gated communities for Bankr-launched tokens',
+  description: 'Token-gated spaces for Bankr-launched tokens',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

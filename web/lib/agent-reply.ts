@@ -22,7 +22,7 @@ export function buildBriefingReplyText(
     : 'no posts yet';
 
   return [
-    `$${community.symbol} community — ${status} · ${community.memberCount} member · ${community.postCount} post${community.postCount === 1 ? '' : 's'}`,
+    `$${community.symbol} space — ${status} · ${community.memberCount} member · ${community.postCount} post${community.postCount === 1 ? '' : 's'}`,
     latestLine,
     '',
     link,
@@ -35,9 +35,9 @@ export function buildLinkOnlyReply(symbol: string, tokenAddress: string): string
 
 export function buildPostReplyText(symbol: string, content: string, tokenAddress: string): string {
   const link = communityUrl(tokenAddress);
-  return [`posted to $${symbol} holder community: "${content}"`, link].join('\n');
+  return [`posted to $${symbol} holder space: "${content}"`, link].join('\n');
 }
 
 export function buildLinkReplyText(symbol: string, tokenAddress: string): string {
-  return [`$${symbol} community link:`, '', communityUrl(tokenAddress)].join('\n');
+  return [`$${symbol} space link:`, '', communityUrl(tokenAddress)].join('\n');
 }

@@ -17,7 +17,7 @@ metadata:
   archiveCommunityLink: https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
 ---
 
-# Bankr Communities — Agent skill
+# Bankr Space — Agent skill
 
 ## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-community)
 
@@ -36,7 +36,7 @@ Check permissions: `GET /api/holders/{token}?wallet={linked}` → `canEditProfil
 
 ## ⚡ LINK QUESTIONS — instant reply (no tools needed)
 
-User asks **"what's the link to the TMP community?"** → read **`INSTANT-LINK-REPLIES.md`** → paste URL from table. **Do not call HTTP first.** **Never** reply empty.
+User asks **"what's the link to the TMP space?"** → read **`INSTANT-LINK-REPLIES.md`** → paste URL from table. **Do not call HTTP first.** **Never** reply empty.
 
 | Token | Tweet reply (one line only) |
 |-------|----------------------------|
@@ -58,7 +58,7 @@ GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
 **JSON alternative:** `GET /api/agent/resolve-community?q=TMP` → use `communityLink` or `tweetReply`.
 
 ---
-## LINK RULES (mandatory for every community reply)
+## LINK RULES (mandatory for every space reply)
 
 ```text
 https://bankr-community.vercel.app/community/{tokenContractAddress}
@@ -82,7 +82,7 @@ All `{SITE}` references below = `https://bankr-community.vercel.app`.
 **Install:**
 
 ```text
-install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
 **Site API base:** `https://bankr-community.vercel.app` (override via `COMMUNITIES_SITE_URL` env if needed).  
@@ -109,13 +109,13 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **pin** post in **TMP** community | `POST …/pin-post` |
 | **post** in **TMP** community: hello holders | holder check → `POST …/posts` → paste `replyText` |
 | **comment** on **$CTO** community | same as post |
-| start a community for **$PEPE** | search token → `POST …/communities/{addr}` |
+| start a space for **$PEPE** | search token → `POST …/communities/{addr}` |
 | list all communities | `GET {SITE}/api/communities` |
 | search Bankr tokens **PEPE** | `GET {SITE}/api/tokens/search?q=PEPE` |
 | do I hold **TMP**? can I post? | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | react 👍 on post **post_123** in **0x…** | `POST {SITE}/api/posts/post_123/react` |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent community data without API call.
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call.
 
 ---
 
@@ -144,7 +144,7 @@ else if community intent (verify, post, pin, profile, update links, members, lat
 
 | Action | Requires |
 |--------|----------|
-| Create community | Signed-in user, token on Bankr launches |
+| Create space | Signed-in user, token on Bankr launches |
 | Post / comment | **Holder** OR **fee recipient** OR **deployer** (owner can post without holding) |
 | React | Holder OR fee recipient OR deployer |
 | Verify | Token owner (fee recipient or deployer) |
@@ -175,7 +175,7 @@ https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b
 - **Never** summarize stats/latest without **`communityLink`** on its own line at the **end**
 - Copy `links.communityPage` or `communityLink` if building reply manually — never omit
 - Put the full URL on its **own line** (X auto-linkifies it)
-- Never end with "view community:" and nothing after it
+- Never end with "view space:" and nothing after it
 - Never use only `[View community](url)` markdown — always include the bare URL too
 - After posting, include the same community URL again
 
@@ -195,7 +195,7 @@ https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b
 **Post:**
 
 ```text
-posted to $TMP holder community: "this is from X"
+posted to $TMP holder space: "this is from X"
 
 https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
@@ -207,10 +207,10 @@ https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b
 ```text
 install TMP site agent at https://github.com/anondevv69/bankr-tmp-skill/tree/main/tmp-site-agent
 install TMP skills at https://github.com/anondevv69/bankr-tmp-skill
-install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
-TMP marketplace ops → TMP skills. Community social layer → **this skill**.
+TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 
 ---
 

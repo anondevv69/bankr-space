@@ -1,4 +1,4 @@
-# Install Bankr Communities v13 (native UI + Vercel API)
+# Install Bankr Space v13 (native UI + Vercel API)
 
 v13 uses a **native Bankr HTML app** (no iframe). All data comes from **https://bankr-community.vercel.app** via `apiGet` / `apiWrite` scripts. Bankr wallet sign-in works without WalletConnect or localStorage.
 
@@ -39,10 +39,10 @@ Make the app public.
 
 ## Verify
 
-1. Open **Apps → Bankr Communities**
+1. Open **Apps → Bankr Space**
 2. Footer: `rayblanco.eth · v13 · Vercel API`
-3. Communities list loads (not black screen)
-4. Open TMP community → market stats, posts visible
+3. Spaces list loads (not black screen)
+4. Open TMP space → market stats, posts visible
 5. Sign in → post / verify / pin work
 
 **Dry-run test:**
@@ -57,11 +57,11 @@ Should return `{ ok: true, data: { communities: [...] } }`
 
 | Feature | In app | Full site only |
 |---------|--------|----------------|
-| Browse communities | ✓ | |
+| Browse spaces | ✓ | |
 | Market stats + Dex paid | ✓ | |
 | Posts + reactions | ✓ | |
-| Verify community | ✓ | |
-| Create community | ✓ | |
+| Verify space | ✓ | |
+| Create space | ✓ | |
 | Pin / unpin | ✓ | |
 | Edit profile / socials | | ✓ (use "Open full site") |
 

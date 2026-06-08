@@ -7,6 +7,7 @@ import type { Community, TokenLaunch } from '@/lib/types';
 import { shortAddr, formatTime } from '@/lib/utils';
 import { apiFetch } from '@/lib/wagmi';
 import Link from 'next/link';
+import { TokenAvatar } from '@/components/TokenAvatar';
 
 export function CreateCommunity({
   communities,
@@ -58,7 +59,7 @@ export function CreateCommunity({
       setDesc('');
       onCreated();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create community';
+      const message = err instanceof Error ? err.message : 'Failed to create space';
       if (message.toLowerCase().includes('already exists') && modal) {
         setModal(null);
         setDesc('');
@@ -75,7 +76,7 @@ export function CreateCommunity({
   return (
     <section className="mt-10">
       <div className="mb-5">
-        <div className="text-lg font-semibold">Create Community</div>
+        <div className="text-lg font-semibold">Create Space</div>
         <div className="text-sm text-muted">Search for a Bankr token by name or contract address</div>
       </div>
       <input
@@ -86,7 +87,7 @@ export function CreateCommunity({
       />
       {!query.trim() ? (
         <p className="text-muted text-sm italic">
-          Search above to find a Bankr-deployed token and start a community for it.
+          Search above to find a Bankr-deployed token and start a space for it.
         </p>
       ) : loading ? (
         <p className="text-muted text-sm">Searching Bankr tokens…</p>
@@ -103,7 +104,9 @@ export function CreateCommunity({
                 key={l.tokenAddress}
                 className="flex flex-wrap items-center justify-between gap-3 p-4 bg-surface border border-border rounded-xl"
               >
-                <div>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <TokenAvatar symbol={l.tokenSymbol} imageUrl={l.imageUrl} size={40} />
+                  <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-accent-hover">{l.tokenSymbol}</span>
                     <span className="text-[11px] uppercase text-muted bg-surface-2 px-2 py-0.5 rounded-full">
@@ -111,7 +114,7 @@ export function CreateCommunity({
                     </span>
                     {comm ? (
                       <span className="text-[11px] font-semibold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
-                        Community Live
+                        Space Live
                       </span>
                     ) : null}
                   </div>
@@ -121,6 +124,7 @@ export function CreateCommunity({
                     <span>Owner: {shortAddr(l.feeRecipient?.walletAddress)}</span>
                     <span>{formatTime(l.timestamp)}</span>
                   </div>
+                  </div>
                 </div>
                 <div>
                   {comm ? (
@@ -128,14 +132,14 @@ export function CreateCommunity({
                       href={`/community/${l.tokenAddress}`}
                       className="inline-block px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
                     >
-                      Open Community
+                      Open Space
                     </Link>
                   ) : isConnected ? (
                     <button
                       onClick={() => setModal(l)}
                       className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover"
                     >
-                      Start Community
+                      Start Space
                     </button>
                   ) : (
                     <button
@@ -155,12 +159,12 @@ export function CreateCommunity({
       {modal ? (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-5 z-50">
           <div className="bg-surface border border-border rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-2">Create Community</h3>
-            <p className="text-muted text-sm mb-4">Start a community for ${modal.tokenSymbol}</p>
+            <h3 className="text-lg font-semibold mb-2">Create Space</h3>
+            <p className="text-muted text-sm mb-4">Start a space for ${modal.tokenSymbol}</p>
             <textarea
               className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm mb-4"
               rows={3}
-              placeholder="Community description (optional)"
+              placeholder="Space description (optional)"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
             />

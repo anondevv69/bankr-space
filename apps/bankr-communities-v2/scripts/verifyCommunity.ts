@@ -57,11 +57,11 @@ for (let i = 0; i < communities.length; i++) {
 }
 
 if (!community) {
-  return { success: false, error: 'Community not found' };
+  return { success: false, error: 'Space not found' };
 }
 
 if (community.verified) {
-  return { success: false, error: 'Community is already verified' };
+  return { success: false, error: 'Space is already verified' };
 }
 
 community.verified = true;

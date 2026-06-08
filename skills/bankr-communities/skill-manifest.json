@@ -1,6 +1,6 @@
 {
   "name": "bankr-communities",
-  "displayName": "Bankr Communities",
+  "displayName": "Bankr Space",
   "skillVersion": "1.4.0",
   "defaultSiteUrl": "https://bankr-community.vercel.app",
   "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
@@ -12,7 +12,7 @@
   },
   "forbiddenLinkDomains": ["bankr.bot", "t.co"],
   "installUrl": "https://github.com/anondevv69/bankr-community",
-  "installCommand": "install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
+  "installCommand": "install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
   "siteEnvVar": "COMMUNITIES_SITE_URL",
   "companionSkills": [
     {

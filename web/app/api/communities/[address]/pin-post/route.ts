@@ -52,7 +52,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       (item) => item.tokenAddress.toLowerCase() === tokenAddress
     );
     if (index === -1) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
 
     const posts = await getPosts(tokenAddress);

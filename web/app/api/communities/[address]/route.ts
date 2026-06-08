@@ -16,6 +16,7 @@ import {
 import { isTokenBeneficiary, canEditCommunityProfile } from '@/lib/community-owner';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
+import { enrichCommunityWithImage, withCommunityImageUrl } from '@/lib/community-image';
 import { normalizeSocialLinks } from '@/lib/social-links';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
@@ -34,13 +35,16 @@ export async function GET(_req: Request, { params }: RouteParams) {
       getPosts(tokenAddress),
     ]);
     if (!community) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     const normalized = mergeCommunityDefaults(community);
-    const beneficiary = await getBeneficiaryInfo(tokenAddress, normalized.chain);
+    const [beneficiary, enriched] = await Promise.all([
+      getBeneficiaryInfo(tokenAddress, normalized.chain),
+      enrichCommunityWithImage(normalized, await getLaunches()),
+    ]);
 
     return NextResponse.json({
-      community: normalized,
+      community: enriched,
       posts: sortPostsWithPinned(posts, normalized.pinnedPosts || []),
       beneficiary,
     });
@@ -66,7 +70,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       (item) => item.tokenAddress.toLowerCase() === tokenAddress
     );
     if (index === -1) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
 
     const owner = await canEditCommunityProfile(wallet, tokenAddress);
@@ -142,7 +146,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const communities = await getCommunities();
     if (communities.some((c) => c.tokenAddress.toLowerCase() === tokenAddress)) {
       return NextResponse.json(
-        { error: 'A community already exists for this token' },
+        { error: 'A space already exists for this token' },
         { status: 409 }
       );
     }
@@ -160,7 +164,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       verified: isOwner,
       verifiedAt: isOwner ? Date.now() : null,
       verifiedBy: isOwner ? wallet : null,
-      description: description || `${launch.tokenName} holder community`,
+      description: description || `${launch.tokenName} holder space`,
+      imageUri: launch.imageUri ?? null,
       socialLinks: {},
       pinnedPosts: [],
       pinnedPostId: null,
@@ -178,9 +183,11 @@ export async function POST(req: Request, { params }: RouteParams) {
       await setPostsForToken(tokenAddress, []);
     }
 
+    const enriched = withCommunityImageUrl(community, launch.imageUri);
+
     return NextResponse.json({
       success: true,
-      community,
+      community: enriched,
       autoVerified: isOwner,
       links: {
         communityPage: communityUrl(launch.tokenAddress),

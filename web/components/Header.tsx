@@ -13,7 +13,7 @@ export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
         <>
           <h1 className="text-[26px] font-bold tracking-tight">Bankr Space</h1>
           <p className="text-muted text-sm mt-1">
-            Token-gated communities for Bankr-launched tokens
+            Token-gated spaces for Bankr-launched tokens
           </p>
         </>
       ) : (

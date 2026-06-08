@@ -4,6 +4,7 @@ import {
   searchBankrTokens,
 } from '@/lib/bankr-api';
 import { getLaunches, setLaunches } from '@/lib/db';
+import { enrichLaunchWithImageUrl } from '@/lib/community-image';
 import type { TokenLaunch } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -67,7 +68,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ok: true,
       query,
-      launches: results.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)),
+      launches: results
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .map(enrichLaunchWithImageUrl),
       count: results.length,
     });
   } catch (err) {

@@ -192,7 +192,7 @@ function noCommunityAskCreateResult(
   const symbol = launch.tokenSymbol;
   const tokenName = launch.tokenName;
   const tokenAddress = launch.tokenAddress;
-  const reply = `No $${symbol} community yet — ${tokenName} is on Bankr. Would you like me to create the community?`;
+  const reply = `No $${symbol} space yet — ${tokenName} is on Bankr. Would you like me to create the space?`;
 
   return {
     ok: true,
@@ -231,7 +231,7 @@ export async function resolveCommunityLink(rawQuery: string): Promise<ResolveRes
       best.tokenAddress,
       communityMatches.map(toMatch),
       communityMatches.length > 1
-        ? `Multiple communities matched "${query}" — using ${best.symbol}. See matches[] for others.`
+        ? `Multiple spaces matched "${query}" — using ${best.symbol}. See matches[] for others.`
         : null
     );
   }
@@ -243,6 +243,6 @@ export async function resolveCommunityLink(rawQuery: string): Promise<ResolveRes
 
   return emptyResult(
     query,
-    `No community or Bankr token found for "${query}". Try a contract address or search on the site.`
+    `No space or Bankr token found for "${query}". Try a contract address or search on the site.`
   );
 }

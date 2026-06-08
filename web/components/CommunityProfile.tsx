@@ -6,6 +6,7 @@ import type { BeneficiaryInfo, Community, SocialLinks, TokenMarketStats } from '
 import { hasSocialLinks, socialLinksForDisplay } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { MarketStats } from '@/components/MarketStats';
+import { TokenAvatar } from '@/components/TokenAvatar';
 import { apiFetch } from '@/lib/wagmi';
 
 const SOCIAL_FIELDS: Array<{ key: keyof SocialLinks; label: string; placeholder: string }> = [
@@ -92,9 +93,12 @@ export function CommunityProfile({
   return (
     <div className="bg-surface border border-border rounded-xl p-6 mb-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex items-start gap-4 min-w-0">
+          <TokenAvatar symbol={community.symbol} imageUrl={community.imageUrl} size={64} />
+          <div>
           <div className="text-3xl font-bold text-accent-hover">{community.symbol}</div>
           <div className="text-xl font-semibold mt-1">{community.name}</div>
+          </div>
         </div>
         {canManage ? (
           <button

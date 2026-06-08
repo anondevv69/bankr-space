@@ -41,10 +41,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       (c) => c.tokenAddress.toLowerCase() === tokenAddress
     );
     if (!community) {
-      return NextResponse.json({ error: 'Community not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     if (community.verified) {
-      return NextResponse.json({ error: 'Community is already verified' }, { status: 400 });
+      return NextResponse.json({ error: 'Space is already verified' }, { status: 400 });
     }
 
     community.verified = true;
