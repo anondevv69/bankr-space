@@ -1,4 +1,4 @@
-const SITE = 'https://bankr.space';
+const SITE = 'https://www.bankr.space';
 
 const caller = ctx.caller || {};
 const wallet = caller.walletAddress ? String(caller.walletAddress).toLowerCase() : '';

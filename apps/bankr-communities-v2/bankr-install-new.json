@@ -1,7 +1,7 @@
 {
   "slug": "bankr-communities-v2",
   "title": "Bankr Space",
-  "version": "15",
+  "version": "16",
   "visibility": "public",
   "repo": "https://github.com/anondevv69/bankr-community",
   "branch": "main",
@@ -18,12 +18,9 @@
   ],
   "schedule": [],
   "verifyAfterInstall": {
-    "footerMustContain": "Bankr Space · v15",
-    "manifestVersion": "15",
-    "indexMustContain": "Create Space",
-    "dryRunScript": "apiGet",
-    "dryRunArgs": { "path": "/api/communities" },
-    "dryRunMustInclude": "communities"
+    "footerMustContain": "Bankr Space · v16",
+    "manifestVersion": "16",
+    "indexMustContain": "Create Space"
   },
-  "notes": "Use when bankr-communities slug is corrupted (File not found). Create fresh app on bankr-communities-v2. See RECREATE-IF-BROKEN.md"
+  "notes": "Do NOT dry-run during install — causes hang. Scripts use www.bankr.space (no apex redirect). Install in 3 steps per INSTALL-BANKR.md"
 }
