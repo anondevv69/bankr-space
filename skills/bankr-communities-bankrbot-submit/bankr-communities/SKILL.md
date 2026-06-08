@@ -1,48 +1,33 @@
 ---
 name: bankr-communities
+version: 1.5.0
 description: >-
-  Token-gated holder communities for Bankr-launched tokens. Links, briefing, posts,
-  verify, pin, and beneficiary profile updates via natural language on X or terminal.
-emoji: 🏘️
-tags: [communities, bankr, tokens, social, base, holders, verify]
-visibility: public
-version: 1.4.0
-siteUrl: https://bankr-community.vercel.app
-communitiesSiteUrl: https://bankr-community.vercel.app
-COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
-communityUrlTemplate: https://bankr-community.vercel.app/community/{tokenContractAddress}
-linkApiTemplate: https://bankr-community.vercel.app/api/agent/link?q={TICKER}
+  Verify, post, pin, update profile via API like post-in-space. Beneficiary: PATCH socials, pin-post. Read BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
+siteUrl: https://bankr.space
+communitiesSiteUrl: https://bankr.space
+COMMUNITIES_SITE_URL: https://bankr.space
+communityUrlTemplate: https://bankr.space/community/{tokenContractAddress}
+linkApiTemplate: https://bankr.space/api/agent/link?q={TICKER}
 metadata:
   siteEnvVar: COMMUNITIES_SITE_URL
-  defaultSiteUrl: https://bankr-community.vercel.app
+  defaultSiteUrl: https://bankr.space
   forbiddenLinkDomains: bankr.bot,t.co
-  primaryLinkEndpoint: https://bankr-community.vercel.app/api/agent/link?q={TICKER}
-  tmpCommunityLink: https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
-  archiveCommunityLink: https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
+  primaryLinkEndpoint: https://bankr.space/api/agent/link?q={TICKER}
+  tmpCommunityLink: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
+  archiveCommunityLink: https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
 ---
 
-# Bankr Communities — Agent skill
+# Bankr Space — Agent skill
 
-Token-gated holder communities for Bankr-launched tokens. Read-only queries need no wallet. Writes use the user's linked Bankr wallet in header `x-wallet-address`.
+Read **`TERMINOLOGY.md`** first: users may say **community** or **space** (same intent); replies use **space**; API fields stay `community*`.
 
-**Live site:** https://bankr-community.vercel.app  
-**Public agent guide:** https://bankr-community.vercel.app/agent.md
+## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-space)
 
-**Install:**
-
-```text
-install the bankr-communities skill from https://github.com/BankrBot/skills/tree/main/bankr-communities
-```
-
----
-
-## Write actions — verify, post, pin, profile (same as post-in-community)
-
-User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`references/beneficiary-actions.md`** → use linked wallet → call API → reply + community URL.
+User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → use linked wallet → call API → reply + space URL.
 
 | User says | Agent does |
 |-----------|------------|
-| **verify** the **TMP** community | `POST …/verify` (fee beneficiary wallet) |
+| **verify** the **TMP** space (or community) | `POST …/verify` (fee beneficiary wallet) |
 | **add website** / **update profile** for **TMP** | `PATCH …/communities/{token}` `{ socialLinks, description }` |
 | **post** in **TMP**: text **and pin it** | `POST …/posts` → `POST …/pin-post` if verified beneficiary |
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
@@ -51,92 +36,103 @@ Check permissions: `GET /api/holders/{token}?wallet={linked}` → `canEditProfil
 
 ---
 
-## Link questions — instant reply (no tools needed)
+## ⚡ LINK QUESTIONS — instant reply (no tools needed)
 
-User asks **"what's the link to the TMP community?"** → read **`references/instant-link-replies.md`** → paste URL from table. **Do not call HTTP first.** **Never** reply empty.
+User asks **"what's the link to the TMP space?"** → read **`INSTANT-LINK-REPLIES.md`** → paste URL from table. **Do not call HTTP first.** **Never** reply empty.
 
 | Token | Tweet reply (one line only) |
 |-------|----------------------------|
-| **TMP** | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| **ARCHIVE** | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| **TMP** | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| **ARCHIVE** | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
-For **other** tickers → `GET https://bankr-community.vercel.app/api/agent/link?q=TICKER` → paste response body. Or run `scripts/get-community-link.sh TICKER`.
+For **other** tickers → `GET https://bankr.space/api/agent/link?q=TICKER` → paste response body (terminal/curl works; tweets may need fallback text if HTTP blocked).
 
 ```bash
-curl "https://bankr-community.vercel.app/api/agent/link?q=TMP"
-# or
-./scripts/get-community-link.sh TMP
+curl "https://bankr.space/api/agent/link?q=TMP"
 ```
 
 **Search live communities:**
 
 ```http
-GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
+GET https://bankr.space/api/agent/search-communities?q=archive
 ```
 
 **JSON alternative:** `GET /api/agent/resolve-community?q=TMP` → use `communityLink` or `tweetReply`.
 
 ---
-
-## Link rules (mandatory for every community reply)
+## LINK RULES (mandatory for every space reply)
 
 ```text
-https://bankr-community.vercel.app/community/{tokenContractAddress}
+https://bankr.space/community/{tokenContractAddress}
 ```
 
 | Token | Link |
 |-------|------|
-| $TMP | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| $ARCHIVE | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| $TMP | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| $ARCHIVE | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
-**FORBIDDEN:** `bankr.bot`, `t.co`, `/community/TMP`, `/community/ARCHIVE`, or any URL not on `bankr-community.vercel.app/community/0x…`
+**FORBIDDEN:** `bankr.bot`, `t.co`, `/community/TMP`, `/community/ARCHIVE`, or any URL not on `bankr.space/community/0x…`
 
-Read `references/community-link-rules.md` for full rules.
+**Link questions** ("what's the link", "space URL"):
+1. `GET https://bankr.space/api/agent/link?q=ARCHIVE`
+2. Tweet reply = **response body only** — one line, full https URL
 
-All `{SITE}` references below = `https://bankr-community.vercel.app`.
+**Never invent links. Never substitute bankr.bot.** Read `references/COMMUNITY-LINK-RULES.md`.
+
+All `{SITE}` references below = `https://bankr.space`.
+
+**Install:**
+
+```text
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+```
+
+**Site API base:** `https://bankr.space` (override via `COMMUNITIES_SITE_URL` env if needed).  
+**Public agent guide:** `https://bankr.space/agent.md`  
+**Public reads** need no wallet. **Writes** use the user's **linked Bankr wallet** in header `x-wallet-address`.
 
 ---
 
-## Trigger → action (no skill jargon required)
+## TRIGGER → action (no skill jargon required)
 
 Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill("bankr-communities")`** **before** generic tools.
 
 | User says | Agent does |
 |-----------|------------|
-| what's the link to **$TMP** community? | Paste TMP URL from table above — **no HTTP** |
+| what's the link to **$TMP** space? | Paste TMP URL from table above — **no HTTP** |
 | what's the link to **$ARCHIVE**? | Paste ARCHIVE URL from table above — **no HTTP** |
-| search communities **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
-| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste **`replyText` verbatim** (URL is **last line**) |
-| how many members in **TMP** community? | briefing → `stats.memberCount` |
-| show recent posts in **0x935e…** community | `GET {SITE}/api/communities/0x935e…` |
-| **verify** the **TMP** community | `references/beneficiary-actions.md` → `POST …/verify` |
+| search spaces **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
+| what's the latest on **$TMP** space? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste **`replyText` verbatim** (URL is **last line**) — or `?format=text` |
+| how many members in **TMP** space? | briefing → `stats.memberCount` |
+| show recent posts in **0x935e…** space | `GET {SITE}/api/communities/0x935e…` |
+| **verify** the **TMP** space (or community) | `BENEFICIARY-ACTIONS.md` → `POST …/verify` |
 | **add links** / **update profile** for **TMP** | `PATCH …/communities/{token}` (beneficiary) |
-| **post** in **TMP** community: hello **and pin it** | post → pin-post if `canPinPosts` |
-| **pin** post in **TMP** community | `POST …/pin-post` |
-| **post** in **TMP** community: hello holders | holder check → `POST …/posts` → paste `replyText` |
-| **comment** on **$CTO** community | same as post |
-| start a community for **$PEPE** | search token → `POST …/communities/{addr}` |
-| list all communities | `GET {SITE}/api/communities` |
+| **post** in **TMP** space: hello **and pin it** | post → pin-post if `canPinPosts` |
+| **pin** post in **TMP** space | `POST …/pin-post` |
+| **post** in **TMP** space: hello holders | holder check → `POST …/posts` → paste `replyText` |
+| **comment** on **$CTO** space | same as post |
+| start a space for **$PEPE** | search token → `POST …/communities/{addr}` |
+| list all spaces | `GET {SITE}/api/communities` |
 | search Bankr tokens **PEPE** | `GET {SITE}/api/tokens/search?q=PEPE` |
 | do I hold **TMP**? can I post? | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | react 👍 on post **post_123** in **0x…** | `POST {SITE}/api/posts/post_123/react` |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent community data without API call.
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call.
 
 ---
 
 ## Mandatory routing guard
 
 ```
-if message contains "link" OR "url" OR "where is" + community/token:
+if message contains "link" OR "url" OR "where is" + space or community/token:
   1. use_skill("bankr-communities")
-  2. Read references/instant-link-replies.md
+  2. Read INSTANT-LINK-REPLIES.md
   3. If TMP or ARCHIVE → paste URL from table → STOP (no tools, no HTTP)
   4. Else try GET /api/agent/link?q={TICKER} → paste body
   5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
-else if community intent (verify, post, pin, profile, update links, members, latest):
+else if space intent (verify, post, pin, profile, update links, members, latest):
   1. use_skill("bankr-communities")
-  2. Read references/beneficiary-actions.md (writes) or references/one-line-intents.md (reads)
+  2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads)
   3. GET /api/holders/{token}?wallet={linked} before writes
   4. Call API — BEFORE replying
   5. Plain English reply + communityLink on own line
@@ -150,11 +146,10 @@ else if community intent (verify, post, pin, profile, update links, members, lat
 
 | Action | Requires |
 |--------|----------|
-| Create community | Signed-in user, token on Bankr launches |
+| Create space | Signed-in user, token on Bankr launches |
 | Post / comment | **Holder** OR **fee recipient** OR **deployer** (owner can post without holding) |
 | React | Holder OR fee recipient OR deployer |
 | Verify | Token owner (fee recipient or deployer) |
-| Update profile / pin | Verified fee beneficiary only (pin requires verified community) |
 
 `GET /api/holders/{token}?wallet=` returns `canPost: true` for holders **and** owners.
 
@@ -164,26 +159,27 @@ If `canPost` false → say "you need to hold $SYMBOL or be the token owner to po
 
 ---
 
-## Twitter/X reply rules (mandatory)
+## Twitter/X reply rules (MANDATORY)
 
 X does **not** render markdown links. Every reply **must** include the raw `https://` URL from API `links.communityPage`.
 
 **Required format (paste `replyText` from API — do not paraphrase without URL):**
 
 ```text
-$TMP community — verified · 1 member · 2 posts
+$TMP space — verified · 1 member · 2 posts
 latest: "this is from X" by @you
 
-https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 **Rules:**
 - Paste **`replyText`** or **`tweetReply`** from briefing API verbatim — they are identical
 - **Never** summarize stats/latest without **`communityLink`** on its own line at the **end**
+- Copy `links.communityPage` or `communityLink` if building reply manually — never omit
 - Put the full URL on its **own line** (X auto-linkifies it)
-- Never end with "view community:" and nothing after it
-- Never use only `[View community](url)` markdown — always include the bare URL too
-- After posting, include the same community URL again
+- Never end with "view space:" and nothing after it
+- Never use only `[View space](url)` markdown — always include the bare URL too
+- After posting, include the same space URL again
 
 ---
 
@@ -192,19 +188,31 @@ https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b
 **Briefing:**
 
 ```text
-$TMP community — ✓ Verified · 12 members · 34 posts
+$TMP space — ✓ Verified · 12 members · 34 posts
 latest: "@rayblanco.eth shared launch update…"
 
-https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 **Post:**
 
 ```text
-posted to $TMP holder community: "this is from X"
+posted to $TMP holder space: "this is from X"
 
-https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
+
+---
+
+## Hub install stack (with TMP)
+
+```text
+install TMP site agent at https://github.com/anondevv69/bankr-tmp-skill/tree/main/tmp-site-agent
+install TMP skills at https://github.com/anondevv69/bankr-tmp-skill
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+```
+
+TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 
 ---
 
@@ -212,16 +220,14 @@ https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b
 
 | File | Purpose |
 |------|---------|
-| `references/beneficiary-actions.md` | **Verify, profile, pin, post+pin — tweet + terminal** |
-| `references/instant-link-replies.md` | Link questions — paste URL, no HTTP (read first for links) |
-| `references/get-link.md` | GET /api/agent/link for unknown tickers |
-| `references/one-line-intents.md` | Full intent table |
-| `references/community-autopilot.md` | Step-by-step execution flows |
-| `references/community-link-rules.md` | **Mandatory link format — never bankr.bot** |
-| `references/agent-routing-communities.md` | Routing guard |
-| `references/bankr-platform-tweet-intake.md` | Platform requirements for @bankrbot |
+| `TERMINOLOGY.md` | **community vs space** — read first |
+| `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin — tweet + terminal** |
+| `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
+| `GET-LINK.md` | GET /api/agent/link for unknown tickers |
+| `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |
+| `ONE-LINE-INTENTS.md` | Full intent table |
+| `community-autopilot.md` | Step-by-step execution |
+| `references/COMMUNITY-LINK-RULES.md` | **Mandatory link format — never bankr.bot** |
+| `references/AGENT-ROUTING-COMMUNITIES.md` | Routing guard |
+| `references/BANKR-PLATFORM-TWEET-INTAKE.md` | Platform requirements |
 | `references/community-api-reference.md` | All endpoints |
-| `references/dm-intents.md` | DM / terminal intent summary |
-| `references/agent-guide.md` | Golden rules + intent map |
-| `known-communities.json` | TMP/ARCHIVE fallback when HTTP blocked |
-| `scripts/get-community-link.sh` | curl wrapper for link API |

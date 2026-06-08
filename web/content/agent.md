@@ -15,6 +15,8 @@ install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/
 
 **Live mirror (always current):** `{{SITE_URL}}/agent.md`
 
+**Terminology:** See `skills/bankr-communities/TERMINOLOGY.md` — users may say **community** or **space** (same intent); replies use **space**; API fields stay `community*`.
+
 ---
 
 ## Golden rules
@@ -44,9 +46,9 @@ install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/
 
 ## What users can do (intent → first API)
 
-| User says | Meaning | First API |
+| User says (community or space) | Meaning | First API |
 |-----------|---------|---------|
-| What's latest on **$TMP** space? | Summary + recent posts | `GET /api/agent/briefing?symbol=TMP` |
+| What's latest on **$TMP** space / community? | Summary + recent posts | `GET /api/agent/briefing?symbol=TMP` |
 | How many **members** in **CTO**? | Member count | briefing → `stats.memberCount` |
 | **List** all spaces | All active spaces | `GET /api/communities` |
 | **Search** Bankr token PEPE | Find launch | `GET /api/tokens/search?q=PEPE` |
@@ -144,6 +146,7 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 
 ```text
 @bankrbot what's the latest on the TMP space?
+@bankrbot what's the latest on the TMP community?   ← same intent
 @bankrbot how many members in the CTO space?
 @bankrbot post in TMP space: gm holders
 @bankrbot verify the TMP space

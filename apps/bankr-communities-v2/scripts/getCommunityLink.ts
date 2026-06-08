@@ -4,8 +4,8 @@ if (!q) {
 }
 
 const known: Record<string, string> = {
-  tmp: 'https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3',
-  archive: 'https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3',
+  tmp: 'https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3',
+  archive: 'https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3',
 };
 
 const key = q.toLowerCase();
@@ -14,7 +14,7 @@ if (known[key]) {
 }
 
 try {
-  const url = `https://bankr-community.vercel.app/api/agent/link?q=${encodeURIComponent(q)}`;
+  const url = `https://bankr.space/api/agent/link?q=${encodeURIComponent(q)}`;
   const body = await http.fetch(url);
   const text = typeof body === 'string' ? body.trim() : String(body || '').trim();
   if (!text) {

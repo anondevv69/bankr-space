@@ -1,10 +1,12 @@
-# Bankr Communities — agent guide
+# Bankr Space — agent guide
 
-**Human site:** https://bankr-community.vercel.app (Vercel Next.js app in `web/`)
+**Human site:** https://bankr.space (Vercel Next.js app in `web/`)
 
-**Live mirror for humans and other bots:** `{{SITE_URL}}/agent.md`
+**Live mirror for humans and other bots:** `{YOUR_VERCEL_URL}/agent.md` (same content as `web/content/agent.md`)
 
-When editing the guide, update **`web/content/agent.md`** then redeploy. Keep in sync with this file.
+When editing, update **`web/content/agent.md`** then redeploy. Keep this file in sync.
+
+**Terminology:** Read **`TERMINOLOGY.md`** — users may say **community** or **space** (same intent); agent replies use **space**; API/JSON keeps `community`, `communityLink`, `/api/communities`.
 
 ---
 
@@ -12,22 +14,23 @@ When editing the guide, update **`web/content/agent.md`** then redeploy. Keep in
 
 1. **One sentence → full flow** — no "open the website" if API works.
 2. **Briefing first** — `GET /api/agent/briefing` for "latest / members / opportunities".
-3. **Holder-gated posts** — always `GET /api/holders/{token}?wallet=` before post/react.
+3. **Post / react gate** — `GET /api/holders/{token}?wallet=` → `canPost` for holders **or** owner.
 4. **Owner verify** — only fee recipient / deployer.
-5. **Reply with links** — full community URL, not "check the app".
+5. **Reply with links** — paste `replyText` or `communityLink`; full space URL on its own line.
 
 ---
 
 ## Intent → API
 
-| User says | First call |
+| User says (community or space) | First call |
 |-----------|------------|
 | Latest on $TMP | `/api/agent/briefing?symbol=TMP` |
 | Member count | briefing → stats.memberCount |
-| Post in community | holders check → POST posts |
-| Verify community | POST verify |
-| Create community | search → POST communities |
-| List all | GET /api/communities |
+| Post in space / community | holders check → POST posts |
+| Verify space / community | POST verify |
+| Create space / community | search → POST `/api/communities/{token}` |
+| List all spaces | GET /api/communities |
+| Space / community link | `GET /api/agent/link?q=TICKER` or INSTANT-LINK-REPLIES.md for TMP/ARCHIVE |
 
 Full table: **`ONE-LINE-INTENTS.md`**
 
@@ -38,17 +41,24 @@ Full table: **`ONE-LINE-INTENTS.md`**
 ```text
 install TMP site agent at https://github.com/anondevv69/bankr-tmp-skill/tree/main/tmp-site-agent
 install TMP skills at https://github.com/anondevv69/bankr-tmp-skill
-install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
+install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
-Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bankr-community.vercel.app`.
-
-**Live agent guide (fetch at runtime):** `{YOUR_VERCEL_URL}/agent.md`
+Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bankr.space`.
 
 ---
 
 ## Execution
 
-Step-by-step: **`community-autopilot.md`**  
-Routing guard: **`references/AGENT-ROUTING-COMMUNITIES.md`**  
-Tweet intake: **`references/BANKR-PLATFORM-TWEET-INTAKE.md`**
+| File | Purpose |
+|------|---------|
+| `TERMINOLOGY.md` | **community vs space** — read first |
+| `ONE-LINE-INTENTS.md` | Intent → API table |
+| `BENEFICIARY-ACTIONS.md` | Verify, profile, pin, post+pin |
+| `INSTANT-LINK-REPLIES.md` | TMP/ARCHIVE links — no HTTP |
+| `community-autopilot.md` | Step-by-step flows |
+| `references/AGENT-ROUTING-COMMUNITIES.md` | Routing guard |
+| `references/BANKR-PLATFORM-TWEET-INTAKE.md` | Tweet intake |
+| `references/community-api-reference.md` | All endpoints |
+
+Public guide (canonical): **`https://bankr.space/agent.md`**

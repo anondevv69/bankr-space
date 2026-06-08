@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = 'https://bankr-community.vercel.app';
+const DEFAULT_SITE_URL = 'https://bankr.space';
 
 export function getSiteUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
@@ -13,4 +13,8 @@ export function getSiteUrl(): string {
 
 export function communityUrl(tokenAddress: string): string {
   return `${getSiteUrl()}/community/${tokenAddress}`;
+}
+
+export function communityUrlTemplate(): string {
+  return `${getSiteUrl()}/community/{tokenContractAddress}`;
 }

@@ -7,7 +7,7 @@ import {
   getSyncUpdatedAt,
 } from '@/lib/db';
 import { fetchLaunchByAddress } from '@/lib/bankr-api';
-import { communityUrl, getSiteUrl } from '@/lib/site-url';
+import { communityUrl, getSiteUrl, communityUrlTemplate } from '@/lib/site-url';
 import { buildBriefingReplyText } from '@/lib/agent-reply';
 
 export const dynamic = 'force-dynamic';
@@ -100,7 +100,7 @@ export async function GET(req: Request) {
       replyText,
       tweetReply: replyText,
       linkOnlyReply: pageLink,
-      communityUrlTemplate: 'https://bankr-community.vercel.app/community/{tokenContractAddress}',
+      communityUrlTemplate: communityUrlTemplate(),
       forbiddenLinks: ['https://bankr.bot', 'bankr.bot'],
       instruction:
         'Paste replyText verbatim as the tweet. Final line MUST be communityLink (https URL on its own line). Do not summarize without the URL.',

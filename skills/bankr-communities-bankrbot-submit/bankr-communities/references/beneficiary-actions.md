@@ -1,15 +1,15 @@
 # Beneficiary actions — verify, profile, pin (tweet + terminal)
 
-> Same pipeline as **post in community**. User does NOT need to say `use_skill`. Load `bankr-communities` → call API → plain English reply + community URL.
+> Same pipeline as **post in space**. User does NOT need to say `use_skill`. Load `bankr-communities` → call API → plain English reply + space URL.
 
-**Site:** `https://bankr-community.vercel.app`  
+**Site:** `https://bankr.space`  
 **Writes:** header `x-wallet-address: {user's linked Bankr wallet}` — never the thread starter's wallet.
 
 ---
 
 ## Who can do what
 
-| Action | Who | Community must be verified? |
+| Action | Who | Space must be verified? |
 |--------|-----|----------------------------|
 | **Verify** | Fee beneficiary only | No (this creates verified) |
 | **Update profile / social links** | Fee beneficiary only | No |
@@ -26,21 +26,21 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 ---
 
-## Verify community
+## Verify space
 
 **User says:**
 ```text
-@bankrbot verify the TMP community
-@bankrbot verify community for $TMP
+@bankrbot verify the TMP space
+@bankrbot verify space for $TMP
 ```
 
 **Steps:**
 ```
 1. GET /api/agent/briefing?symbol=TMP  → get tokenAddress, community.verified
-2. If already verified → "TMP community is already verified" + communityLink → STOP
+2. If already verified → "TMP space is already verified" + communityLink → STOP
 3. POST /api/communities/{tokenAddress}/verify
    Header: x-wallet-address: {linked}
-4. Reply: "Verified $TMP community ✓" + communityLink on its own line → STOP
+4. Reply: "Verified $TMP space ✓" + communityLink on its own line → STOP
 5. 403 → "Only the token fee beneficiary can verify" + communityLink
 ```
 
@@ -50,9 +50,9 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 **User says:**
 ```text
-@bankrbot add website https://tokenmarketplace.shop to TMP community
-@bankrbot update TMP community profile: website tokenmarketplace.shop telegram t.me/tmp
-@bankrbot set TMP community description: Token marketplace for holders
+@bankrbot add website https://tokenmarketplace.shop to TMP space
+@bankrbot update TMP space profile: website tokenmarketplace.shop telegram t.me/tmp
+@bankrbot set TMP space description: Token marketplace for holders
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
@@ -68,7 +68,7 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 4. PATCH /api/communities/{tokenAddress}
    Body: { "description": "...", "socialLinks": { "website": "...", "x": "...", ... } }
    Header: x-wallet-address: {linked}
-5. Reply: "Updated $TMP community profile" + list what changed + communityLink → STOP
+5. Reply: "Updated $TMP space profile" + list what changed + communityLink → STOP
 ```
 
 **PATCH body example:**
@@ -90,19 +90,19 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 **User says:**
 ```text
-@bankrbot pin post post_123 in TMP community
-@bankrbot unpin post post_123 in TMP community
-@bankrbot pin the latest post in TMP community
+@bankrbot pin post post_123 in TMP space
+@bankrbot unpin post post_123 in TMP space
+@bankrbot pin the latest post in TMP space
 ```
 
 **Steps:**
 ```
-1. GET /api/holders/{token}?wallet={linked} → if !canPinPosts → "Verify community first / beneficiary only" → STOP
+1. GET /api/holders/{token}?wallet={linked} → if !canPinPosts → "Verify space first / beneficiary only" → STOP
 2. Resolve postId (from message, or GET /api/communities/{token} → latest post id)
 3. POST /api/communities/{tokenAddress}/pin-post
    Body: { "postId": "post_123", "action": "pin" | "unpin" }
    Header: x-wallet-address: {linked}
-4. Reply: "Pinned post in $TMP community" (most recent pin shows first) + communityLink → STOP
+4. Reply: "Pinned post in $TMP space" (most recent pin shows first) + communityLink → STOP
 ```
 
 ---
@@ -111,8 +111,8 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 **User says:**
 ```text
-@bankrbot post in TMP community: launch update — and pin it
-@bankrbot post in TMP community: gm holders then pin
+@bankrbot post in TMP space: launch update — and pin it
+@bankrbot post in TMP space: gm holders then pin
 ```
 
 **Steps:**
@@ -132,11 +132,11 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 ## Tweet examples (copy-paste tests)
 
 ```text
-@bankrbot verify the TMP community
-@bankrbot add website https://tokenmarketplace.shop to TMP community profile
-@bankrbot post in TMP community: big update for holders — pin it
-@bankrbot pin the latest post in TMP community
-@bankrbot post in ARCHIVE community: gm
+@bankrbot verify the TMP space
+@bankrbot add website https://tokenmarketplace.shop to TMP space profile
+@bankrbot post in TMP space: big update for holders — pin it
+@bankrbot pin the latest post in TMP space
+@bankrbot post in ARCHIVE space: gm
 ```
 
 ---
@@ -144,10 +144,10 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 ## Reply format (every write)
 
 ```text
-posted to $TMP holder community: "launch update"
+posted to $TMP holder space: "launch update"
 pinned ✓
 
-https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 Always include **communityLink** on its own line. Never `bankr.bot`.
@@ -156,11 +156,11 @@ Always include **communityLink** on its own line. Never `bankr.bot`.
 
 ## Routing (Bankr platform)
 
-These phrases MUST load `bankr-communities` **before** tool selection — same as `post in community`:
+These phrases MUST load `bankr-communities` **before** tool selection — same as `post in space`:
 
-- verify community / verify $TICKER
-- update profile / add links / add website / set description + community or token
-- pin post / pin it / unpin + community
-- post in community + pin
+- verify space / verify $TICKER
+- update profile / add links / add website / set description + space/community or token
+- pin post / pin it / unpin + space/community
+- post in space + pin
 
 **Fail:** generic "I wasn't able to generate a response" without calling API.

@@ -1,8 +1,8 @@
-# Community autopilot — Bankr agent execution
+# Space autopilot — Bankr agent execution
 
 **Load:** `bankr-communities` skill + this file.
 
-**Env:** `COMMUNITIES_SITE_URL` — optional override. **Default site:** `https://bankr-community.vercel.app`
+**Env:** `COMMUNITIES_SITE_URL` — optional override. **Default site:** `https://bankr.space`
 
 ---
 
@@ -13,12 +13,12 @@
 | 1 | Resolve token: `0x…` from message, or symbol `$TMP` → `symbol=TMP`, or name |
 | 2 | `GET {SITE}/api/agent/briefing?symbol=TMP` (or `?token=0x…`) |
 | 3 | Paste **`replyText`** verbatim — **last line is the URL**. Do not summarize without `communityLink` |
-| 4 | Mention `opportunities[]` if any (unverified, no posts, no community yet) |
+| 4 | Mention `opportunities[]` if any (unverified, no posts, no space yet) |
 | 5 | **NEVER ask user for site URL** — **STOP** |
 
 ---
 
-## Flow B — Create community
+## Flow B — Create space
 
 | Step | Action |
 |------|--------|
@@ -26,17 +26,17 @@
 | 2 | Confirm not already in `GET /api/communities` |
 | 3 | `POST {SITE}/api/communities/{tokenAddress}` body `{ "description": "…" }` header `x-wallet-address: {linked}` |
 | 4 | If `autoVerified: true` → say owner auto-verified |
-| 5 | Reply with community URL — **STOP** |
+| 5 | Reply with space URL — **STOP** |
 
 ---
 
-## Flow C — Verify community (owner only)
+## Flow C — Verify space (owner only)
 
 | Step | Action |
 |------|--------|
-| 1 | `GET /api/agent/briefing?symbol=…` — confirm community exists, not verified |
+| 1 | `GET /api/agent/briefing?symbol=…` — confirm space exists, not verified |
 | 2 | `POST {SITE}/api/communities/{token}/verify` header `x-wallet-address: {linked}` |
-| 3 | Success → "Verified $SYMBOL community" — **STOP** |
+| 3 | Success → "Verified $SYMBOL space" — **STOP** |
 | 4 | 403 → "Only token owner can verify" — **STOP** |
 
 ---
@@ -45,7 +45,7 @@
 
 | Step | Action |
 |------|--------|
-| 1 | Resolve community token address |
+| 1 | Resolve space token address (from briefing) |
 | 2 | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | 3 | If `!canPost` → explain holder OR owner required + `communityLink` — **STOP** |
 | 4 | `POST {SITE}/api/communities/{token}/posts` `{ "content": "…" }` header `x-wallet-address: {linked}` |

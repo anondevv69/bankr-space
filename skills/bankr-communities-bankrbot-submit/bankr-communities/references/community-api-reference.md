@@ -1,6 +1,6 @@
-# Communities site API reference (agent)
+# Bankr Space site API reference (agent)
 
-**Base:** `https://bankr-community.vercel.app` (default; override with `COMMUNITIES_SITE_URL`)
+**Base:** `https://bankr.space` (default; override with `COMMUNITIES_SITE_URL`)
 
 All responses JSON unless noted. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
 
@@ -18,9 +18,9 @@ GET /api/agent/search-communities?q=archive
 
 **link (plain text):** response body = tweet reply. Same as `curl "…/api/agent/link?q=TMP"`. No JSON parsing.
 
-**resolve-community:** search existing communities → if found `communityLink` → if token on Bankr but no community `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
+**resolve-community:** search existing spaces → if found `communityLink` → if token on Bankr but no space `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
 
-**search-communities:** list only communities already created matching query.
+**search-communities:** list only spaces already created matching query matching query.
 
 ---
 
@@ -38,7 +38,7 @@ Paste **`replyText`** verbatim in replies — URL is on the last line.
 
 ---
 
-## Communities
+## Spaces (API)
 
 ```
 GET   /api/communities
@@ -101,6 +101,6 @@ Token launches also available at `https://api.bankr.bot/token-launches` — comm
 |--------|---------|
 | 401 | Wallet header missing |
 | 403 | Not holder / not owner |
-| 404 | Community not found |
-| 409 | Community already exists |
+| 404 | Space not found |
+| 409 | Space already exists |
 | 503 | KV not configured |

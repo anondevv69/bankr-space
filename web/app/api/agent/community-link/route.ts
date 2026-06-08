@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveCommunityLink } from '@/lib/resolve-community';
+import { communityUrlTemplate } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +48,7 @@ export async function GET(req: Request) {
       hint: result.hint,
       createCommunityAction: result.createCommunityAction,
       matches: result.matches,
-      communityUrlTemplate:
-        'https://bankr-community.vercel.app/community/{tokenContractAddress}',
+      communityUrlTemplate: communityUrlTemplate(),
       forbiddenLinks: ['https://bankr.bot', 'bankr.bot', 't.co'],
       instruction: result.suggestCreateCommunity
         ? 'Paste tweetReply asking to create. On yes use createCommunityAction.'
