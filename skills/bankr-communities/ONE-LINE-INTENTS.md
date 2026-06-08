@@ -10,7 +10,7 @@
 
 | User says | API | Reply |
 |-----------|-----|-------|
-| what's the link to **$TMP** community? | `GET /api/agent/resolve-community?q=TMP` → if exists paste `communityLink`; if `suggestCreateCommunity` ask to create |
+| what's the link to **$TMP** community? | `GET /api/agent/link?q=TMP` → paste response body (plain text URL) |
 | search live communities **archive** | `GET /api/agent/search-communities?q=archive` |
 | what's the latest on **$TMP** community? | briefing → paste full `replyText` (URL on line 2) |
 | how many **members** in **CTO** community? | `GET /api/agent/briefing?symbol=CTO` → `stats.memberCount` | "N members in $CTO community" |

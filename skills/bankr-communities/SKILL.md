@@ -1,39 +1,52 @@
 ---
 name: bankr-communities
-version: 1.1.1
+version: 1.2.0
 description: >-
-  Bankr token communities on https://bankr-community.vercel.app. Link flow: GET /api/agent/resolve-community?q=TICKER — if community exists paste communityLink; if token found but no community ask user to create one. Never bankr.bot.
+  TRIGGER link/community/TMP/ARCHIVE/post in community. Link question: GET https://bankr-community.vercel.app/api/agent/link?q=TICKER — paste response body as tweet (plain text, like curl). Fallback known-communities.json. Never bankr.bot. Never empty reply.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
 communityUrlTemplate: https://bankr-community.vercel.app/community/{tokenContractAddress}
+linkApiTemplate: https://bankr-community.vercel.app/api/agent/link?q={TICKER}
 metadata:
   siteEnvVar: COMMUNITIES_SITE_URL
   defaultSiteUrl: https://bankr-community.vercel.app
   forbiddenLinkDomains: bankr.bot,t.co
+  primaryLinkEndpoint: https://bankr-community.vercel.app/api/agent/link?q={TICKER}
 ---
 
 # Bankr Communities — Agent skill
 
-## ⚡ LINK & SEARCH — DO THIS FIRST
+## ⚡ LINK QUESTIONS — GET call (same as terminal curl)
 
-User asks for **link**, **URL**, or **community page** for a ticker/token → read **`LINK-INTENT-ONLY.md`**.
-
-**Primary API (search + link in one call):**
+User asks **"what's the link to the TMP community?"** → read **`GET-LINK.md`** → run HTTP GET → paste response body.
 
 ```http
-GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
+GET https://bankr-community.vercel.app/api/agent/link?q=TMP
 ```
 
-**Flow:** search existing communities → if found paste `communityLink` → if not, find Bankr token → if token exists but no community, paste `tweetReply` asking if they want to create one → on yes, `POST /api/communities/{tokenAddress}` then share link.
+**Terminal equivalent:**
 
-**Search live communities only:**
+```bash
+curl "https://bankr-community.vercel.app/api/agent/link?q=TMP"
+```
+
+**Bankr script:**
+
+```javascript
+const reply = await http.fetch('https://bankr-community.vercel.app/api/agent/link?q=TMP');
+// tweet = reply (plain text URL or ask-to-create sentence)
+```
+
+**Response is plain text — the entire body is the tweet.** No JSON parsing. Never reply empty. If GET fails, use `known-communities.json`.
+
+**Search live communities:**
 
 ```http
 GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
 ```
 
-**Tweet reply = `communityLink` or `tweetReply` from JSON — one line. Never bankr.bot.**
+**JSON alternative:** `GET /api/agent/resolve-community?q=TMP` → use `communityLink` or `tweetReply`.
 
 ---
 ## LINK RULES (mandatory for every community reply)
@@ -50,8 +63,8 @@ https://bankr-community.vercel.app/community/{tokenContractAddress}
 **FORBIDDEN:** `bankr.bot`, `t.co`, `/community/TMP`, `/community/ARCHIVE`, or any URL not on `bankr-community.vercel.app/community/0x…`
 
 **Link questions** ("what's the link", "community URL"):
-1. `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=ARCHIVE`
-2. Tweet reply = **only** the `communityLink` value — one line, full https URL
+1. `GET https://bankr-community.vercel.app/api/agent/link?q=ARCHIVE`
+2. Tweet reply = **response body only** — one line, full https URL
 
 **Never invent links. Never substitute bankr.bot.** Read `references/COMMUNITY-LINK-RULES.md`.
 
@@ -75,8 +88,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 
 | User says | Agent does |
 |-----------|------------|
-| what's the link to **$TMP** community? | `GET {SITE}/api/agent/resolve-community?q=TMP` → paste `communityLink` only |
-| what's the link to **$ARCHIVE**? | `GET {SITE}/api/agent/resolve-community?q=ARCHIVE` → paste `communityLink` |
+| what's the link to **$TMP** community? | `GET {SITE}/api/agent/link?q=TMP` → paste response body only |
+| what's the link to **$ARCHIVE**? | `GET {SITE}/api/agent/link?q=ARCHIVE` → paste response body only |
 | search communities **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
 | what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste full `replyText` (URL is line 2) |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
@@ -99,11 +112,12 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 ```
 if message contains "link" OR "url" OR "where is" + community/token:
   1. use_skill("bankr-communities")
-  2. Read LINK-INTENT-ONLY.md FIRST
-  3. GET /api/agent/resolve-community?q=… (link) OR search-communities (list) OR briefing (stats)
-  4. Link questions → paste communityLink only → STOP (no FAQ)
+  2. Read GET-LINK.md
+  3. http.fetch GET /api/agent/link?q={TICKER}
+  4. Tweet = response body verbatim → STOP (no FAQ, no empty reply)
+else if community intent (members, post, verify, latest):
   1. use_skill("bankr-communities")
-  2. Read ONE-LINE-INTENTS.md + references/AGENT-ROUTING-COMMUNITIES.md
+  2. Read ONE-LINE-INTENTS.md
   3. GET /api/agent/briefing or specific API — BEFORE replying
   4. For writes: inject linked wallet → x-wallet-address header
   5. Plain English reply with site link — no API jargon
@@ -189,7 +203,8 @@ TMP marketplace ops → TMP skills. Community social layer → **this skill**.
 
 | File | Purpose |
 |------|---------|
-| `LINK-INTENT-ONLY.md` | **Link questions — highest priority, read first** |
+| `GET-LINK.md` | **Link questions — GET call + paste body (read first)** |
+| `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |
 | `ONE-LINE-INTENTS.md` | Full intent table |
 | `community-autopilot.md` | Step-by-step execution |
 | `references/COMMUNITY-LINK-RULES.md` | **Mandatory link format — never bankr.bot** |

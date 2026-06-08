@@ -24,11 +24,19 @@ Replace `{tokenContractAddress}` with the token's **on-chain contract address** 
 ## How to get the link (always call API — never guess)
 
 ```http
-GET https://bankr-community.vercel.app/api/agent/community-link?symbol=ARCHIVE
-GET https://bankr-community.vercel.app/api/agent/community-link?token=0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
+GET https://bankr-community.vercel.app/api/agent/link?q=TMP
+GET https://bankr-community.vercel.app/api/agent/link?q=ARCHIVE
 ```
 
-Use the `communityLink` field from the response. Paste it **verbatim** as the tweet reply.
+Response is **plain text** — paste the entire body as the tweet reply (same as terminal curl).
+
+JSON alternative:
+
+```http
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=ARCHIVE
+```
+
+Use the `communityLink` field from JSON if needed.
 
 For "what's the link?" → tweet reply = **only** `communityLink`, nothing else.
 

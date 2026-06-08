@@ -1,10 +1,11 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Communities",
-  "skillVersion": "1.1.1",
+  "skillVersion": "1.2.0",
   "defaultSiteUrl": "https://bankr-community.vercel.app",
   "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
   "communityUrlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
+  "linkApiTemplate": "https://bankr-community.vercel.app/api/agent/link?q={TICKER}",
   "forbiddenLinkDomains": ["bankr.bot", "t.co"],
   "installUrl": "https://github.com/anondevv69/bankr-community",
   "installCommand": "install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
@@ -20,16 +21,16 @@
     }
   ],
   "allReferences": [
+    "GET-LINK.md",
+    "LINK-INTENT-ONLY.md",
     "ONE-LINE-INTENTS.md",
     "community-autopilot.md",
-    "LINK-INTENT-ONLY.md",
     "known-communities.json",
     "references/COMMUNITY-LINK-RULES.md",
     "references/AGENT-ROUTING-COMMUNITIES.md",
     "references/BANKR-PLATFORM-TWEET-INTAKE.md",
-    "known-communities.json",
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Token-gated communities on Vercel. Load skill before community tweet/terminal intents. Site URL from COMMUNITIES_SITE_URL env."
+  "bankrNote": "Link questions: GET /api/agent/link?q=TICKER returns plain text — paste body as tweet. Same as curl. Fallback known-communities.json if fetch fails."
 }
