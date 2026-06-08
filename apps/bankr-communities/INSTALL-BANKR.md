@@ -1,40 +1,42 @@
-# Install Bankr Space v15 (slug: `bankr-communities`)
+# Install Bankr Space (slug: `bankr-communities`)
 
-> **"File not found" on read/update?** The app record is broken on Bankr — see **`RECREATE-IF-BROKEN.md`** and use slug **`bankr-communities-v2`** instead.
+> **Source release** in GitHub `manifest.json` (e.g. `"17"`) is **not** the Bankr platform app version. Bankr auto-increments its own version (v10, v11, …) on each publish. Use the **footer** in `index.html` (`Bankr Space · v17`) to confirm the UI file loaded.
 
-If the one-shot update **gets stuck**, install **one file at a time** (order matters).
+> **Stuck on "dry run app script"?** Skip dry-run during install. Install files only, open the app, test manually.
 
 **Raw base:** `https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities`
 
 ---
 
-## Why updates hang
+## Why dry-run hangs
 
-1. **Dry-run before scripts exist** — `apiGet` must be installed before any dry-run.
-2. **Old manifest** still lists 10+ legacy scripts — Bankr tries to reconcile them slowly.
-3. **Large `index.html`** — fetching/writing in one mega-step can timeout.
+1. Bankr runs dry-run **before** `apiGet` is fully registered
+2. One-shot install tries to write 4 files + dry-run + make public in one step → timeout
+3. ~~`bankr.space` 308 redirect~~ — v16 uses **`www.bankr.space`** directly in scripts (no redirect)
 
-**Fix:** manifest + scripts first, then UI, then verify.
+**Do NOT include dry-run in the create-app paste.**
 
 ---
 
-## Step 1 — manifest only
+## Step 1 — Create app + manifest ONLY
 
 ```text
-For app bankr-communities, replace ONLY manifest.json from:
+Create a NEW public Bankr app slug bankr-communities titled "Bankr Space".
+
+Write ONLY manifest.json from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities/manifest.json
 
-Confirm version is "15", title "Bankr Space", scripts are ONLY ["apiGet","apiWrite"], schedule is [].
-Remove/delete all other scripts from this app (syncTokens, createPost, createCommunity, etc.).
-Do not change index.html yet.
+Confirm source release "17" in manifest, scripts ONLY ["apiGet","apiWrite"], schedule [].
+Do NOT write index.html yet. Do NOT run dry-run yet.
+Stop after manifest is written.
 ```
 
 ---
 
-## Step 2 — apiGet + apiWrite
+## Step 2 — Scripts ONLY
 
 ```text
-For app bankr-communities, write these two files only:
+For app bankr-communities, write ONLY these two files:
 
 scripts/apiGet.ts from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities/scripts/apiGet.ts
@@ -42,59 +44,56 @@ https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-com
 scripts/apiWrite.ts from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities/scripts/apiWrite.ts
 
-Then run script apiGet with args { "path": "/api/communities" }.
-Expect ok:true and data.communities array.
+Stop. Do not run dry-run yet.
 ```
 
 ---
 
-## Step 3 — index.html
+## Step 3 — index.html ONLY
 
 ```text
-For app bankr-communities, replace ONLY index.html from:
+For app bankr-communities, write ONLY index.html from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities/index.html
 
-Footer must contain: Bankr Space · v15
+Footer must contain "Bankr Space · v17".
+Make the app public.
+Do NOT run dry-run.
 ```
 
 ---
 
-## Step 4 — verify in Bankr UI
-
-Open the app. You should see:
-
-- **Bankr Space** title + TV logo
-- **Create Space** button (top right)
-- **All / Verified / Unverified** filters
-- Footer: `rayblanco.eth · Bankr Space · v15`
-
-NOT: "Bankr Communities", "Create Community", or `v13`.
-
----
-
-## One-shot (if your Bankr agent handles it)
+## Step 4 — Manual test (separate message, optional)
 
 ```text
-Update app bankr-communities to v15 in this order:
-
-1. manifest.json
-2. scripts/apiGet.ts
-3. scripts/apiWrite.ts
-4. index.html
-
-URLs under:
-https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities/
-
-Delete legacy scripts. schedule []. Only apiGet + apiWrite.
-Footer must say Bankr Space · v15. Then dry-run apiGet path /api/communities.
+For app bankr-communities, run script apiGet with args { "path": "/api/communities" }.
+Report ok:true or the error message. Do nothing else.
 ```
+
+If this hangs too, **skip it** — open the app in Bankr UI. If spaces load, apiGet works.
 
 ---
 
-## Manual API check (outside Bankr)
+## Success checklist
+
+| Check | Good |
+|-------|------|
+| Footer | `Bankr Space · v17` |
+| Title | Bankr Space + TV logo |
+| Create | **Create Space** button |
+| Spaces list | Loads (not black screen) |
+
+---
+
+## Outside Bankr (curl)
 
 ```bash
-curl -sL "https://bankr.space/api/communities" | head -c 200
+curl -sL "https://www.bankr.space/api/communities" | head -c 120
 ```
 
-Should return JSON with `"communities"`.
+Must return `"communities"`.
+
+---
+
+## Broken old slug?
+
+See **`RECREATE-IF-BROKEN.md`** — do not update `bankr-communities` if File not found.

@@ -1006,7 +1006,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v16
+    made with love &lt;3 rayblanco.eth · Bankr Space · v17
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1318,14 +1318,24 @@
       return '$' + Number(value).toFixed(4);
     }
 
+    async function invokeBankrScript(name, args) {
+      if (bankr.invokeScript) {
+        return await bankr.invokeScript(name, args);
+      }
+      if (bankr.scripts && bankr.scripts.run) {
+        return await bankr.scripts.run(name, args);
+      }
+      throw new Error('Bankr script API unavailable');
+    }
+
     async function apiGet(path, query) {
-      const result = await bankr.scripts.run('apiGet', { path, query: query || '' });
+      const result = await invokeBankrScript('apiGet', { path, query: query || '' });
       if (!result.ok) throw new Error(result.error || 'Request failed');
       return result.data;
     }
 
     async function apiWrite(path, method, body) {
-      const result = await bankr.scripts.run('apiWrite', {
+      const result = await invokeBankrScript('apiWrite', {
         path,
         method: method || 'POST',
         body,
@@ -1367,7 +1377,7 @@
       }
 
       isAuthenticated = bankr.auth && bankr.auth.isAuthenticated;
-      wallet = (bankr.ctx && bankr.ctx.walletAddress) || (bankr.wallet && bankr.wallet.address) || null;
+      wallet = (bankr.ctx && bankr.ctx.walletAddress) || null;
 
       el.innerHTML = wallet
         ? 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>'
