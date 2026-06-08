@@ -23,11 +23,13 @@ export async function getBeneficiaryInfo(
   if (!feeRecipient) return null;
 
   const xUsername = launch.feeRecipient?.xUsername || null;
+  const profileImageUrl = launch.feeRecipient?.xProfileImageUrl || null;
 
   return {
     wallet: feeRecipient,
     xUsername,
     xUrl: beneficiaryXUrl(xUsername),
+    profileImageUrl,
     walletUrl: walletExplorerUrl(feeRecipient, chain),
   };
 }
