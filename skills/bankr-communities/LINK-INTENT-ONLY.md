@@ -8,32 +8,38 @@
 GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
 GET https://bankr-community.vercel.app/api/agent/resolve-community?q=ARCHIVE
 GET https://bankr-community.vercel.app/api/agent/resolve-community?q=0x935e13a28849095db45e63040f109c34b757aba3
-GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TokenMarketplace&format=text
 ```
 
 Accepts: **ticker** (`TMP`), **token name** (`TokenMarketplace`), or **contract address** (`0x…`).
 
 ## Search order (server-side)
 
-1. **Existing communities** — match symbol, name, or contract in our database
+1. **Existing communities** — match symbol, name, or contract → return `communityLink`
 2. **If no community** — search Bankr token launches for ticker/name/address
-3. **Build link** — `https://bankr-community.vercel.app/community/{contractAddress}`
+3. **Token found, no community** → ask user if they want to create one (`suggestCreateCommunity: true`)
+4. **Nothing found** → 404
 
 ## Tweet reply
 
-Paste **`tweetReply`** or **`communityLink`** from the JSON — one line, full https URL.
+### Community exists (`communityExists: true`)
 
-```json
-{
-  "ok": true,
-  "source": "existing_community",
-  "communityExists": true,
-  "communityLink": "https://bankr-community.vercel.app/community/0x935e...",
-  "tweetReply": "https://bankr-community.vercel.app/community/0x935e..."
-}
+Paste **`communityLink`** — one line:
+
+```text
+https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
-If `communityExists: false` but `ok: true` — still paste the link (token found, community not created yet). Optional: mention `hint` in a follow-up.
+### No community yet (`suggestCreateCommunity: true`)
+
+Paste **`tweetReply`** — ask to create:
+
+```text
+No $FOO community yet — TokenName is on Bankr. Would you like me to create the community?
+```
+
+If user says **yes** → `POST /api/communities/{tokenAddress}` with linked wallet → then reply with new `communityLink`.
+
+Do **not** share a link to a community that doesn't exist yet.
 
 ## Search existing communities only
 
@@ -41,28 +47,20 @@ If `communityExists: false` but `ok: true` — still paste the link (token found
 GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
 ```
 
-Returns all matching **live** communities with links. Use when user asks "list communities matching X".
-
 ## Steps for Bankr
 
 ```
 1. use_skill("bankr-communities")
 2. Extract ticker/name/address from user message (strip $)
 3. GET /api/agent/resolve-community?q={query}
-4. If ok → tweet = communityLink (one line) → STOP
-5. If 404 → say no token/community found for that query
+4. If communityExists → tweet = communityLink → STOP
+5. If suggestCreateCommunity → tweet = tweetReply (ask to create) → STOP
+6. If 404 → say no token/community found
+7. If user confirms create → POST createCommunityAction → reply with communityLink
 ```
 
 ## FORBIDDEN
 
 - `bankr.bot`, `t.co`, `/community/TMP` (symbol in path)
+- Link to a page when community doesn't exist yet
 - FAQ when user only asked for a link
-- "I wasn't able to generate a response" without calling resolve-community
-
-## Examples
-
-| User says | Call | Tweet reply |
-|-----------|------|-------------|
-| link to TMP community | `?q=TMP` | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| link to ARCHIVE | `?q=ARCHIVE` | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
-| community page for 0x935e… | `?q=0x935e…` | same URL |

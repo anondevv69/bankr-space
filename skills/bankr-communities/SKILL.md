@@ -1,8 +1,8 @@
 ---
 name: bankr-communities
-version: 1.1.0
+version: 1.1.1
 description: >-
-  Bankr token communities on https://bankr-community.vercel.app. Link questions: GET /api/agent/resolve-community?q=TICKER → paste communityLink. Searches existing communities first, then Bankr token contract. Never bankr.bot.
+  Bankr token communities on https://bankr-community.vercel.app. Link flow: GET /api/agent/resolve-community?q=TICKER — if community exists paste communityLink; if token found but no community ask user to create one. Never bankr.bot.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
@@ -25,7 +25,7 @@ User asks for **link**, **URL**, or **community page** for a ticker/token → re
 GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
 ```
 
-**Flow:** search existing communities by ticker/name/address → if none, find Bankr token contract → build `https://bankr-community.vercel.app/community/0x{contract}` → paste `communityLink` on X.
+**Flow:** search existing communities → if found paste `communityLink` → if not, find Bankr token → if token exists but no community, paste `tweetReply` asking if they want to create one → on yes, `POST /api/communities/{tokenAddress}` then share link.
 
 **Search live communities only:**
 
