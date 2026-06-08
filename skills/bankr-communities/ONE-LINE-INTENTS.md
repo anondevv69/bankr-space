@@ -12,7 +12,7 @@
 |-----------|-----|-------|
 | what's the link to **$TMP** community? | `GET /api/agent/link?q=TMP` → paste response body (plain text URL) |
 | search live communities **archive** | `GET /api/agent/search-communities?q=archive` |
-| what's the latest on **$TMP** community? | briefing → paste full `replyText` (URL on line 2) |
+| what's the latest on **$TMP** community? | briefing → paste **`replyText` verbatim** (URL on **last** line) |
 | how many **members** in **CTO** community? | `GET /api/agent/briefing?symbol=CTO` → `stats.memberCount` | "N members in $CTO community" |
 | show **recent posts** for **0x935e…** | `GET /api/communities/0x935e…` | summarize last 5 posts |
 | **list** all communities | `GET /api/communities` | count + top symbols |

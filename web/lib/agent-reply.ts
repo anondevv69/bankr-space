@@ -23,8 +23,9 @@ export function buildBriefingReplyText(
 
   return [
     `$${community.symbol} community — ${status} · ${community.memberCount} member · ${community.postCount} post${community.postCount === 1 ? '' : 's'}`,
-    link,
     latestLine,
+    '',
+    link,
   ].join('\n');
 }
 
