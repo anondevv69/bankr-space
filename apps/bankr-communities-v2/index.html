@@ -5,212 +5,1373 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bankr Communities</title>
   <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #f0f0f5;
+      --muted: #8888a0;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.12);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --radius: 12px;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background: #0a0a0f; overflow: hidden; }
-    #loading, #fallback {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      color: #8888a0;
+
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    header {
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
       font-size: 14px;
-      background: #0a0a0f;
-      z-index: 2;
-      padding: 24px;
-      text-align: center;
+      margin-top: 4px;
     }
-    #loading.hidden, #fallback.hidden { display: none; }
-    #app {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      opacity: 0;
-      transition: opacity 0.2s ease;
+
+    .wallet-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
     }
-    #app.ready { opacity: 1; }
+
+    .wallet-bar .addr {
+      font-family: ui-monospace, monospace;
+      color: var(--accent-hover);
+    }
+
+    .sync-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .card-symbol {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-hover);
+    }
+
+    .card-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-live {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .badge-new {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-hover);
+    }
+
+    .badge-chain {
+      background: var(--surface-2);
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .badge-unverified {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .badge-verified {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-input::placeholder { color: var(--muted); }
+
+    .search-hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .section {
+      margin-bottom: 36px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .create-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .verify-banner {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .verify-banner p {
+      font-size: 14px;
+      color: var(--warning);
+      margin: 0;
+    }
+
     .btn {
-      margin-top: 8px;
       padding: 10px 18px;
       border: none;
       border-radius: 8px;
-      background: #6366f1;
-      color: #fff;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s;
     }
-    .btn.secondary {
-      background: transparent;
-      border: 1px solid #2a2a3a;
-      color: #f0f0f5;
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
     }
-    .footer-note {
-      position: fixed;
-      bottom: 8px;
-      left: 0;
-      right: 0;
-      text-align: center;
+
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--muted); }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .back-btn {
+      margin-bottom: 20px;
+    }
+
+    .detail-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .detail-symbol {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-hover);
+    }
+
+    .detail-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .detail-desc {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .contract-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .contract-label {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
       font-size: 11px;
-      color: #55556a;
-      pointer-events: none;
-      z-index: 1;
+      letter-spacing: 0.04em;
     }
-    .hint { font-size: 12px; max-width: 360px; line-height: 1.5; }
+
+    .contract-addr {
+      font-family: ui-monospace, monospace;
+      color: var(--accent-hover);
+      word-break: break-all;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .post-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .author-avatar-placeholder {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .author-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .author-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .author-handle {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .author-badge {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+
+    .author-badge.x { color: #60a5fa; }
+    .author-badge.fc { color: #a78bfa; }
+
+    .author-wallet-row {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .holder-banner {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .holder-banner.holding {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+
+    .holder-banner.not-holding {
+      background: var(--danger-bg);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .post-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .post-form .btn { margin-top: 10px; }
+
+    .feed { display: flex; flex-direction: column; gap: 12px; }
+
+    .post {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .post-wallet {
+      font-family: ui-monospace, monospace;
+      font-weight: 600;
+    }
+
+    .post-badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-hover);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .post-content {
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .post-time {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .reactions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .reaction-btn {
+      padding: 4px 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .reaction-btn:hover { border-color: var(--accent); }
+    .reaction-btn.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .launch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+    }
+
+    .launch-info { flex: 1; min-width: 0; }
+
+    .launch-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .error {
+      color: #fca5a5;
+      padding: 12px 16px;
+      background: var(--danger-bg);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .sign-in-prompt {
+      text-align: center;
+      padding: 32px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 440px;
+      width: 100%;
+    }
+
+    .modal h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .modal p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 20px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    footer a {
+      color: var(--accent-hover);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .launch-row { flex-direction: column; align-items: stretch; }
+      .launch-actions { justify-content: flex-end; }
+    }
   </style>
 </head>
 <body>
-  <div id="loading">
-    <div>Loading Bankr Communities…</div>
-    <div class="hint">Same UI as bankr-community.vercel.app · Bankr wallet sign-in</div>
-  </div>
-  <div id="fallback" class="hidden">
-    <div style="color:#f0f0f5;font-weight:600;">Could not embed the communities site</div>
-    <div class="hint">
-      The Bankr app panel may block external iframes. Open the full site in a new tab instead
-      (you can still use Bankr sign-in on the website after we enable it).
+  <div class="container">
+    <header>
+      <h1>Bankr Communities</h1>
+      <p>Token-gated communities for Bankr-deployed tokens</p>
+      <div class="wallet-bar">
+        <span id="walletDisplay">Connecting...</span>
+        <span class="sync-meta" id="syncMeta"></span>
+      </div>
+    </header>
+
+    <div id="mainView">
+      <section class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Communities</div>
+            <div class="section-subtitle">Browse active token communities</div>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="communitySearch"
+            placeholder="Filter communities…"
+            oninput="onCommunitySearchInput()"
+          />
+        </div>
+        <div class="grid" id="communitiesGrid">
+          <div class="loading">Loading communities...</div>
+        </div>
+      </section>
+
+      <section class="section create-section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Create Community</div>
+            <div class="section-subtitle">Search for a Bankr token by name or contract address</div>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            class="search-input"
+            id="tokenSearch"
+            placeholder="Token name, symbol, or contract address…"
+            oninput="onSearchInput()"
+          />
+        </div>
+        <div id="createSearchResults">
+          <p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>
+        </div>
+      </section>
     </div>
-    <button class="btn" id="openExternalBtn" type="button">Open bankr-community.vercel.app</button>
-    <button class="btn secondary" id="retryBtn" type="button">Retry embed</button>
+
+    <div id="detailView" style="display: none;">
+      <button class="btn btn-secondary btn-sm back-btn" onclick="backToMain()">← Back</button>
+      <div class="detail-header">
+        <div class="detail-symbol" id="detailSymbol"></div>
+        <div class="detail-name" id="detailName"></div>
+        <div class="contract-row">
+          <span class="contract-label">Contract</span>
+          <code class="contract-addr" id="detailContract"></code>
+          <button class="btn btn-secondary btn-sm" onclick="copyContract()">Copy</button>
+        </div>
+        <div class="detail-desc" id="detailDesc"></div>
+        <div id="verificationBadge"></div>
+        <div id="verifyBanner"></div>
+        <div id="marketPanel" style="margin-top:14px;"></div>
+        <div id="holderBanner"></div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="openFullSite()">Open full site (profile edit, pin)</button>
+        </div>
+      </div>
+      <div id="postFormWrap" class="post-form" style="display: none;">
+        <textarea id="postContent" placeholder="Share your thoughts with fellow holders..." maxlength="2000"></textarea>
+        <button class="btn btn-primary" id="submitPostBtn" onclick="submitPost()">Post</button>
+      </div>
+      <div id="viewOnlyNotice" class="sign-in-prompt" style="display: none;">
+        <p>👀 View-only mode — hold this token to post and react.</p>
+      </div>
+      <div class="feed" id="communityFeed">
+        <div class="loading">Loading posts...</div>
+      </div>
+    </div>
   </div>
-  <iframe id="app" title="Bankr Communities" allow="clipboard-write; fullscreen"></iframe>
-  <div class="footer-note">made with love &lt;3 rayblanco.eth · v12</div>
+
+  <footer>
+    made with love &lt;3 rayblanco.eth · v13 · Vercel API
+  </footer>
+
+  <div class="modal-overlay" id="createModal">
+    <div class="modal">
+      <h3>Create Community</h3>
+      <p id="createModalToken"></p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">If you're the token owner, the community will be verified automatically. Otherwise, the owner can verify it later.</p>
+      <textarea id="communityDesc" placeholder="Community description (optional)" rows="3"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirmCreateBtn" onclick="confirmCreateCommunity()">Create</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    var SITE = 'https://bankr-community.vercel.app';
-    var frame = document.getElementById('app');
-    var loading = document.getElementById('loading');
-    var fallback = document.getElementById('fallback');
-    var loadTimer = null;
-    var loaded = false;
+    const SITE = 'https://bankr-community.vercel.app';
+    let wallet = null;
+    let isAuthenticated = false;
+    let searchResults = [];
+    let communities = [];
+    let currentCommunity = null;
+    let currentPosts = [];
+    let currentBeneficiary = null;
+    let pendingCreateToken = null;
+    let pendingCreateSymbol = null;
+    let holderStatus = {};
+    let searchQuery = '';
+    let communitySearchQuery = '';
+    let searchLoading = false;
+    let searchTimer = null;
+    let syncUpdatedAt = null;
 
-    function pathFromHash() {
-      var hash = window.location.hash || '';
-      if (hash.indexOf('#/') === 0) return hash.slice(1);
-      return '/';
+    function shortAddr(addr) {
+      if (!addr) return '—';
+      return addr.slice(0, 6) + '…' + addr.slice(-4);
     }
 
-    function buildFrameUrl() {
-      var path = pathFromHash();
-      var join = path.indexOf('?') >= 0 ? '&' : '?';
-      return SITE + path + join + 'embed=bankr';
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
-    function showFallback() {
-      if (loaded) return;
-      loading.classList.add('hidden');
-      fallback.classList.remove('hidden');
+    function formatTime(ts) {
+      return new Date(ts).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
     }
 
-    function hideFallback() {
-      fallback.classList.add('hidden');
-      loading.classList.add('hidden');
+    function formatUsd(value) {
+      if (value == null || isNaN(value)) return '—';
+      const abs = Math.abs(value);
+      if (abs >= 1e6) return '$' + (value / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return '$' + (value / 1e3).toFixed(1) + 'K';
+      if (abs >= 1) return '$' + Number(value).toFixed(2);
+      return '$' + Number(value).toFixed(4);
     }
 
-    function sendWallet() {
-      if (!frame.contentWindow) return;
-      var wallet = null;
-      var authenticated = false;
-      if (typeof bankr !== 'undefined') {
-        authenticated = !!(bankr.auth && bankr.auth.isAuthenticated);
-        wallet =
-          (bankr.ctx && bankr.ctx.walletAddress) ||
-          (bankr.wallet && (bankr.wallet.address || bankr.wallet.evmAddress)) ||
-          null;
+    async function apiGet(path, query) {
+      const result = await bankr.scripts.run('apiGet', { path, query: query || '' });
+      if (!result.ok) throw new Error(result.error || 'Request failed');
+      return result.data;
+    }
+
+    async function apiWrite(path, method, body) {
+      const result = await bankr.scripts.run('apiWrite', {
+        path,
+        method: method || 'POST',
+        body,
+      });
+      if (!result.ok) throw new Error(result.error || 'Request failed');
+      return result.data;
+    }
+
+    async function loadData() {
+      const data = await apiGet('/api/communities');
+      communities = data.communities || [];
+      syncUpdatedAt = data.syncUpdatedAt || null;
+
+      if (syncUpdatedAt) {
+        document.getElementById('syncMeta').textContent =
+          'Last synced: ' + formatTime(syncUpdatedAt);
       }
-      frame.contentWindow.postMessage(
-        {
-          type: 'BANKR_WALLET',
-          address: wallet,
-          authenticated: authenticated,
-        },
-        SITE
+
+      renderCommunities();
+      renderCreateSearch();
+    }
+
+    function openFullSite() {
+      var path = currentCommunity
+        ? '/community/' + currentCommunity.tokenAddress
+        : '/';
+      var url = SITE + path;
+      if (bankr.openExternal) bankr.openExternal(url);
+      else window.open(url, '_blank');
+    }
+
+    function updateWalletBar() {
+      const el = document.getElementById('walletDisplay');
+      if (!el) return;
+
+      if (typeof bankr === 'undefined') {
+        el.textContent = 'Bankr SDK not loaded — open inside Bankr terminal';
+        return;
+      }
+
+      isAuthenticated = bankr.auth && bankr.auth.isAuthenticated;
+      wallet = (bankr.ctx && bankr.ctx.walletAddress) || (bankr.wallet && bankr.wallet.address) || null;
+
+      el.innerHTML = wallet
+        ? 'Connected: <span class="addr">' + shortAddr(wallet) + '</span>'
+        : 'Browsing as guest — sign in to search and post';
+    }
+
+    async function boot() {
+      updateWalletBar();
+      try {
+        await loadData();
+      } catch (err) {
+        console.error('Boot error:', err);
+        document.getElementById('communitiesGrid').innerHTML =
+          '<div class="error">Could not load communities from Vercel API. Click Refresh in the app header.</div>';
+        document.getElementById('createSearchResults').innerHTML =
+          '<p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>';
+      }
+    }
+
+    function copyContract() {
+      if (!currentCommunity?.tokenAddress) return;
+      bankr.copy(currentCommunity.tokenAddress);
+    }
+
+    function getPostAuthor(post) {
+      return post.author || { wallet: post.wallet };
+    }
+
+    function renderAuthorBlock(post) {
+      const author = getPostAuthor(post);
+      const wallet = author.wallet || post.wallet;
+      const avatar = author.profileImage
+        ? `<img class="author-avatar" src="${escapeHtml(author.profileImage)}" alt="" />`
+        : `<div class="author-avatar-placeholder">👤</div>`;
+
+      const badges = [];
+      if (author.twitter) {
+        badges.push(`<span class="author-badge x">𝕏 @${escapeHtml(author.twitter)}</span>`);
+      }
+      if (author.farcaster) {
+        badges.push(`<span class="author-badge fc">FC @${escapeHtml(author.farcaster)}</span>`);
+      }
+
+      const displayName = author.twitter
+        ? '@' + escapeHtml(author.twitter)
+        : author.farcaster
+          ? '@' + escapeHtml(author.farcaster)
+          : shortAddr(wallet);
+
+      return `
+        <div class="post-author">
+          ${avatar}
+          <div class="author-info">
+            <div class="author-name-row">
+              <span class="author-handle">${displayName}</span>
+              ${badges.join('')}
+            </div>
+            <div class="author-wallet-row">${wallet}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function communityForToken(addr) {
+      return communities.find(c => c.tokenAddress.toLowerCase() === addr.toLowerCase());
+    }
+
+    function matchesSearch(item, query) {
+      if (!query) return true;
+      const q = query.toLowerCase().trim();
+      return (
+        (item.tokenName || item.name || '').toLowerCase().includes(q) ||
+        (item.tokenSymbol || item.symbol || '').toLowerCase().includes(q) ||
+        (item.tokenAddress || '').toLowerCase().includes(q)
       );
     }
 
-    async function handleRequireSignIn() {
-      if (typeof bankr === 'undefined' || !bankr.auth) return;
+    function onSearchInput() {
+      searchQuery = document.getElementById('tokenSearch').value;
+      clearTimeout(searchTimer);
+
+      if (!searchQuery.trim()) {
+        searchResults = [];
+        searchLoading = false;
+        renderCreateSearch();
+        return;
+      }
+
+      searchLoading = true;
+      renderCreateSearch();
+
+      searchTimer = setTimeout(async () => {
+        try {
+          const data = await apiGet(
+            '/api/tokens/search',
+            'q=' + encodeURIComponent(searchQuery.trim())
+          );
+          searchResults = data.launches || [];
+        } catch (err) {
+          console.error('Search error:', err);
+          searchResults = [];
+        } finally {
+          searchLoading = false;
+          renderCreateSearch();
+        }
+      }, 350);
+    }
+
+    function onCommunitySearchInput() {
+      communitySearchQuery = document.getElementById('communitySearch').value;
+      renderCommunities();
+    }
+
+    function renderCreateSearch() {
+      const el = document.getElementById('createSearchResults');
+      const hasQuery = searchQuery.trim().length > 0;
+
+      if (!hasQuery) {
+        el.innerHTML = '<p class="search-hint">Search above to find a Bankr-deployed token and start a community for it.</p>';
+        return;
+      }
+
+      if (searchLoading) {
+        el.innerHTML = '<div class="loading">Searching Bankr tokens…</div>';
+        return;
+      }
+
+      if (!searchResults.length) {
+        el.innerHTML = '<div class="empty">No Bankr-launched tokens found for "' + escapeHtml(searchQuery.trim()) + '". Try a name, symbol, or full contract address.</div>';
+        return;
+      }
+
+      el.innerHTML = searchResults.map(l => {
+        const addr = l.tokenAddress;
+        const comm = communityForToken(addr);
+        let actions = '';
+        if (comm) {
+          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCommunity('${addr}')">Open Community</button>`;
+        } else if (isAuthenticated) {
+          actions = `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCreateModal('${addr}', '${escapeHtml(l.tokenSymbol)}')">Start Community</button>`;
+        } else {
+          actions = `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); requireAuth()">Sign in to Start</button>`;
+        }
+
+        const verifiedBadge = comm
+          ? (comm.verified
+            ? '<span class="badge badge-verified">✓ Verified</span>'
+            : '<span class="badge badge-unverified">Unverified</span>')
+          : '';
+
+        return `
+          <div class="launch-row">
+            <div class="launch-info">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span class="card-symbol">${escapeHtml(l.tokenSymbol)}</span>
+                <span class="badge badge-chain">${escapeHtml(l.chain || 'base')}</span>
+                ${comm ? '<span class="badge badge-live">Community Live</span>' : ''}
+                ${verifiedBadge}
+              </div>
+              <div class="card-name">${escapeHtml(l.tokenName)}</div>
+              <div class="card-meta">
+                <span>${shortAddr(addr)}</span>
+                <span>Owner: ${shortAddr(l.feeRecipient?.walletAddress)}</span>
+                <span>${formatTime(l.timestamp)}</span>
+              </div>
+            </div>
+            <div class="launch-actions">${actions}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCommunities() {
+      const el = document.getElementById('communitiesGrid');
+      const filtered = communities.filter(c => matchesSearch(c, communitySearchQuery));
+
+      if (!communities.length) {
+        el.innerHTML = '<div class="empty">No communities yet. Use Create Community below to search for a token and start one.</div>';
+        return;
+      }
+
+      if (!filtered.length) {
+        el.innerHTML = '<div class="empty">No communities match your search.</div>';
+        return;
+      }
+
+      el.innerHTML = filtered.map(c => `
+        <div class="card" onclick="openCommunity('${c.tokenAddress}')">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="card-symbol">${escapeHtml(c.symbol)}</div>
+            ${c.verified
+              ? '<span class="badge badge-verified">✓ Verified</span>'
+              : '<span class="badge badge-unverified">Unverified</span>'}
+          </div>
+          <div class="card-name">${escapeHtml(c.name)}</div>
+          <div class="card-meta">
+            <span class="badge badge-chain">${escapeHtml(c.chain || 'base')}</span>
+            <span>💬 ${c.postCount || 0}</span>
+            <span>👥 ${c.memberCount || 0}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function renderMarketPanel(tokenAddress) {
+      const el = document.getElementById('marketPanel');
+      el.innerHTML = '<div class="loading">Loading market data…</div>';
+      try {
+        const data = await apiGet('/api/market/' + tokenAddress);
+        const m = data.market;
+        if (!m || !m.found) {
+          el.innerHTML = '<div class="detail-desc">No DEX data on DexScreener yet.</div>';
+          return;
+        }
+        const dexPaid = m.dexScreener && m.dexScreener.enhancedInfoPaid
+          ? '<span class="badge badge-verified">Dex paid ✓</span>'
+          : '<span class="badge badge-unverified">Dex not paid</span>';
+        el.innerHTML = `
+          <div style="padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <strong>Market</strong>${dexPaid}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;color:var(--muted);">
+              <span>MCap ${formatUsd(m.marketCap)}</span>
+              <span>24h vol ${formatUsd(m.volume24h)}</span>
+              <span>24h ${m.priceChange24h != null ? (m.priceChange24h > 0 ? '+' : '') + m.priceChange24h.toFixed(2) + '%' : '—'}</span>
+              <span>Liq ${formatUsd(m.liquidityUsd)}</span>
+            </div>
+          </div>`;
+      } catch (err) {
+        el.innerHTML = '<div class="error">Market data unavailable</div>';
+      }
+    }
+
+    async function openCommunity(tokenAddress) {
+      document.getElementById('mainView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'block';
+      document.getElementById('communityFeed').innerHTML = '<div class="loading">Loading community…</div>';
+
+      try {
+        const data = await apiGet('/api/communities/' + tokenAddress);
+        currentCommunity = data.community;
+        currentPosts = data.posts || [];
+        currentBeneficiary = data.beneficiary || null;
+
+        const idx = communities.findIndex(
+          (c) => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase()
+        );
+        if (idx >= 0) communities[idx] = currentCommunity;
+        else communities.unshift(currentCommunity);
+
+        document.getElementById('detailSymbol').textContent = currentCommunity.symbol;
+        document.getElementById('detailName').textContent = currentCommunity.name;
+        document.getElementById('detailContract').textContent = currentCommunity.tokenAddress;
+        document.getElementById('detailDesc').textContent =
+          currentCommunity.description || 'A community for ' + currentCommunity.name + ' token holders.';
+
+        renderVerificationUI(currentCommunity);
+        renderMarketPanel(tokenAddress);
+        await checkHolderStatus(tokenAddress);
+        await renderFeed(tokenAddress);
+      } catch (err) {
+        document.getElementById('communityFeed').innerHTML =
+          '<div class="error">' + escapeHtml(err.message || 'Failed to load community') + '</div>';
+      }
+    }
+
+    function renderVerificationUI(comm) {
+      const badgeEl = document.getElementById('verificationBadge');
+      const verifyEl = document.getElementById('verifyBanner');
+
+      if (comm.verified) {
+        badgeEl.innerHTML = '<span class="badge badge-verified" style="margin-top:12px;display:inline-block;">✓ Verified by token owner</span>';
+        verifyEl.innerHTML = '';
+        return;
+      }
+
+      badgeEl.innerHTML = '<span class="badge badge-unverified" style="margin-top:12px;display:inline-block;">Unverified — awaiting fee beneficiary</span>';
+
+      const hs = holderStatus[comm.tokenAddress] || {};
+      const canVerify = hs.isBeneficiary && isAuthenticated;
+
+      if (canVerify) {
+        verifyEl.innerHTML = `
+          <div class="verify-banner">
+            <p>You are the token owner. Verify this community to mark it as official.</p>
+            <button class="btn btn-primary btn-sm" onclick="verifyCommunity('${comm.tokenAddress}')">Verify Community</button>
+          </div>
+        `;
+      } else {
+        verifyEl.innerHTML = `
+          <div class="verify-banner">
+            <p>Started by ${shortAddr(comm.founderWallet)} — waiting for owner ${shortAddr(comm.ownerWallet)} to verify.</p>
+          </div>
+        `;
+      }
+    }
+
+    async function verifyCommunity(tokenAddress) {
+      if (!isAuthenticated) return requireAuth();
+
+      try {
+        await apiWrite('/api/communities/' + tokenAddress + '/verify', 'POST');
+        await openCommunity(tokenAddress);
+        await loadData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function checkHolderStatus(tokenAddress) {
+      const banner = document.getElementById('holderBanner');
+      const postForm = document.getElementById('postFormWrap');
+      const viewOnly = document.getElementById('viewOnlyNotice');
+
+      if (!isAuthenticated) {
+        banner.innerHTML = '<div class="holder-banner not-holding">Sign in to check your holder status and post.</div>';
+        postForm.style.display = 'none';
+        viewOnly.style.display = 'block';
+        holderStatus[tokenAddress] = { holds: false };
+        return;
+      }
+
+      try {
+        const data = await apiGet(
+          '/api/holders/' + tokenAddress,
+          'wallet=' + encodeURIComponent(wallet)
+        );
+        holderStatus[tokenAddress] = data;
+
+        if (data.canPost) {
+          const label = data.holds
+            ? `✓ You hold ${Number(data.balance || 0).toLocaleString()} ${currentCommunity.symbol} — you can post and react`
+            : '✓ You are the token beneficiary/owner — you can post and react';
+          banner.innerHTML = `<div class="holder-banner holding">${label}</div>`;
+          postForm.style.display = 'block';
+          viewOnly.style.display = 'none';
+        } else {
+          banner.innerHTML = '<div class="holder-banner not-holding">You don\'t hold this token. Viewing only for now.</div>';
+          postForm.style.display = 'none';
+          viewOnly.style.display = 'block';
+        }
+        if (currentCommunity) renderVerificationUI(currentCommunity);
+      } catch (err) {
+        banner.innerHTML = `<div class="error">Could not verify holder status: ${escapeHtml(err.message)}</div>`;
+        postForm.style.display = 'none';
+        viewOnly.style.display = 'block';
+      }
+    }
+
+    function isPostPinned(postId) {
+      const pins = currentCommunity?.pinnedPosts || [];
+      return pins.some((p) => p.postId === postId);
+    }
+
+    async function renderFeed(tokenAddress) {
+      const posts = currentPosts || [];
+      const el = document.getElementById('communityFeed');
+      const hs = holderStatus[tokenAddress] || {};
+      const canInteract = !!hs.canPost;
+      const canPin = !!hs.canPinPosts;
+
+      if (!posts.length) {
+        el.innerHTML = '<div class="empty">No posts yet. Be the first holder to share something!</div>';
+        return;
+      }
+
+      el.innerHTML = posts.map(post => {
+        const reactions = post.reactions || {};
+        const emojis = ['👍', '❤️', '🔥'];
+        const reactionBtns = emojis.map(e => {
+          const count = (reactions[e] || []).length;
+          const active = wallet && (reactions[e] || []).includes(wallet.toLowerCase());
+          const disabled = !canInteract ? 'disabled' : '';
+          const cls = active ? 'reaction-btn active' : 'reaction-btn';
+          return `<button class="${cls}" ${disabled} onclick="addReaction('${post.id}', '${e}')">${e} ${count}</button>`;
+        }).join('');
+
+        const pinned = isPostPinned(post.id);
+        const pinBtn = canPin
+          ? `<button class="btn btn-secondary btn-sm" onclick="togglePin('${post.id}')">${pinned ? 'Unpin' : 'Pin'}</button>`
+          : '';
+
+        return `
+          <div class="post">
+            ${pinned ? '<span class="badge badge-verified">📌 Pinned</span> ' : ''}
+            ${renderAuthorBlock(post)}
+            <div class="post-header">
+              <span class="post-badge">${post.balance ? 'Holder · ' + Number(post.balance).toLocaleString() + ' tokens' : 'Community post'}</span>
+            </div>
+            <div class="post-content">${escapeHtml(post.content)}</div>
+            <div class="post-time">${formatTime(post.timestamp)} ${pinBtn}</div>
+            <div class="reactions">${reactionBtns}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function togglePin(postId) {
+      if (!currentCommunity) return;
+      const pinned = isPostPinned(postId);
+      try {
+        await apiWrite('/api/communities/' + currentCommunity.tokenAddress + '/pin-post', 'POST', {
+          postId,
+          action: pinned ? 'unpin' : 'pin',
+        });
+        await openCommunity(currentCommunity.tokenAddress);
+      } catch (err) {
+        alert(err.message || 'Pin failed');
+      }
+    }
+
+    async function submitPost() {
+      if (!isAuthenticated) return requireAuth();
+      if (!currentCommunity) return;
+
+      const content = document.getElementById('postContent').value.trim();
+      if (!content) return alert('Post cannot be empty');
+
+      const btn = document.getElementById('submitPostBtn');
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+
+      try {
+        await apiWrite('/api/communities/' + currentCommunity.tokenAddress + '/posts', 'POST', {
+          content,
+        });
+        document.getElementById('postContent').value = '';
+        await openCommunity(currentCommunity.tokenAddress);
+        await loadData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Post';
+      }
+    }
+
+    async function addReaction(postId, reaction) {
+      if (!isAuthenticated) return requireAuth();
+      if (!currentCommunity || !holderStatus[currentCommunity.tokenAddress]?.canPost) return;
+
+      try {
+        await apiWrite('/api/posts/' + postId + '/react', 'POST', {
+          tokenAddress: currentCommunity.tokenAddress,
+          reaction,
+        });
+        await openCommunity(currentCommunity.tokenAddress);
+      } catch (err) {
+        console.error('Reaction error:', err);
+      }
+    }
+
+    function openCreateModal(tokenAddress, symbol) {
+      if (!isAuthenticated) return requireAuth();
+      pendingCreateToken = tokenAddress;
+      pendingCreateSymbol = symbol;
+      document.getElementById('createModalToken').textContent =
+        'Start a community for $' + symbol;
+      document.getElementById('communityDesc').value = '';
+      document.getElementById('createModal').classList.add('open');
+    }
+
+    function closeCreateModal() {
+      pendingCreateToken = null;
+      document.getElementById('createModal').classList.remove('open');
+    }
+
+    async function confirmCreateCommunity() {
+      if (!pendingCreateToken) return;
+
+      const btn = document.getElementById('confirmCreateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        const createdAddr = pendingCreateToken;
+        const data = await apiWrite('/api/communities/' + pendingCreateToken, 'POST', {
+          description: document.getElementById('communityDesc').value.trim(),
+        });
+        closeCreateModal();
+        await loadData();
+        if (data.autoVerified) {
+          alert('Community created and verified — you are the token owner!');
+        }
+        openCommunity(createdAddr || data.community.tokenAddress);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create';
+      }
+    }
+
+    function backToMain() {
+      currentCommunity = null;
+      document.getElementById('detailView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
+    }
+
+    async function requireAuth() {
       try {
         await bankr.auth.requireSignIn();
-      } catch (err) {
-        console.warn('Bankr sign-in cancelled or failed', err);
-      }
-      sendWallet();
-    }
-
-    async function openExternalSite() {
-      var url = buildFrameUrl();
-      if (typeof bankr !== 'undefined' && bankr.openExternal) {
-        await bankr.openExternal(url);
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    }
-
-    window.addEventListener('message', function (event) {
-      if (event.origin !== SITE) return;
-      var data = event.data || {};
-      if (data.type === 'BANKR_EMBED_READY') {
-        loaded = true;
-        hideFallback();
-        sendWallet();
-      }
-      if (data.type === 'BANKR_REQUIRE_SIGNIN') handleRequireSignIn();
-    });
-
-    window.addEventListener('hashchange', function () {
-      loaded = false;
-      loading.classList.remove('hidden');
-      fallback.classList.add('hidden');
-      frame.classList.remove('ready');
-      frame.src = buildFrameUrl();
-      startLoadTimer();
-    });
-
-    function onFrameLoad() {
-      loaded = true;
-      if (loadTimer) clearTimeout(loadTimer);
-      hideFallback();
-      frame.classList.add('ready');
-      sendWallet();
-    }
-
-    function startLoadTimer() {
-      if (loadTimer) clearTimeout(loadTimer);
-      loadTimer = setTimeout(showFallback, 10000);
-    }
-
-    function boot() {
-      document.getElementById('openExternalBtn').onclick = openExternalSite;
-      document.getElementById('retryBtn').onclick = function () {
-        fallback.classList.add('hidden');
-        loading.classList.remove('hidden');
-        loaded = false;
-        frame.src = buildFrameUrl();
-        startLoadTimer();
-      };
-      frame.onload = onFrameLoad;
-      frame.onerror = showFallback;
-      frame.src = buildFrameUrl();
-      startLoadTimer();
+        updateWalletBar();
+        await loadData();
+      } catch (_) {}
     }
 
     if (typeof bankr !== 'undefined') {
-      bankr.on('ready', function () {
-        boot();
-        bankr.on('refresh', sendWallet);
-      });
-      setTimeout(function () {
-        if (!frame.src) boot();
+      bankr.on('ready', boot);
+      bankr.on('refresh', boot);
+
+      // Fallback if ready already fired before listener attached
+      setTimeout(function() {
+        var wd = document.getElementById('walletDisplay');
+        if (wd && wd.textContent === 'Connecting...') {
+          boot();
+        }
       }, 1500);
     } else {
-      loading.innerHTML =
-        '<div>Bankr SDK not loaded</div><div class="hint">Open from the Bankr terminal Apps panel.</div>';
+      document.getElementById('walletDisplay').textContent =
+        'Bankr SDK not loaded — open inside Bankr terminal';
+      document.getElementById('communitiesGrid').innerHTML =
+        '<div class="error">This app must be opened from the Bankr terminal Apps panel.</div>';
     }
+
+    setInterval(() => {
+      if (typeof bankr !== 'undefined') loadData();
+    }, 30000);
   </script>
 </body>
 </html>
