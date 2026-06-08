@@ -37,7 +37,7 @@ On tweet/DM matching space intent (user may say community):
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
 
 **Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
-Must log: `POST …/posts` then `POST …/pin-post` if verified beneficiary.
+Must log: `POST …/posts` **with `source`** (see POST-SOURCE.md) then `POST …/pin-post` if verified beneficiary.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 

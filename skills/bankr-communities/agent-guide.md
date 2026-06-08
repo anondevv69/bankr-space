@@ -26,7 +26,7 @@ When editing, update **`web/content/agent.md`** then redeploy. Keep this file in
 |-----------|------------|
 | Latest on $TMP | `/api/agent/briefing?symbol=TMP` |
 | Member count | briefing → stats.memberCount |
-| Post in space / community | holders check → POST posts |
+| Post in space / community | holders check → POST posts **with `source`** (POST-SOURCE.md) |
 | Verify space / community | POST verify |
 | Create space / community | search → POST `/api/communities/{token}` |
 | List all spaces | GET /api/communities |

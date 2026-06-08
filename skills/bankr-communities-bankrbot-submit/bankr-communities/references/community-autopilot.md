@@ -48,7 +48,7 @@
 | 1 | Resolve space token address (from briefing) |
 | 2 | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | 3 | If `!canPost` → explain holder OR owner required + `communityLink` — **STOP** |
-| 4 | `POST {SITE}/api/communities/{token}/posts` `{ "content": "…" }` header `x-wallet-address: {linked}` |
+| 4 | `POST {SITE}/api/communities/{token}/posts` `{ "content": "…", "source": { … } }` — **required `source`** per **`POST-SOURCE.md`** — header `x-wallet-address: {linked}`, `x-client: agent` |
 | 5 | Confirm post + paste `links.communityPage` URL on its own line — **STOP** |
 
 ---
@@ -82,7 +82,7 @@
 | 3 | Merge user fields → `PATCH /api/communities/{token}` `{ description?, socialLinks? }` |
 | 4 | Confirm changes + `communityLink` — **STOP** |
 
-Full examples: **`references/beneficiary-actions.md`**
+Full examples: **`BENEFICIARY-ACTIONS.md`**
 
 ---
 

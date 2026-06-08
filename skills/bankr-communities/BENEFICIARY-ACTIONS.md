@@ -118,8 +118,20 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 **Steps:**
 ```
 1. GET /api/holders/{token}?wallet={linked} → if !canPost → explain holder/owner required → STOP
-2. POST /api/communities/{tokenAddress}/posts  body: { "content": "..." }
+2. POST /api/communities/{tokenAddress}/posts
+   body: {
+     "content": "...",
+     "source": {
+       "client": "agent",
+       "trigger": "x-dm | x-mention | x-reply | terminal",
+       "viaAgent": true,
+       "agentId": "bankrbot",
+       "externalRef": "{id_if_known}"
+     }
+   }
+   headers: x-wallet-address, x-client: agent
    → save postId from response
+   See POST-SOURCE.md for trigger selection.
 3. If user asked to pin:
    - GET /api/holders/{token}?wallet={linked} again → if canPinPosts:
      POST /api/communities/{tokenAddress}/pin-post  body: { "postId": "{postId}", "action": "pin" }
