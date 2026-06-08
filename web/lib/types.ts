@@ -18,6 +18,7 @@ export interface BeneficiaryInfo {
   wallet: string;
   xUsername: string | null;
   xUrl: string | null;
+  profileImageUrl: string | null;
   walletUrl: string;
 }
 

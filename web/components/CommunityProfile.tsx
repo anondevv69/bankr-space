@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import type { BeneficiaryInfo, Community, SocialLinks } from '@/lib/types';
 import { hasSocialLinks, socialLinksForDisplay } from '@/lib/social-links';
-import { BeneficiaryCard } from '@/components/BeneficiaryCard';
+import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { apiFetch } from '@/lib/wagmi';
 
 const SOCIAL_FIELDS: Array<{ key: keyof SocialLinks; label: string; placeholder: string }> = [
@@ -207,19 +207,7 @@ export function CommunityProfile({
         </>
       )}
 
-      <BeneficiaryCard beneficiary={beneficiary} />
-
-      <div className="mt-4">
-        {community.verified ? (
-          <span className="inline-block text-[11px] font-semibold px-2 py-1 rounded-full bg-green-500/10 text-green-500">
-            ✓ Verified by token beneficiary
-          </span>
-        ) : (
-          <span className="inline-block text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-500/15 text-amber-500">
-            Unverified — awaiting token beneficiary
-          </span>
-        )}
-      </div>
+      <VerifiedBeneficiarySection community={community} beneficiary={beneficiary} />
     </div>
   );
 }
