@@ -6,6 +6,7 @@ import { useConnectWallet } from '@/components/WalletButton';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer } from '@/components/Header';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { CommunityProfile } from '@/components/CommunityProfile';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import type { BeneficiaryInfo, Community, Post } from '@/lib/types';
@@ -122,9 +123,12 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
-      <Link href="/" className="text-sm text-muted hover:text-text mb-4 inline-block">
-        ← Back to spaces
-      </Link>
+      <div className="flex items-center justify-between gap-3 mb-4 pt-4">
+        <Link href="/" className="text-sm text-muted hover:text-text">
+          ← Back to spaces
+        </Link>
+        <ThemeToggle />
+      </div>
 
       <CommunityProfile
         community={community}
@@ -135,6 +139,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
       {!community.verified && canVerify ? (
         <button
+          type="button"
           onClick={verifyCommunity}
           className="mb-6 px-4 py-2 text-sm bg-accent text-white rounded-lg"
         >
@@ -158,13 +163,13 @@ export default function CommunityPage({ params }: { params: { address: string } 
           ) : null}
         </div>
       ) : holder?.canPost ? (
-        <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-400">
+        <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-600 dark:text-green-400">
           {holder.holds
             ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
             : `✓ You are the token owner — you can post and react without holding`}
         </div>
       ) : (
-        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-400">
+        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
           You do not hold this token yet. Viewing only.
         </div>
       )}
@@ -172,7 +177,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
       {canPost ? (
         <PostForm tokenAddress={tokenAddress} onPosted={load} />
       ) : isConnected ? null : (
-        <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl">
+        <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
           👀 View-only mode —{' '}
           {isEmbedded
             ? 'sign in with Bankr and hold this token to post and react.'
@@ -186,6 +191,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canInteract={!!canPost}
         canManage={canPinPosts}
         pinnedPosts={community.pinnedPosts}
+        beneficiaryWallet={beneficiary?.wallet}
+        ownerWallet={community.ownerWallet}
         onUpdate={load}
       />
       <Footer />
