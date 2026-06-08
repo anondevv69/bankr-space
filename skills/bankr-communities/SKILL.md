@@ -1,12 +1,12 @@
 ---
 name: bankr-communities
-version: 1.0.7
+version: 1.0.8
 description: >-
-  Bankr token communities on https://bankr-community.vercel.app. TRIGGER link questions:
-  "what's the link to $TMP community" → GET /api/agent/community-link?symbol=TMP → reply communityLink only.
-  Never bankr.bot. Never FAQ when user asks for a link.
+  Bankr token communities. LINK ANSWERS (no API needed): TMP=https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3 ARCHIVE=https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3.
+  For "what's the link to TMP community" reply that URL only. Site https://bankr-community.vercel.app. Never bankr.bot.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
+COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
 communityUrlTemplate: https://bankr-community.vercel.app/community/{tokenContractAddress}
 metadata:
   siteEnvVar: COMMUNITIES_SITE_URL
@@ -18,11 +18,20 @@ metadata:
 
 ## ⚡ LINK QUESTIONS — DO THIS FIRST (before anything else)
 
-If user message contains **"link"** or **"URL"** and a token/community → read **`LINK-INTENT-ONLY.md`** and follow exactly.
+If user message contains **"link"** or **"URL"** and a token/community → read **`LINK-INTENT-ONLY.md`**.
 
-**One-line rule:** `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=TMP` → tweet = `communityLink` field only.
+### Answer immediately (no API call required)
 
-**Never** respond with a FAQ when they asked for a link. **Never** use bankr.bot.
+| User asks | Reply with ONLY this line |
+|-----------|---------------------------|
+| link to **TMP** community | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| link to **ARCHIVE** community | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+
+Do **not** call tools first for known symbols above — paste the URL and STOP.
+
+For unknown symbols: `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=SYMBOL` → reply `communityLink` only.
+
+**Never** respond with a FAQ when they asked for a link. **Never** use bankr.bot. **Never** say "I wasn't able to generate a response" for TMP/ARCHIVE — the link is in this skill.
 
 ---
 ## LINK RULES (mandatory for every community reply)

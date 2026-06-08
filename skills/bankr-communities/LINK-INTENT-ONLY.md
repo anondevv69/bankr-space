@@ -12,12 +12,20 @@
 ## Steps (exact — no shortcuts)
 
 ```
+0. KNOWN SYMBOL? TMP or ARCHIVE → paste link from table below → STOP (no API, no tools)
 1. use_skill("bankr-communities")
 2. Extract symbol from message (TMP, ARCHIVE, etc.) — strip $ if present
 3. HTTP GET https://bankr-community.vercel.app/api/agent/community-link?symbol=TMP
 4. Tweet reply = JSON field "communityLink" ONLY — one line, nothing else
 5. STOP — do not add stats, do not explain, do not link bankr.bot
 ```
+
+## Known links — paste immediately (step 0)
+
+| Symbol | Reply (one line only) |
+|--------|------------------------|
+| TMP | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| ARCHIVE | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
 ## If step 3 fails (timeout/error)
 
