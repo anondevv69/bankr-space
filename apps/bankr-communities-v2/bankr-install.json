@@ -1,7 +1,7 @@
 {
   "slug": "bankr-communities-v2",
   "title": "Bankr Space",
-  "version": "13",
+  "version": "14",
   "visibility": "public",
   "repo": "https://github.com/anondevv69/bankr-community",
   "branch": "main",
@@ -18,12 +18,12 @@
   ],
   "schedule": [],
   "verifyAfterInstall": {
-    "footerMustContain": "rayblanco.eth · v13",
-    "manifestVersion": "13",
+    "footerMustContain": "rayblanco.eth · v14",
+    "manifestVersion": "14",
     "indexMustContain": "bankr.space",
     "dryRunScript": "apiGet",
     "dryRunArgs": { "path": "/api/communities" },
     "dryRunMustInclude": "communities"
   },
-  "notes": "v13 uses native HTML UI + apiGet/apiWrite scripts proxying Vercel. No iframe (Bankr sandbox blocks localStorage/wagmi)."
+  "notes": "v14 matches bankr.space web UI: logo, Create Space modal, verified filters, hero stats, post filters, light/dark theme."
 }

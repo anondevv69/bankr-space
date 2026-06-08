@@ -1,22 +1,16 @@
-# Install Bankr Space v13 (native UI + Vercel API)
+# Install Bankr Space v14 (native UI + Vercel API)
 
-v13 uses a **native Bankr HTML app** (no iframe). All data comes from **https://bankr.space** via `apiGet` / `apiWrite` scripts. Bankr wallet sign-in works without WalletConnect or localStorage.
+v14 matches the **bankr.space** web UI: logo, Create Space modal, verified filters, hero market stats, post filters, and light/dark theme. All data comes from **https://bankr.space** via `apiGet` / `apiWrite` scripts.
 
 **Files to install:** `manifest.json`, `index.html`, `scripts/apiGet.ts`, `scripts/apiWrite.ts`  
 **Slug:** `bankr-communities-v2`
 
 ---
 
-## Why not iframe? (v12)
-
-Bankr apps run in a sandbox **without `allow-same-origin`**. The Vercel Next.js app needs localStorage/cookies (wagmi) and crashes with a black screen. v13 avoids that entirely.
-
----
-
 ## One-shot install (paste in Bankr terminal)
 
 ```text
-Update app bankr-communities-v2 to v13:
+Update app bankr-communities-v2 to v14:
 
 1. Write manifest.json from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/manifest.json
@@ -30,8 +24,8 @@ https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-com
 4. Write scripts/apiWrite.ts from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/apiWrite.ts
 
-Do not modify content. Confirm manifest version is "13" and footer says "rayblanco.eth · v13".
-Disable old syncTokens schedule — v13 needs no cron scripts.
+Do not modify content. Confirm manifest version is "14" and footer says "rayblanco.eth · v14".
+Disable old syncTokens schedule — v14 needs no cron scripts.
 Make the app public.
 ```
 
