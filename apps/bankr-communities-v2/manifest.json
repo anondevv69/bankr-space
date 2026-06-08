@@ -17,6 +17,7 @@
     "syncTokens",
     "searchTokens",
     "lookupLaunch",
+    "getCommunityLink",
     "resolveUserProfiles",
     "verifyHolder",
     "createPost",

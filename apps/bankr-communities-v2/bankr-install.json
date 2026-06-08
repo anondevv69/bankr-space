@@ -16,6 +16,7 @@
     "scripts/syncTokens.ts",
     "scripts/searchTokens.ts",
     "scripts/lookupLaunch.ts",
+    "scripts/getCommunityLink.ts",
     "scripts/resolveUserProfiles.ts",
     "scripts/verifyHolder.ts",
     "scripts/createPost.ts",
