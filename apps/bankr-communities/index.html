@@ -1825,10 +1825,16 @@
         if (data.canPost) {
           const label = data.holds
             ? `✓ You hold ${Number(data.balance || 0).toLocaleString()} ${currentCommunity.symbol} — you can post and react`
-            : '✓ You are the token beneficiary/owner — you can post and react';
+            : '✓ You are the token beneficiary — you can post and react without holding';
           banner.innerHTML = `<div class="holder-banner holding">${label}</div>`;
           postForm.style.display = 'block';
           viewOnly.style.display = 'none';
+        } else if (data.isFounder) {
+          banner.innerHTML = '<div class="holder-banner not-holding">You created this space. Hold ' +
+            escapeHtml(currentCommunity.symbol) +
+            ' to post and react — only the token beneficiary can verify it.</div>';
+          postForm.style.display = 'none';
+          viewOnly.style.display = 'block';
         } else {
           banner.innerHTML = '<div class="holder-banner not-holding">You don\'t hold this token. Viewing only for now.</div>';
           postForm.style.display = 'none';
