@@ -1,5 +1,7 @@
 # Install Bankr Space v15 (slug: `bankr-communities`)
 
+> **"File not found" on read/update?** The app record is broken on Bankr — see **`RECREATE-IF-BROKEN.md`** and use slug **`bankr-communities-v2`** instead.
+
 If the one-shot update **gets stuck**, install **one file at a time** (order matters).
 
 **Raw base:** `https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities`

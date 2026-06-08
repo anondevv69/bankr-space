@@ -1,0 +1,29 @@
+{
+  "slug": "bankr-communities-v2",
+  "title": "Bankr Space",
+  "version": "15",
+  "visibility": "public",
+  "repo": "https://github.com/anondevv69/bankr-community",
+  "branch": "main",
+  "sourcePath": "apps/bankr-communities-v2",
+  "rawBase": "https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2",
+  "installMode": "create-new-app",
+  "doNotMergeUI": true,
+  "fetchMethod": "http.fetch",
+  "files": [
+    "manifest.json",
+    "scripts/apiGet.ts",
+    "scripts/apiWrite.ts",
+    "index.html"
+  ],
+  "schedule": [],
+  "verifyAfterInstall": {
+    "footerMustContain": "Bankr Space · v15",
+    "manifestVersion": "15",
+    "indexMustContain": "Create Space",
+    "dryRunScript": "apiGet",
+    "dryRunArgs": { "path": "/api/communities" },
+    "dryRunMustInclude": "communities"
+  },
+  "notes": "Use when bankr-communities slug is corrupted (File not found). Create fresh app on bankr-communities-v2. See RECREATE-IF-BROKEN.md"
+}
