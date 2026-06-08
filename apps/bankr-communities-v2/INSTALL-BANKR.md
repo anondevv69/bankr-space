@@ -82,10 +82,11 @@ For app bankr-communities-v2:
 
 | Problem | Fix |
 |---------|-----|
-| Blank iframe | Vercel deploy must include embed headers (v12+ web). Hard-refresh app. |
-| "Sign in with Bankr" does nothing | Ensure you're signed into Bankr terminal first. |
-| Old UI / missing market stats | You're on v11 appKV UI — reinstall v12 index.html. |
-| Data mismatch | v12 always uses Vercel Redis — ignore old appKV community data. |
+| CSP `frame-ancestors` / "refused to connect" | Vercel must **not** send `frame-ancestors` — Bankr apps run in a null-origin sandbox, which `*` does not match. Fixed in web v2.1+. Redeploy Vercel, hard-refresh app. |
+| Blank iframe | Wait for Vercel deploy. Re-install index.html from GitHub. |
+| "Sign in with Bankr" does nothing | Sign into Bankr terminal first, then Refresh in app header. |
+| Old UI / missing market stats | Still on v11 — reinstall v12 index.html. |
+| Embed still blocked | Use **Open bankr-community.vercel.app** button in app (opens new tab). |
 
 ---
 
