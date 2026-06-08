@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: #f4f5f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef0f4;
+  --color-border: #dfe3ea;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-accent: #6366f1;
+  --color-accent-hover: #4f46e5;
+}
+
+.dark {
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-2: #1a1a26;
+  --color-border: #2a2a3a;
+  --color-text: #f0f0f5;
+  --color-muted: #8888a0;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+}
+
 body {
   @apply bg-bg text-text antialiased;
 }

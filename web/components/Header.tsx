@@ -1,6 +1,7 @@
 'use client';
 
 import { WalletButton } from '@/components/WalletButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { formatTime } from '@/lib/utils';
 
@@ -23,11 +24,14 @@ export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4 px-3.5 py-2.5 bg-surface border border-border rounded-xl text-[13px]">
         <WalletButton />
-        {syncUpdatedAt ? (
-          <span className="text-muted text-xs">
-            Last synced: {formatTime(syncUpdatedAt)}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {syncUpdatedAt ? (
+            <span className="text-muted text-xs">
+              Last synced: {formatTime(syncUpdatedAt)}
+            </span>
+          ) : null}
+        </div>
       </div>
     </header>
   );
