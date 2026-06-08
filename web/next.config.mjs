@@ -8,7 +8,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://bankr.bot https://*.bankr.bot http://localhost:* https://localhost:* *",
+            value: 'frame-ancestors *',
           },
         ],
       },
