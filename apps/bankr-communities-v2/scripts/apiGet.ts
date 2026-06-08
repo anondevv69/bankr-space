@@ -1,4 +1,4 @@
-const SITE = 'https://bankr.space';
+const SITE = 'https://www.bankr.space';
 
 const rawPath = String(args.path || '').trim();
 if (!rawPath.startsWith('/api/')) {
