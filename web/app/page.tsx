@@ -7,11 +7,20 @@ import { CommunityCard } from '@/components/CommunityCard';
 import { CreateCommunity } from '@/components/CreateCommunity';
 import type { Community, TokenMarketStats } from '@/lib/types';
 
+type VerifiedFilter = 'all' | 'verified' | 'unverified';
+
+const VERIFIED_FILTERS: Array<{ id: VerifiedFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'verified', label: 'Verified' },
+  { id: 'unverified', label: 'Unverified' },
+];
+
 export default function HomePage() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [markets, setMarkets] = useState<Record<string, TokenMarketStats>>({});
   const [syncAt, setSyncAt] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const embed = useEmbeddedBankr();
@@ -48,12 +57,19 @@ export default function HomePage() {
   }, [load]);
 
   const filtered = communities.filter((c) => {
-    if (!filter.trim()) return true;
-    const q = filter.toLowerCase().replace(/\s+/g, '');
-    const name = c.name.toLowerCase().replace(/\s+/g, '');
-    const symbol = c.symbol.toLowerCase();
-    const address = c.tokenAddress.toLowerCase();
-    return name.includes(q) || symbol.includes(q) || address.includes(q);
+    if (filter.trim()) {
+      const q = filter.toLowerCase().replace(/\s+/g, '');
+      const name = c.name.toLowerCase().replace(/\s+/g, '');
+      const symbol = c.symbol.toLowerCase();
+      const address = c.tokenAddress.toLowerCase();
+      if (!name.includes(q) && !symbol.includes(q) && !address.includes(q)) {
+        return false;
+      }
+    }
+
+    if (verifiedFilter === 'verified') return c.verified;
+    if (verifiedFilter === 'unverified') return !c.verified;
+    return true;
   });
 
   return (
@@ -61,16 +77,38 @@ export default function HomePage() {
       <Header syncUpdatedAt={syncAt} />
 
       <section>
-        <div className="mb-5">
-          <div className="text-lg font-semibold">Spaces</div>
-          <div className="text-sm text-muted">Browse active token spaces</div>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+          <div>
+            <div className="text-lg font-semibold">Spaces</div>
+            <div className="text-sm text-muted">Browse active token spaces</div>
+          </div>
+          <CreateCommunity communities={communities} onCreated={load} />
         </div>
+
         <input
-          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm mb-5"
-          placeholder="Filter spaces…"
+          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm mb-4"
+          placeholder="Search spaces by name, ticker, or contract…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+
+        <div className="flex flex-wrap gap-1 p-1 bg-surface-2 border border-border rounded-xl mb-5 w-fit">
+          {VERIFIED_FILTERS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setVerifiedFilter(item.id)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                verifiedFilter === item.id
+                  ? 'bg-surface text-text shadow-sm border border-border'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <p className="text-muted text-sm">Loading spaces…</p>
         ) : error ? (
@@ -80,8 +118,8 @@ export default function HomePage() {
         ) : filtered.length === 0 ? (
           <p className="text-muted text-sm p-8 text-center border border-dashed border-border rounded-xl">
             {communities.length === 0
-              ? 'No spaces yet. Use Create Space below to search for a token and start one.'
-              : 'No spaces match your search.'}
+              ? 'No spaces yet. Click Create Space to search for a token and start one.'
+              : 'No spaces match your search or filter.'}
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
@@ -96,7 +134,6 @@ export default function HomePage() {
         )}
       </section>
 
-      <CreateCommunity communities={communities} onCreated={load} />
       <Footer />
     </div>
   );
