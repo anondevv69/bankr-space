@@ -1,14 +1,39 @@
 'use client';
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useDisconnect } from 'wagmi';
 import { shortAddr } from '@/lib/utils';
+import { useAppWallet } from '@/hooks/useAppWallet';
+import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 
 export function WalletButton({ className = '' }: { className?: string }) {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending, error } = useConnect();
+  const { address, isConnected, isEmbedded, isPending, connectWallet } = useAppWallet();
   const { disconnect } = useDisconnect();
+  const embed = useEmbeddedBankr();
 
-  const injected = connectors[0];
+  if (isEmbedded) {
+    if (!embed.ready || isPending) {
+      return (
+        <span className={`text-muted text-sm ${className}`}>Connecting Bankr wallet…</span>
+      );
+    }
+    if (isConnected && address) {
+      return (
+        <span className={`text-sm ${className}`}>
+          <span className="text-muted">Signed in via Bankr · </span>
+          <span className="font-mono text-accent-hover">{shortAddr(address)}</span>
+        </span>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => connectWallet()}
+        className={`px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover ${className}`}
+      >
+        Sign in with Bankr
+      </button>
+    );
+  }
 
   if (isConnected && address) {
     return (
@@ -26,34 +51,22 @@ export function WalletButton({ className = '' }: { className?: string }) {
     <div className={className}>
       <button
         type="button"
-        onClick={() => injected && connect({ connector: injected })}
-        disabled={isPending || !injected}
+        onClick={() => connectWallet()}
+        disabled={isPending}
         className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50"
       >
         {isPending ? 'Connecting…' : 'Connect wallet'}
       </button>
-      {error ? (
-        <p className="text-red-400 text-xs mt-2 max-w-xs">
-          {error.message.includes('No provider')
-            ? 'Install MetaMask or another Base wallet browser extension.'
-            : error.message}
-        </p>
-      ) : null}
     </div>
   );
 }
 
-/** Call before actions that require a connected wallet (extension popup). */
+/** Call before actions that require a connected wallet. */
 export function useConnectWallet() {
-  const { isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-
-  function connectWallet() {
-    if (isConnected) return true;
-    const injected = connectors[0];
-    if (injected) connect({ connector: injected });
-    return false;
-  }
-
-  return { connectWallet, isConnected, isPending };
+  const wallet = useAppWallet();
+  return {
+    connectWallet: wallet.connectWallet,
+    isConnected: wallet.isConnected,
+    isPending: wallet.isPending,
+  };
 }

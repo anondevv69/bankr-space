@@ -14,9 +14,13 @@ A native [Bankr app](https://docs.bankr.bot/apps/overview/) for token-gated comm
 4. **View** — Anyone can browse communities and read posts.
 5. **Post & React** — Only token holders can post and react.
 
-## Deploy to Bankr
+## Deploy to Bankr (v12 embed — recommended for Bankr sign-in)
 
-The Bankr native app lives in `apps/bankr-communities-v2/`. See [INSTALL.md](./INSTALL.md).
+The Bankr app is a **thin shell** that embeds the Vercel site with native Bankr wallet login.
+
+→ **[apps/bankr-communities-v2/INSTALL-BANKR.md](./apps/bankr-communities-v2/INSTALL-BANKR.md)** — update `bankr-communities-v2` to v12
+
+Legacy piece-by-piece v11 install: [INSTALL.md](./INSTALL.md) (deprecated — separate appKV storage).
 
 ## Deploy as a website (Vercel)
 

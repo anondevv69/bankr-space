@@ -1,42 +1,22 @@
 {
   "slug": "bankr-communities-v2",
   "title": "Bankr Communities",
-  "version": "11",
+  "version": "12",
   "visibility": "public",
   "repo": "https://github.com/anondevv69/bankr-community",
   "branch": "main",
   "sourcePath": "apps/bankr-communities-v2",
   "rawBase": "https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2",
-  "installMode": "create-new-app",
+  "installMode": "update-existing-app",
   "doNotMergeUI": true,
   "fetchMethod": "http.fetch",
-  "files": [
-    "manifest.json",
-    "index.html",
-    "scripts/syncTokens.ts",
-    "scripts/searchTokens.ts",
-    "scripts/lookupLaunch.ts",
-    "scripts/getCommunityLink.ts",
-    "scripts/resolveUserProfiles.ts",
-    "scripts/verifyHolder.ts",
-    "scripts/createPost.ts",
-    "scripts/createCommunity.ts",
-    "scripts/verifyCommunity.ts",
-    "scripts/addReaction.ts"
-  ],
-  "schedule": [
-    {
-      "script": "syncTokens",
-      "cron": "0 * * * *",
-      "enabled": true
-    }
-  ],
+  "files": ["manifest.json", "index.html"],
+  "schedule": [],
   "verifyAfterInstall": {
-    "footerMustContain": "rayblanco.eth · v11",
-    "manifestVersion": "11",
-    "dryRunScript": "syncTokens",
-    "dryRunMustInclude": "ok",
-    "dryRunMustNotInclude": "File not found"
+    "footerMustContain": "rayblanco.eth · v12",
+    "manifestVersion": "12",
+    "indexMustContain": "bankr-community.vercel.app",
+    "indexMustContainEmbed": "embed=bankr"
   },
-  "notes": "Use bankr-communities-v2 slug. The old bankr-communities slug has corrupted runtime storage on Bankr — do not update it, create fresh."
+  "notes": "v12 is a thin iframe shell — all community data and UI live on Vercel. Only manifest.json + index.html are required. Do not restore old appKV scripts."
 }
