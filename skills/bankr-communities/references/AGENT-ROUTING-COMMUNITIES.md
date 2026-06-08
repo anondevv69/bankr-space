@@ -4,42 +4,38 @@
 
 ## TRIGGER
 
-**Link (highest priority):** link, URL, "where is the community" → **`LINK-INTENT-ONLY.md`** first.
+**Link (highest priority):** link, URL, "where is the community" → **`INSTANT-LINK-REPLIES.md`** first (TMP/ARCHIVE need no HTTP).
 
 **Other:** community, members, posts, verify community, post in, comment in, latest on $TICKER community, start community.
 
-**Load:** `bankr-communities` → **`references/COMMUNITY-LINK-RULES.md`** + **`community-autopilot.md`** + **`ONE-LINE-INTENTS.md`**.
-
-**Before any reply:** `GET /api/agent/briefing` or specific endpoint.
+**Load:** `bankr-communities` → **`INSTANT-LINK-REPLIES.md`** (links) or **`ONE-LINE-INTENTS.md`** (everything else).
 
 ---
 
 ## ROUTING GUARD
 
 ```
-if message matches community intent:
+if message matches link intent:
   1. use_skill("bankr-communities")
-  2. SITE = env COMMUNITIES_SITE_URL or default https://bankr-community.vercel.app
-  3. if read-only (latest, members, list, search):
-       GET briefing or community-link API → include communityLink (NEVER bankr.bot) → STOP
-  4. if write (post, verify, create, react):
-       wallet = linked Bankr wallet (never ask on tweet if linked)
-       header x-wallet-address: wallet
-       if post/react: GET /api/holders/{token}?wallet= first
-       POST appropriate endpoint → STOP
-  5. never fabricate stats
+  2. TMP or ARCHIVE mentioned → paste instant URL from INSTANT-LINK-REPLIES.md → STOP
+  3. Other ticker → GET /api/agent/link?q=… → paste body
+  4. NEVER "I wasn't able to generate a response"
+
+if message matches other community intent:
+  1. use_skill("bankr-communities")
+  2. GET /api/agent/briefing or specific endpoint
+  3. Include communityLink (NEVER bankr.bot)
 ```
 
 ---
 
 ## Hard rules
 
-1. **Never** skip API call for stats/posts/members.
-2. **Never** require `use_skill` in user tweet text.
-3. **Never** post without holder check.
-4. **Never** verify without owner wallet.
-5. **Never** link `bankr.bot` or `t.co` for communities — only `bankr-community.vercel.app/community/0x{contract}`.
-6. **Tweet = DM** — same skill load order as TMP (`BANKR-PLATFORM-TWEET-INTAKE.md`).
+1. **Link for TMP/ARCHIVE** — instant paste, no tool call required.
+2. **Never** skip API call for stats/posts/members (non-link intents).
+3. **Never** require `use_skill` in user tweet text.
+4. **Never** link `bankr.bot` or `t.co` for communities.
+5. **Tweet = DM** — same skill load order.
 
 ---
 
@@ -49,5 +45,3 @@ if message matches community intent:
 |--------|----------|
 | claim fees, list, buy, launch | TMP skills |
 | community social | **this skill** |
-
-If both in one message, run both skills sequentially.

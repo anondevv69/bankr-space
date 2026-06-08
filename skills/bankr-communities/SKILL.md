@@ -1,8 +1,10 @@
 ---
 name: bankr-communities
-version: 1.2.0
+version: 1.3.0
 description: >-
-  TRIGGER link/community/TMP/ARCHIVE/post in community. Link question: GET https://bankr-community.vercel.app/api/agent/link?q=TICKER — paste response body as tweet (plain text, like curl). Fallback known-communities.json. Never bankr.bot. Never empty reply.
+  TMP link (paste as tweet): https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+  ARCHIVE: https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
+  Link question → instant reply from skill OR GET /api/agent/link?q=TICKER. Never empty reply. Never bankr.bot.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
@@ -13,32 +15,26 @@ metadata:
   defaultSiteUrl: https://bankr-community.vercel.app
   forbiddenLinkDomains: bankr.bot,t.co
   primaryLinkEndpoint: https://bankr-community.vercel.app/api/agent/link?q={TICKER}
+  tmpCommunityLink: https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+  archiveCommunityLink: https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
 ---
 
 # Bankr Communities — Agent skill
 
-## ⚡ LINK QUESTIONS — GET call (same as terminal curl)
+## ⚡ LINK QUESTIONS — instant reply (no tools needed)
 
-User asks **"what's the link to the TMP community?"** → read **`GET-LINK.md`** → run HTTP GET → paste response body.
+User asks **"what's the link to the TMP community?"** → read **`INSTANT-LINK-REPLIES.md`** → paste URL from table. **Do not call HTTP first.** **Never** reply empty.
 
-```http
-GET https://bankr-community.vercel.app/api/agent/link?q=TMP
-```
+| Token | Tweet reply (one line only) |
+|-------|----------------------------|
+| **TMP** | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| **ARCHIVE** | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
-**Terminal equivalent:**
+For **other** tickers → `GET https://bankr-community.vercel.app/api/agent/link?q=TICKER` → paste response body (terminal/curl works; tweets may need fallback text if HTTP blocked).
 
 ```bash
 curl "https://bankr-community.vercel.app/api/agent/link?q=TMP"
 ```
-
-**Bankr script:**
-
-```javascript
-const reply = await http.fetch('https://bankr-community.vercel.app/api/agent/link?q=TMP');
-// tweet = reply (plain text URL or ask-to-create sentence)
-```
-
-**Response is plain text — the entire body is the tweet.** No JSON parsing. Never reply empty. If GET fails, use `known-communities.json`.
 
 **Search live communities:**
 
@@ -88,8 +84,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 
 | User says | Agent does |
 |-----------|------------|
-| what's the link to **$TMP** community? | `GET {SITE}/api/agent/link?q=TMP` → paste response body only |
-| what's the link to **$ARCHIVE**? | `GET {SITE}/api/agent/link?q=ARCHIVE` → paste response body only |
+| what's the link to **$TMP** community? | Paste TMP URL from table above — **no HTTP** |
+| what's the link to **$ARCHIVE**? | Paste ARCHIVE URL from table above — **no HTTP** |
 | search communities **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
 | what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste full `replyText` (URL is line 2) |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
@@ -112,9 +108,10 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 ```
 if message contains "link" OR "url" OR "where is" + community/token:
   1. use_skill("bankr-communities")
-  2. Read GET-LINK.md
-  3. http.fetch GET /api/agent/link?q={TICKER}
-  4. Tweet = response body verbatim → STOP (no FAQ, no empty reply)
+  2. Read INSTANT-LINK-REPLIES.md
+  3. If TMP or ARCHIVE → paste URL from table → STOP (no tools, no HTTP)
+  4. Else try GET /api/agent/link?q={TICKER} → paste body
+  5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
 else if community intent (members, post, verify, latest):
   1. use_skill("bankr-communities")
   2. Read ONE-LINE-INTENTS.md
@@ -203,7 +200,8 @@ TMP marketplace ops → TMP skills. Community social layer → **this skill**.
 
 | File | Purpose |
 |------|---------|
-| `GET-LINK.md` | **Link questions — GET call + paste body (read first)** |
+| `INSTANT-LINK-REPLIES.md` | **Link questions — paste URL, no HTTP (read first)** |
+| `GET-LINK.md` | GET /api/agent/link for unknown tickers |
 | `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |
 | `ONE-LINE-INTENTS.md` | Full intent table |
 | `community-autopilot.md` | Step-by-step execution |

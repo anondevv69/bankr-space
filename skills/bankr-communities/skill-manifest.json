@@ -1,11 +1,15 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Communities",
-  "skillVersion": "1.2.0",
+  "skillVersion": "1.3.0",
   "defaultSiteUrl": "https://bankr-community.vercel.app",
   "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
   "communityUrlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
   "linkApiTemplate": "https://bankr-community.vercel.app/api/agent/link?q={TICKER}",
+  "instantLinks": {
+    "TMP": "https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3",
+    "ARCHIVE": "https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3"
+  },
   "forbiddenLinkDomains": ["bankr.bot", "t.co"],
   "installUrl": "https://github.com/anondevv69/bankr-community",
   "installCommand": "install Bankr Communities skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
@@ -21,6 +25,7 @@
     }
   ],
   "allReferences": [
+    "INSTANT-LINK-REPLIES.md",
     "GET-LINK.md",
     "LINK-INTENT-ONLY.md",
     "ONE-LINE-INTENTS.md",
@@ -32,5 +37,5 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Link questions: GET /api/agent/link?q=TICKER returns plain text — paste body as tweet. Same as curl. Fallback known-communities.json if fetch fails."
+  "bankrNote": "Tweet link questions for TMP/ARCHIVE: paste instantLinks URL — no HTTP. Terminal can use GET /api/agent/link?q=TICKER. Never empty reply."
 }

@@ -1,19 +1,11 @@
-# Link questions — read GET-LINK.md
+# Link questions — read INSTANT-LINK-REPLIES.md first
 
-> User asks: **"what's the link to the TMP community?"** (or any ticker)
+> **Tweet intake:** paste URL from skill table — **no HTTP required** for TMP/ARCHIVE.
 
-**Read `GET-LINK.md` and run the GET call.** Response body = tweet reply.
+**TMP:** `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
 
-```http
-GET https://bankr-community.vercel.app/api/agent/link?q=TMP
-```
+**ARCHIVE:** `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3`
 
-Terminal test:
+Other tickers → `GET-LINK.md` (curl / http.fetch).
 
-```bash
-curl "https://bankr-community.vercel.app/api/agent/link?q=TMP"
-```
-
-Returns one line plain text — paste it as the tweet. No JSON parsing needed.
-
-If GET fails → fallback links in `known-communities.json`. **Never** reply empty or "couldn't generate a response."
+Never reply "I wasn't able to generate a response."
