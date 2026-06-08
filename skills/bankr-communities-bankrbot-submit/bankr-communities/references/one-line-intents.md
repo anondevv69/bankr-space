@@ -31,7 +31,7 @@
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
 | **pin** post in **TMP** / **pin it** after post | `POST /api/communities/{token}/pin-post` `{ postId, action: "pin" }` (verified beneficiary) |
 | **post** in **TMP** space: {text} **and pin** | post → then pin-post if `canPinPosts` |
-| **post** in **TMP** space: {text} | `GET /api/holders/{token}?wallet={linked}` → if `canPost` → `POST …/posts` |
+| **post** in **TMP** space: {text} | holder check → `POST …/posts` **with `source`** (POST-SOURCE.md) |
 | **comment** in **0x935e…** space: {text} | same as post |
 | react **👍** on post **{id}** in **TMP** | `POST /api/posts/{id}/react` `{ tokenAddress, reaction: "👍" }` |
 

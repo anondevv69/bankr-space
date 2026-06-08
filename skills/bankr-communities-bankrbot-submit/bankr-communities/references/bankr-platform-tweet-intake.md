@@ -14,7 +14,6 @@
 @bankrbot add website https://example.com to TMP space profile
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
-@bankrbot what's the link to the TMP space?
 ```
 
 Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet paste (if X↔Bankr linked).
@@ -28,8 +27,8 @@ On tweet/DM matching space intent (user may say community):
 ```
 1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER)
 2. use_skill("bankr-communities")     ← BEFORE tool selection
-3. Writes → references/beneficiary-actions.md → GET /api/holders?wallet= → POST/PATCH/pin-post
-4. Link question → references/instant-link-replies.md (TMP/ARCHIVE) or GET /api/agent/link?q={TICKER}
+3. Writes → BENEFICIARY-ACTIONS.md → GET /api/holders?wallet= → POST/PATCH/pin-post
+4. Link question → GET /api/agent/link?q={TICKER} or instant table
 5. Other reads → GET /api/agent/briefing?...
 6. Plain English reply + **bankr.space/community/0x{contract}** URL
 ```
@@ -38,10 +37,11 @@ On tweet/DM matching space intent (user may say community):
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
 
 **Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
-Must log: `POST …/posts` then `POST …/pin-post` if verified beneficiary.
+Must log: `POST …/posts` **with `source`** (see POST-SOURCE.md) then `POST …/pin-post` if verified beneficiary.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 
+Must log: `GET …/api/agent/link?q=TMP`  
 Must reply: `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3`
 
 **Fail:** "I wasn't able to generate a response" (use known-communities.json fallback instead)

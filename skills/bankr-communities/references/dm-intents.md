@@ -22,7 +22,7 @@
 |-----------|-------|
 | Create space for $X | search → POST `/api/communities/{token}` |
 | Verify $X space / community | POST verify (owner) |
-| Post "…" in $X space / community | holder check → POST post |
+| Post "…" in $X space / community | holder check → POST post **with `source`** (POST-SOURCE.md) |
 | React 👍 to post | holder check → POST react |
 
 ---

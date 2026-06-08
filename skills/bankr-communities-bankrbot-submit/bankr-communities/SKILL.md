@@ -1,8 +1,8 @@
 ---
 name: bankr-communities
-version: 1.5.0
+version: 1.6.0
 description: >-
-  Verify, post, pin, update profile via API like post-in-space. Beneficiary: PATCH socials, pin-post. Read BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
+  Verify, post, pin, update profile via API like post-in-space. Every agent post MUST include source (X DM, mention, terminal). Read POST-SOURCE.md + BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -23,14 +23,16 @@ Read **`TERMINOLOGY.md`** first: users may say **community** or **space** (same 
 
 ## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-space)
 
-User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → use linked wallet → call API → reply + space URL.
+User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
 | User says | Agent does |
 |-----------|------------|
 | **verify** the **TMP** space (or community) | `POST …/verify` (fee beneficiary wallet) |
 | **add website** / **update profile** for **TMP** | `PATCH …/communities/{token}` `{ socialLinks, description }` |
-| **post** in **TMP**: text **and pin it** | `POST …/posts` → `POST …/pin-post` if verified beneficiary |
+| **post** in **TMP**: text **and pin it** | `POST …/posts` **with `source`** → `POST …/pin-post` if verified beneficiary |
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
+
+**Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
 
 Check permissions: `GET /api/holders/{token}?wallet={linked}` → `canEditProfile`, `canPinPosts`, `canPost`.
 
@@ -109,7 +111,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **add links** / **update profile** for **TMP** | `PATCH …/communities/{token}` (beneficiary) |
 | **post** in **TMP** space: hello **and pin it** | post → pin-post if `canPinPosts` |
 | **pin** post in **TMP** space | `POST …/pin-post` |
-| **post** in **TMP** space: hello holders | holder check → `POST …/posts` → paste `replyText` |
+| **post** in **TMP** space: hello holders | holder check → `POST …/posts` **with `source`** → paste `replyText` |
 | **comment** on **$CTO** space | same as post |
 | start a space for **$PEPE** | search token → `POST …/communities/{addr}` |
 | list all spaces | `GET {SITE}/api/communities` |
@@ -133,9 +135,10 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
 else if space intent (verify, post, pin, profile, update links, members, latest):
   1. use_skill("bankr-communities")
   2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads)
-  3. GET /api/holders/{token}?wallet={linked} before writes
-  4. Call API — BEFORE replying
-  5. Plain English reply + communityLink on own line
+  3. If posting: Read POST-SOURCE.md → set source.trigger from DM vs tweet vs terminal
+  4. GET /api/holders/{token}?wallet={linked} before writes
+  5. Call API — BEFORE replying (posts must include source object)
+  6. Plain English reply + communityLink on own line
 ```
 
 **Tweet = DM** — same pipeline. Load skill on `@bankrbot` intake **before** tool selection.
@@ -221,6 +224,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | File | Purpose |
 |------|---------|
 | `TERMINOLOGY.md` | **community vs space** — read first |
+| `POST-SOURCE.md` | **Mandatory `source` on every agent post** (X DM, mention, terminal) |
 | `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin — tweet + terminal** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |

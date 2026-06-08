@@ -59,6 +59,8 @@ POST  /api/communities/{tokenAddress}/posts   body: { content, source? }  → re
 
 Agents posting after an X DM should set `client: agent`, `trigger: x-dm`, `viaAgent: true`, `agentId: bankrbot`. UI shows e.g. **Posted via @bankrbot · X DM**.
 
+**Mandatory for @bankrbot:** every post write includes `source`. Read **`POST-SOURCE.md`** (skill root).
+
 ```
 POST  /api/communities/{tokenAddress}/pin-post  body: { postId, action: "pin"|"unpin" }
 ```

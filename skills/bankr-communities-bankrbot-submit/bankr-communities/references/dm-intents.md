@@ -1,6 +1,6 @@
 # DM / terminal — space intents
 
-**Plain language:** see **`references/one-line-intents.md`**.
+**Plain language:** see **`ONE-LINE-INTENTS.md`**.
 
 ---
 
@@ -13,7 +13,6 @@
 | Show recent posts | GET `/api/communities/{token}` + posts |
 | List spaces | GET /api/communities |
 | Find token PEPE on Bankr | GET /api/tokens/search |
-| What's the link to $TMP? | instant table or GET /api/agent/link |
 
 ---
 
@@ -23,10 +22,8 @@
 |-----------|-------|
 | Create space for $X | search → POST `/api/communities/{token}` |
 | Verify $X space / community | POST verify (owner) |
-| Post "…" in $X space / community | holder check → POST post |
+| Post "…" in $X space / community | holder check → POST post **with `source`** (POST-SOURCE.md) |
 | React 👍 to post | holder check → POST react |
-| Update profile / add links | PATCH community (beneficiary) |
-| Pin post | POST pin-post (verified beneficiary) |
 
 ---
 
