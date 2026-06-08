@@ -1,68 +1,68 @@
-# Link intent ONLY — highest priority
+# Link & community search — Bankr agent flow
 
-> If the user asks for a **link**, **URL**, or "where is the community" — run this file FIRST. Do NOT explain how communities work.
+> When user asks for a **link**, **URL**, or **community page** for a ticker/token.
 
-## Match
+## One API to call
 
-- "what's the link to the TMP community"
-- "link to $ARCHIVE community"
-- "community URL for TMP"
-- "send me the TMP community link"
+```http
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=ARCHIVE
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=0x935e13a28849095db45e63040f109c34b757aba3
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TokenMarketplace&format=text
+```
 
-## Steps (exact — no shortcuts)
+Accepts: **ticker** (`TMP`), **token name** (`TokenMarketplace`), or **contract address** (`0x…`).
+
+## Search order (server-side)
+
+1. **Existing communities** — match symbol, name, or contract in our database
+2. **If no community** — search Bankr token launches for ticker/name/address
+3. **Build link** — `https://bankr-community.vercel.app/community/{contractAddress}`
+
+## Tweet reply
+
+Paste **`tweetReply`** or **`communityLink`** from the JSON — one line, full https URL.
+
+```json
+{
+  "ok": true,
+  "source": "existing_community",
+  "communityExists": true,
+  "communityLink": "https://bankr-community.vercel.app/community/0x935e...",
+  "tweetReply": "https://bankr-community.vercel.app/community/0x935e..."
+}
+```
+
+If `communityExists: false` but `ok: true` — still paste the link (token found, community not created yet). Optional: mention `hint` in a follow-up.
+
+## Search existing communities only
+
+```http
+GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
+```
+
+Returns all matching **live** communities with links. Use when user asks "list communities matching X".
+
+## Steps for Bankr
 
 ```
-0. KNOWN SYMBOL? TMP or ARCHIVE → paste link from table below → STOP (no API, no tools)
 1. use_skill("bankr-communities")
-2. Extract symbol from message (TMP, ARCHIVE, etc.) — strip $ if present
-3. HTTP GET https://bankr-community.vercel.app/api/agent/community-link?symbol=TMP
-4. Tweet reply = JSON field "communityLink" ONLY — one line, nothing else
-5. STOP — do not add stats, do not explain, do not link bankr.bot
+2. Extract ticker/name/address from user message (strip $)
+3. GET /api/agent/resolve-community?q={query}
+4. If ok → tweet = communityLink (one line) → STOP
+5. If 404 → say no token/community found for that query
 ```
 
-## Known links — paste immediately (step 0)
+## FORBIDDEN
 
-| Symbol | Reply (one line only) |
-|--------|------------------------|
-| TMP | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| ARCHIVE | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+- `bankr.bot`, `t.co`, `/community/TMP` (symbol in path)
+- FAQ when user only asked for a link
+- "I wasn't able to generate a response" without calling resolve-community
 
-## If step 3 fails (timeout/error)
+## Examples
 
-```
-1. HTTP GET https://bankr-community.vercel.app/api/agent/briefing?symbol=TMP
-2. Read community.tokenAddress from JSON
-3. Tweet reply = "https://bankr-community.vercel.app/community/" + tokenAddress
-4. STOP
-```
-
-## If both APIs fail — known communities (fallback)
-
-| Symbol | Contract | Link |
-|--------|----------|------|
-| TMP | 0x935e13a28849095db45e63040f109c34b757aba3 | https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3 |
-| ARCHIVE | 0x76aba8089e4ba07f705fb886d17dd41793ad2ba3 | https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3 |
-
-Build link: `https://bankr-community.vercel.app/community/{contract}`
-
-## FORBIDDEN on link questions
-
-- Generic "how to create a community" FAQ
-- `https://bankr.bot` or any t.co link
-- `/community/TMP` (symbol in path — use contract address)
-- "I wasn't able to generate a response" without trying the API above
-- Asking user for site URL
-
-## Example
-
-**User:** `@bankrbot what's the link to the tmp community?`
-
-**Correct reply (only this):**
-```text
-https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
-```
-
-**Wrong replies:**
-- Long FAQ about how communities work
-- bankr.bot link
-- Empty / "couldn't generate response"
+| User says | Call | Tweet reply |
+|-----------|------|-------------|
+| link to TMP community | `?q=TMP` | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| link to ARCHIVE | `?q=ARCHIVE` | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| community page for 0x935e… | `?q=0x935e…` | same URL |

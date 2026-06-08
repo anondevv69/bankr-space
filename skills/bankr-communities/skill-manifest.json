@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Communities",
-  "skillVersion": "1.0.8",
+  "skillVersion": "1.1.0",
   "defaultSiteUrl": "https://bankr-community.vercel.app",
   "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
   "communityUrlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
@@ -27,6 +27,7 @@
     "references/COMMUNITY-LINK-RULES.md",
     "references/AGENT-ROUTING-COMMUNITIES.md",
     "references/BANKR-PLATFORM-TWEET-INTAKE.md",
+    "known-communities.json",
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
