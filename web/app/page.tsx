@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Header, Footer } from '@/components/Header';
+import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { CommunityCard } from '@/components/CommunityCard';
 import { CreateCommunity } from '@/components/CreateCommunity';
 import type { Community, TokenMarketStats } from '@/lib/types';
@@ -13,6 +14,7 @@ export default function HomePage() {
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const embed = useEmbeddedBankr();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,7 +57,7 @@ export default function HomePage() {
   });
 
   return (
-    <div className="max-w-[1100px] mx-auto px-5 pb-16">
+    <div className={`max-w-[1100px] mx-auto px-5 pb-16 ${embed.isEmbedded ? 'pt-4' : ''}`}>
       <Header syncUpdatedAt={syncAt} />
 
       <section>

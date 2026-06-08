@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAppWallet } from '@/hooks/useAppWallet';
 import { useConnectWallet } from '@/components/WalletButton';
 import type { Community, TokenLaunch } from '@/lib/types';
 import { shortAddr, formatTime } from '@/lib/utils';
@@ -15,7 +15,7 @@ export function CreateCommunity({
   communities: Community[];
   onCreated: () => void;
 }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAppWallet();
   const { connectWallet } = useConnectWallet();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TokenLaunch[]>([]);

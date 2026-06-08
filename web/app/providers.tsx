@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { config } from '@/lib/wagmi';
+import { EmbeddedBankrProvider } from '@/components/EmbeddedBankrProvider';
 import { useState } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <EmbeddedBankrProvider>{children}</EmbeddedBankrProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }

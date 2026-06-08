@@ -1,44 +1,13 @@
 {
   "slug": "bankr-communities-v2",
   "title": "Bankr Communities",
-  "version": "11",
-  "description": "Token-gated community discussions for Bankr-deployed tokens. Anyone can start a community; token owners verify it.",
+  "version": "12",
+  "description": "Token-gated communities for Bankr-launched tokens. Embeds bankr-community.vercel.app with native Bankr wallet sign-in — same UI and data as the public site.",
   "tags": ["community", "tokens", "social", "bankr"],
-  "permissions": [
-    "read:wallet",
-    "read:tokens",
-    "read:portfolio",
-    "read:chain",
-    "read:appdata",
-    "write:appdata",
-    "fetch:http"
-  ],
-  "scripts": [
-    "syncTokens",
-    "searchTokens",
-    "lookupLaunch",
-    "getCommunityLink",
-    "resolveUserProfiles",
-    "verifyHolder",
-    "createPost",
-    "createCommunity",
-    "verifyCommunity",
-    "addReaction"
-  ],
-  "schedule": [
-    {
-      "script": "syncTokens",
-      "cron": "0 * * * *",
-      "enabled": true
-    }
-  ],
-  "publicDataKeys": [
-    "communities",
-    "token_launches",
-    "community_posts",
-    "user_profiles",
-    "meta.syncUpdatedAt"
-  ],
+  "permissions": ["read:wallet"],
+  "scripts": [],
+  "schedule": [],
+  "publicDataKeys": [],
   "frontendIdentity": "viewer",
   "secrets": []
 }

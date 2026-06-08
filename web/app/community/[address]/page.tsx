@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
 import { useConnectWallet } from '@/components/WalletButton';
+import { useAppWallet } from '@/hooks/useAppWallet';
+import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
 import { PostFeed, PostForm } from '@/components/PostFeed';
@@ -12,8 +13,9 @@ import { apiFetch } from '@/lib/wagmi';
 
 export default function CommunityPage({ params }: { params: { address: string } }) {
   const tokenAddress = params.address;
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, isEmbedded } = useAppWallet();
   const { connectWallet } = useConnectWallet();
+  const embed = useEmbeddedBankr();
   const [community, setCommunity] = useState<Community | null>(null);
   const [beneficiary, setBeneficiary] = useState<BeneficiaryInfo | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -142,7 +144,18 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
       {!isConnected ? (
         <div className="mb-6 p-3 bg-surface-2 border border-border rounded-lg text-sm text-muted">
-          Connect wallet to check holder status and post.
+          {isEmbedded
+            ? 'Sign in with Bankr to check holder status and post.'
+            : 'Connect wallet to check holder status and post.'}
+          {isEmbedded && embed.ready ? (
+            <button
+              type="button"
+              onClick={() => connectWallet()}
+              className="ml-2 text-accent-hover hover:underline"
+            >
+              Sign in
+            </button>
+          ) : null}
         </div>
       ) : holder?.canPost ? (
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-400">
@@ -160,7 +173,10 @@ export default function CommunityPage({ params }: { params: { address: string } 
         <PostForm tokenAddress={tokenAddress} onPosted={load} />
       ) : isConnected ? null : (
         <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl">
-          👀 View-only mode — connect wallet and hold this token to post and react.
+          👀 View-only mode —{' '}
+          {isEmbedded
+            ? 'sign in with Bankr and hold this token to post and react.'
+            : 'connect wallet and hold this token to post and react.'}
         </div>
       )}
 

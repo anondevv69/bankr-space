@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAppWallet } from '@/hooks/useAppWallet';
 import type { BeneficiaryInfo, Community, SocialLinks, TokenMarketStats } from '@/lib/types';
 import { hasSocialLinks, socialLinksForDisplay } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
@@ -35,7 +35,7 @@ export function CommunityProfile({
   canManage: boolean;
   onUpdated: () => void;
 }) {
-  const { address } = useAccount();
+  const { address } = useAppWallet();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [description, setDescription] = useState(community.description);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAppWallet } from '@/hooks/useAppWallet';
 import type { PinnedPost, Post } from '@/lib/types';
 import { isPostPinned } from '@/lib/community-posts';
 import { formatTime } from '@/lib/utils';
@@ -25,7 +25,7 @@ export function PostFeed({
   pinnedPosts?: PinnedPost[];
   onUpdate: () => void;
 }) {
-  const { address } = useAccount();
+  const { address } = useAppWallet();
   const [pinningId, setPinningId] = useState<string | null>(null);
 
   async function react(postId: string, reaction: string) {
@@ -142,7 +142,7 @@ export function PostForm({
   tokenAddress: string;
   onPosted: () => void;
 }) {
-  const { address } = useAccount();
+  const { address } = useAppWallet();
   const [content, setContent] = useState('');
   const [posting, setPosting] = useState(false);
 
