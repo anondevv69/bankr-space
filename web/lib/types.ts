@@ -80,3 +80,23 @@ export interface TokenLaunch {
 export interface UserProfile extends Author {
   updatedAt?: number;
 }
+
+export interface TokenMarketStats {
+  tokenAddress: string;
+  chainId: string;
+  found: boolean;
+  marketCap: number | null;
+  fdv: number | null;
+  priceUsd: number | null;
+  volume24h: number | null;
+  priceChange24h: number | null;
+  liquidityUsd: number | null;
+  txns24h: { buys: number; sells: number } | null;
+  dexUrl: string | null;
+  dexScreener: {
+    enhancedInfoPaid: boolean;
+    enhancedInfoStatus: string | null;
+    boostActive: boolean;
+  };
+  fetchedAt: number;
+}

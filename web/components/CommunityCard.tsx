@@ -1,9 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import type { Community } from '@/lib/types';
+import type { Community, TokenMarketStats } from '@/lib/types';
+import { MarketStats } from '@/components/MarketStats';
 
-export function CommunityCard({ community }: { community: Community }) {
+export function CommunityCard({
+  community,
+  market,
+}: {
+  community: Community;
+  market?: TokenMarketStats | null;
+}) {
   return (
     <Link
       href={`/community/${community.tokenAddress}`}
@@ -22,6 +29,7 @@ export function CommunityCard({ community }: { community: Community }) {
         )}
       </div>
       <div className="text-[15px] font-semibold mt-1">{community.name}</div>
+      <MarketStats market={market ?? null} compact />
       <div className="flex gap-3 mt-3 text-xs text-muted">
         <span className="uppercase bg-surface-2 px-2 py-0.5 rounded-full">
           {community.chain || 'base'}

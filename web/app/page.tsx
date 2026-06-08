@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Header, Footer } from '@/components/Header';
 import { CommunityCard } from '@/components/CommunityCard';
 import { CreateCommunity } from '@/components/CreateCommunity';
-import type { Community } from '@/lib/types';
+import type { Community, TokenMarketStats } from '@/lib/types';
 
 export default function HomePage() {
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [markets, setMarkets] = useState<Record<string, TokenMarketStats>>({});
   const [syncAt, setSyncAt] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,17 @@ export default function HomePage() {
       if (!res.ok) throw new Error(data.error || 'Failed to load');
       setCommunities(data.communities || []);
       setSyncAt(data.syncUpdatedAt || null);
+
+      const list: Community[] = data.communities || [];
+      if (list.length > 0) {
+        const addresses = list.map((c) => c.tokenAddress).join(',');
+        fetch(`/api/market?addresses=${addresses}`)
+          .then((marketRes) => marketRes.json())
+          .then((marketData) => setMarkets(marketData.markets || {}))
+          .catch(() => setMarkets({}));
+      } else {
+        setMarkets({});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load communities');
     } finally {
@@ -72,7 +84,11 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
             {filtered.map((c) => (
-              <CommunityCard key={c.tokenAddress} community={c} />
+              <CommunityCard
+                key={c.tokenAddress}
+                community={c}
+                market={markets[c.tokenAddress.toLowerCase()] || null}
+              />
             ))}
           </div>
         )}

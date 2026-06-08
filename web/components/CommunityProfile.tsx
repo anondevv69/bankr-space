@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import type { BeneficiaryInfo, Community, SocialLinks } from '@/lib/types';
+import type { BeneficiaryInfo, Community, SocialLinks, TokenMarketStats } from '@/lib/types';
 import { hasSocialLinks, socialLinksForDisplay } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
+import { MarketStats } from '@/components/MarketStats';
 import { apiFetch } from '@/lib/wagmi';
 
 const SOCIAL_FIELDS: Array<{ key: keyof SocialLinks; label: string; placeholder: string }> = [
@@ -39,6 +40,7 @@ export function CommunityProfile({
   const [saving, setSaving] = useState(false);
   const [description, setDescription] = useState(community.description);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(community.socialLinks || {});
+  const [market, setMarket] = useState<TokenMarketStats | null>(null);
 
   const displayLinks = socialLinksForDisplay(community.socialLinks);
 
@@ -46,6 +48,21 @@ export function CommunityProfile({
     setDescription(community.description);
     setSocialLinks(community.socialLinks || {});
   }, [community]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/market/${community.tokenAddress}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setMarket(data.market || null);
+      })
+      .catch(() => {
+        if (!cancelled) setMarket(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [community.tokenAddress]);
 
   async function saveProfile() {
     if (!canManage || !address) return;
@@ -206,6 +223,8 @@ export function CommunityProfile({
           ) : null}
         </>
       )}
+
+      <MarketStats market={market} />
 
       <VerifiedBeneficiarySection community={community} beneficiary={beneficiary} />
     </div>
