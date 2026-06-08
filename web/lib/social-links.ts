@@ -2,6 +2,7 @@ import type { SocialLinks } from './types';
 
 export type NormalizedSocialLinks = {
   x: string | null;
+  website: string | null;
   github: string | null;
   telegram: string | null;
   discord: string | null;
@@ -22,6 +23,19 @@ export function normalizeX(value: string): string | null {
 export function walletExplorerUrl(address: string, chain = 'base'): string {
   if (chain === 'base') return `https://basescan.org/address/${address}`;
   return `https://etherscan.io/address/${address}`;
+}
+
+export function normalizeWebsite(value: string): string | null {
+  const raw = trim(value);
+  if (!raw) return null;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, '')}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
 }
 
 export function normalizeGithub(value: string): string | null {
@@ -52,6 +66,7 @@ export function normalizeDiscord(value: string): string | null {
 export function normalizeSocialLinks(input: Partial<SocialLinks>): SocialLinks {
   return {
     x: normalizeX(input.x || '') || undefined,
+    website: normalizeWebsite(input.website || '') || undefined,
     github: normalizeGithub(input.github || '') || undefined,
     telegram: normalizeTelegram(input.telegram || '') || undefined,
     discord: normalizeDiscord(input.discord || '') || undefined,
@@ -62,6 +77,7 @@ export function socialLinksForDisplay(links?: SocialLinks | null): NormalizedSoc
   const source = links || {};
   return {
     x: source.x ? normalizeX(source.x) : null,
+    website: source.website ? normalizeWebsite(source.website) : null,
     github: source.github ? normalizeGithub(source.github) : null,
     telegram: source.telegram ? normalizeTelegram(source.telegram) : null,
     discord: source.discord ? normalizeDiscord(source.discord) : null,
@@ -70,7 +86,7 @@ export function socialLinksForDisplay(links?: SocialLinks | null): NormalizedSoc
 
 export function hasSocialLinks(links?: SocialLinks | null): boolean {
   const display = socialLinksForDisplay(links);
-  return !!(display.x || display.github || display.telegram || display.discord);
+  return !!(display.x || display.website || display.github || display.telegram || display.discord);
 }
 
 export function shortWallet(address: string): string {
