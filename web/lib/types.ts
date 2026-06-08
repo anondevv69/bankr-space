@@ -8,6 +8,7 @@ export interface Author {
 export interface SocialLinks {
   /** Token/community X account — separate from beneficiary personal X on Bankr */
   x?: string;
+  website?: string;
   github?: string;
   telegram?: string;
   discord?: string;

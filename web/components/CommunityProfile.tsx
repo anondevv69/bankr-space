@@ -13,6 +13,11 @@ const SOCIAL_FIELDS: Array<{ key: keyof SocialLinks; label: string; placeholder:
     label: 'Token X account',
     placeholder: 'https://x.com/TokenAccount or @TokenAccount',
   },
+  {
+    key: 'website',
+    label: 'Website',
+    placeholder: 'https://tokenmarketplace.shop',
+  },
   { key: 'github', label: 'GitHub', placeholder: 'username or https://github.com/...' },
   { key: 'telegram', label: 'Telegram', placeholder: 'handle or https://t.me/...' },
   { key: 'discord', label: 'Discord', placeholder: 'invite code or https://discord.gg/...' },
@@ -155,6 +160,16 @@ export function CommunityProfile({
                   className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent"
                 >
                   Token X
+                </a>
+              ) : null}
+              {displayLinks.website ? (
+                <a
+                  href={displayLinks.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent"
+                >
+                  Website
                 </a>
               ) : null}
               {displayLinks.github ? (
