@@ -25,13 +25,19 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 On tweet/DM matching community intent:
 
 ```
-1. MATCH trigger (link, community, members, post in, verify, latest on $TICKER)
+1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER)
 2. use_skill("bankr-communities")     ← BEFORE tool selection
-3. Link question → GET /api/agent/link?q={TICKER} → tweet = response body (plain text)
-4. Other questions → GET /api/agent/briefing?...
-5. For writes: x-wallet-address = linked wallet
+3. Writes → BENEFICIARY-ACTIONS.md → GET /api/holders?wallet= → POST/PATCH/pin-post
+4. Link question → GET /api/agent/link?q={TICKER} or instant table
+5. Other reads → GET /api/agent/briefing?...
 6. Plain English reply + **bankr-community.vercel.app/community/0x{contract}** URL
 ```
+
+**Write acceptance test:** `@bankrbot verify the TMP community`  
+Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
+
+**Write acceptance test:** `@bankrbot post in TMP community: update — pin it`  
+Must log: `POST …/posts` then `POST …/pin-post` if verified beneficiary.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP community?`
 
