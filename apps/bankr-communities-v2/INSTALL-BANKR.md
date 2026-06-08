@@ -1,6 +1,6 @@
 # Install Bankr Space v13 (native UI + Vercel API)
 
-v13 uses a **native Bankr HTML app** (no iframe). All data comes from **https://bankr-community.vercel.app** via `apiGet` / `apiWrite` scripts. Bankr wallet sign-in works without WalletConnect or localStorage.
+v13 uses a **native Bankr HTML app** (no iframe). All data comes from **https://bankr.space** via `apiGet` / `apiWrite` scripts. Bankr wallet sign-in works without WalletConnect or localStorage.
 
 **Files to install:** `manifest.json`, `index.html`, `scripts/apiGet.ts`, `scripts/apiWrite.ts`  
 **Slug:** `bankr-communities-v2`
@@ -72,7 +72,7 @@ Should return `{ ok: true, data: { communities: [...] } }`
 ```
 Bankr app (native HTML)
   → bankr.scripts.run('apiGet' | 'apiWrite')
-    → http.fetch('https://bankr-community.vercel.app/api/...')
+    → http.fetch('https://bankr.space/api/...')
       → Vercel Redis (same data as public site)
 ```
 

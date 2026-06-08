@@ -20,7 +20,7 @@
   "verifyAfterInstall": {
     "footerMustContain": "rayblanco.eth · v13",
     "manifestVersion": "13",
-    "indexMustContain": "bankr-community.vercel.app",
+    "indexMustContain": "bankr.space",
     "dryRunScript": "apiGet",
     "dryRunArgs": { "path": "/api/communities" },
     "dryRunMustInclude": "communities"

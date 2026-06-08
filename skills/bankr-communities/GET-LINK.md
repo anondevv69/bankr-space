@@ -1,21 +1,21 @@
 # GET link — run exactly like terminal curl
 
-> **Highest priority.** User asks for a community **link**, **URL**, or **where is** $TICKER community.
+> **Highest priority.** User asks for a space **link** (may say community), **URL**, or **where is** $TICKER space (or community).
 
 ## Do this (3 steps)
 
 ```
 1. Extract ticker from user message (strip $ and "community" words)
-   Example: "what's the link to the TMP community?" → TMP
+   Example: "what's the link to the TMP space?" → TMP
 
 2. HTTP GET (same as terminal curl):
-   https://bankr-community.vercel.app/api/agent/link?q=TMP
+   https://bankr.space/api/agent/link?q=TMP
 
    Bankr terminal equivalent:
-   curl "https://bankr-community.vercel.app/api/agent/link?q=TMP"
+   curl "https://bankr.space/api/agent/link?q=TMP"
 
    Bankr script equivalent:
-   const body = await http.fetch('https://bankr-community.vercel.app/api/agent/link?q=TMP');
+   const body = await http.fetch('https://bankr.space/api/agent/link?q=TMP');
 
 3. Tweet reply = response body verbatim. One line. Do not add text before or after.
 ```
@@ -28,9 +28,9 @@
 
 | User says | GET URL | Tweet reply (response body) |
 |-----------|---------|----------------------------|
-| link to **TMP** community | `.../api/agent/link?q=TMP` | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| link to **ARCHIVE** | `.../api/agent/link?q=ARCHIVE` | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
-| token exists, no community yet | `.../api/agent/link?q=FOO` | `No $FOO community yet — TokenName is on Bankr. Would you like me to create the community?` |
+| link to **TMP** space | `.../api/agent/link?q=TMP` | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| link to **ARCHIVE** | `.../api/agent/link?q=ARCHIVE` | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| token exists, no space yet | `.../api/agent/link?q=FOO` | `No $FOO space yet — TokenName is on Bankr. Would you like me to create the space?` |
 
 Replace `TMP` with whatever ticker/name/address the user asked for.
 
@@ -42,15 +42,15 @@ Read `known-communities.json`. Never reply "I wasn't able to generate a response
 
 | Symbol | communityLink |
 |--------|---------------|
-| TMP | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| ARCHIVE | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| TMP | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
+| ARCHIVE | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
 
 ---
 
 ## JSON alternative (if you need fields)
 
 ```http
-GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
+GET https://bankr.space/api/agent/resolve-community?q=TMP
 ```
 
 Use field `communityLink` or `tweetReply` from JSON.

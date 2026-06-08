@@ -1,6 +1,6 @@
 # Submit `bankr-communities` to BankrBot/skills
 
-This folder is a PR-ready copy of the Bankr Communities agent skill, structured exactly like [BankrBot/skills](https://github.com/BankrBot/skills) expects.
+This folder is a PR-ready copy of the Bankr Space agent skill, structured exactly like [BankrBot/skills](https://github.com/BankrBot/skills) expects.
 
 ## Quick steps
 
@@ -16,16 +16,16 @@ This folder is a PR-ready copy of the Bankr Communities agent skill, structured 
 4. Commit and push:
    ```bash
    git add bankr-communities/
-   git commit -m "Add bankr-communities skill — token-gated holder communities"
+   git commit -m "Add bankr-communities skill — token-gated holder spaces"
    git push -u origin add-bankr-communities
    ```
 5. Open a PR on GitHub. Suggested description:
 
    **Summary**
-   - Token-gated holder communities for Bankr-launched tokens
+   - Token-gated holder spaces for Bankr-launched tokens
    - Read: briefing, member counts, search, community links
    - Write: verify, post, pin, update profile/social links (beneficiary)
-   - Live API: https://bankr-community.vercel.app
+   - Live API: https://bankr.space
 
    **Install (after merge)**
    ```text
@@ -58,9 +58,9 @@ bankr-communities/
 
 | Field | Value |
 |-------|-------|
-| Provider | [Bankr Communities](https://bankr-community.vercel.app) |
+| Provider | [Bankr Space](https://bankr.space) |
 | Skill | `bankr-communities/` |
-| Description | Token-gated communities for Bankr-launched tokens — links, briefing, posts, verify, pin, beneficiary profile updates |
+| Description | Token-gated spaces for Bankr-launched tokens — links, briefing, posts, verify, pin, beneficiary profile updates |
 | Source repo | https://github.com/anondevv69/bankr-community |
 
 ## Test before submitting
@@ -70,8 +70,8 @@ bankr-communities/
 ./bankr-communities/scripts/get-community-link.sh TMP
 
 # Briefing (JSON)
-curl "https://bankr-community.vercel.app/api/agent/briefing?symbol=TMP"
+curl "https://bankr.space/api/agent/briefing?symbol=TMP"
 ```
 
 Expected TMP link:
-`https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
+`https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3`

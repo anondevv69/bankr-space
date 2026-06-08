@@ -38,7 +38,7 @@ In Vercel → **Settings** → **Environment Variables**, add:
 
 | Variable | Value |
 |----------|--------|
-| `NEXT_PUBLIC_SITE_URL` | Your Vercel URL (for links + Bankr skill) |
+| `NEXT_PUBLIC_SITE_URL` | `https://bankr.space` (custom domain; or your `*.vercel.app` URL during setup) |
 | `CRON_SECRET` | Random string (e.g. `openssl rand -hex 32`) |
 
 `KV_*` vars are set automatically when you connect KV.
@@ -49,9 +49,17 @@ In Vercel → **Settings** → **Environment Variables**, add:
 
 ## Step 4 — Deploy
 
-Click **Deploy**. Vercel builds `web/` and gives you a URL like:
+Click **Deploy**. Vercel builds `web/` and gives you a URL like `https://bankr-community-xyz.vercel.app`.
 
-`https://bankr-community-xyz.vercel.app`
+---
+
+## Step 4b — Custom domain (bankr.space)
+
+1. Vercel → **Settings** → **Domains** → add `bankr.space` (and `www` if desired)
+2. Point DNS at Vercel per their instructions
+3. Set `NEXT_PUBLIC_SITE_URL=https://bankr.space` and redeploy
+4. On Bankr, set `COMMUNITIES_SITE_URL=https://bankr.space`
+5. Reinstall the Bankr app v13 so `index.html` / `apiGet.ts` use `https://bankr.space`
 
 ---
 

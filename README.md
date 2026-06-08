@@ -42,7 +42,7 @@ Install alongside TMP skills so users can `@bankrbot` space actions:
 install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities
 ```
 
-Set `COMMUNITIES_SITE_URL` on Bankr to your Vercel URL. See [skills/bankr-communities/ONE-LINE-INTENTS.md](./skills/bankr-communities/ONE-LINE-INTENTS.md).
+Set `COMMUNITIES_SITE_URL=https://bankr.space` on Bankr. See [skills/bankr-communities/ONE-LINE-INTENTS.md](./skills/bankr-communities/ONE-LINE-INTENTS.md).
 
 Example tweets:
 
@@ -52,7 +52,7 @@ Example tweets:
 @bankrbot verify the TMP space
 ```
 
-**Public agent guide:** after deploy, bots can fetch `https://your-app.vercel.app/agent.md` (linked in site footer).
+**Public agent guide:** `https://bankr.space/agent.md` (linked in site footer).
 
 ## File structure
 

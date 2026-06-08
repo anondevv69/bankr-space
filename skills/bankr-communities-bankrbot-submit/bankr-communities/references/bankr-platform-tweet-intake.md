@@ -1,4 +1,4 @@
-# Bankr platform — tweet intake for Communities skill
+# Bankr platform — tweet intake for Bankr Space skill
 
 > **Audience:** Bankr engineering. Skill content is correct if loaded; tweets fail when skill is not in execution path.
 
@@ -7,14 +7,14 @@
 ## User tweet wording (sufficient TRIGGER)
 
 ```text
-@bankrbot what's the latest on the TMP community?
-@bankrbot how many members in CTO community?
-@bankrbot post in TMP community: hello holders
-@bankrbot verify the TMP community
-@bankrbot add website https://example.com to TMP community profile
-@bankrbot post in TMP community: hello holders — pin it
-@bankrbot pin the latest post in TMP community
-@bankrbot what's the link to the TMP community?
+@bankrbot what's the latest on the TMP space?
+@bankrbot how many members in CTO space?
+@bankrbot post in TMP space: hello holders
+@bankrbot verify the TMP space
+@bankrbot add website https://example.com to TMP space profile
+@bankrbot post in TMP space: hello holders — pin it
+@bankrbot pin the latest post in TMP space
+@bankrbot what's the link to the TMP space?
 ```
 
 Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet paste (if X↔Bankr linked).
@@ -23,7 +23,7 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 
 ## Required platform behavior
 
-On tweet/DM matching community intent:
+On tweet/DM matching space intent (user may say community):
 
 ```
 1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER)
@@ -31,18 +31,18 @@ On tweet/DM matching community intent:
 3. Writes → references/beneficiary-actions.md → GET /api/holders?wallet= → POST/PATCH/pin-post
 4. Link question → references/instant-link-replies.md (TMP/ARCHIVE) or GET /api/agent/link?q={TICKER}
 5. Other reads → GET /api/agent/briefing?...
-6. Plain English reply + **bankr-community.vercel.app/community/0x{contract}** URL
+6. Plain English reply + **bankr.space/community/0x{contract}** URL
 ```
 
-**Write acceptance test:** `@bankrbot verify the TMP community`  
+**Write acceptance test:** `@bankrbot verify the TMP space`  
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
 
-**Write acceptance test:** `@bankrbot post in TMP community: update — pin it`  
+**Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
 Must log: `POST …/posts` then `POST …/pin-post` if verified beneficiary.
 
-**Link acceptance test:** `@bankrbot what's the link to the TMP community?`
+**Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 
-Must reply: `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3`
+Must reply: `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3`
 
 **Fail:** "I wasn't able to generate a response" (use known-communities.json fallback instead)
 
@@ -52,12 +52,12 @@ Must reply: `https://bankr-community.vercel.app/community/0x935e13a28849095db45e
 
 ## Acceptance test
 
-**Tweet:** `@bankrbot how many members in TMP community?`
+**Tweet:** `@bankrbot how many members in TMP space?`
 
 **Pass:**
 - Log shows skill load before reply
 - `GET …/api/agent/briefing?symbol=TMP`
-- Reply: "TMP community has N members, M posts…" + link
+- Reply: "TMP space has N members, M posts…" + link
 
 **Fail:**
 - Generic "I can't access communities"
@@ -70,4 +70,4 @@ Must reply: `https://bankr-community.vercel.app/community/0x935e13a28849095db45e
 
 Bankr agent wallet / deployment should set:
 
-`COMMUNITIES_SITE_URL=https://bankr-community.vercel.app` (optional — this is the skill default)
+`COMMUNITIES_SITE_URL=https://bankr.space` (optional — this is the skill default)

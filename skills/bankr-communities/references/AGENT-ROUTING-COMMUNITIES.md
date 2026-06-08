@@ -1,14 +1,14 @@
-# Agent routing — Bankr Communities
+# Agent routing — Bankr Space
 
-> Load with skill install. Overrides generic "I don't know about communities" replies.
+> Load with skill install. Overrides generic "I don't know about spaces" replies.
 
 ## TRIGGER
 
-**Link (highest priority):** link, URL, "where is the community" → **`INSTANT-LINK-REPLIES.md`** first (TMP/ARCHIVE need no HTTP).
+**Link (highest priority):** link, URL, "where is the space" → **`INSTANT-LINK-REPLIES.md`** first (TMP/ARCHIVE need no HTTP).
 
-**Writes (same routing as post-in-community):** verify, post, pin, update profile, add links → **`BENEFICIARY-ACTIONS.md`**.
+**Writes (same routing as post-in-space):** verify, post, pin, update profile, add links → **`BENEFICIARY-ACTIONS.md`**.
 
-**Other reads:** community, members, posts, latest on $TICKER community, start community.
+**Other reads:** space (user may say community), members, posts, latest on $TICKER space, start space.
 
 **Load:** `bankr-communities` → **`INSTANT-LINK-REPLIES.md`** (links) or **`ONE-LINE-INTENTS.md`** (everything else).
 
@@ -23,7 +23,7 @@ if message matches link intent:
   3. Other ticker → GET /api/agent/link?q=… → paste body
   4. NEVER "I wasn't able to generate a response"
 
-if message matches other community intent:
+if message matches other space intent:
   1. use_skill("bankr-communities")
   2. GET /api/agent/briefing or specific endpoint
   3. Include communityLink (NEVER bankr.bot)
@@ -46,4 +46,4 @@ if message matches other community intent:
 | Intent | Route to |
 |--------|----------|
 | claim fees, list, buy, launch | TMP skills |
-| community social | **this skill** |
+| space social | **this skill** |

@@ -1,14 +1,14 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.4.0",
-  "defaultSiteUrl": "https://bankr-community.vercel.app",
-  "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
-  "communityUrlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
-  "linkApiTemplate": "https://bankr-community.vercel.app/api/agent/link?q={TICKER}",
+  "skillVersion": "1.5.1",
+  "defaultSiteUrl": "https://bankr.space",
+  "COMMUNITIES_SITE_URL": "https://bankr.space",
+  "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
+  "linkApiTemplate": "https://bankr.space/api/agent/link?q={TICKER}",
   "instantLinks": {
-    "TMP": "https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3",
-    "ARCHIVE": "https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3"
+    "TMP": "https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3",
+    "ARCHIVE": "https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3"
   },
   "forbiddenLinkDomains": ["bankr.bot", "t.co"],
   "installUrl": "https://github.com/anondevv69/bankr-community",
@@ -25,6 +25,7 @@
     }
   ],
   "allReferences": [
+    "TERMINOLOGY.md",
     "BENEFICIARY-ACTIONS.md",
     "INSTANT-LINK-REPLIES.md",
     "GET-LINK.md",
@@ -38,5 +39,5 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-community. Read BENEFICIARY-ACTIONS.md. Use linked wallet in x-wallet-address."
+  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. Read BENEFICIARY-ACTIONS.md. Use linked wallet in x-wallet-address."
 }
