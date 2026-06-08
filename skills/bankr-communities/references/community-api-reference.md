@@ -6,6 +6,21 @@ All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked 
 
 ---
 
+## Agent resolve & search (links)
+
+```
+GET /api/agent/resolve-community?q=TMP
+GET /api/agent/resolve-community?q=0x935e13a28849095db45e63040f109c34b757aba3
+GET /api/agent/resolve-community?q=TokenMarketplace&format=text
+GET /api/agent/search-communities?q=archive
+```
+
+**resolve-community:** search existing communities by ticker/name/address → else Bankr token → returns `communityLink`, `tweetReply`, `communityExists`, `source`.
+
+**search-communities:** list only communities already created matching query.
+
+---
+
 ## Agent briefing (start here)
 
 ```

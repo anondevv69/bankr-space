@@ -71,10 +71,12 @@ GET {{SITE_URL}}/api/agent/briefing?q=search
 **Link-only requests:**
 
 ```http
-GET {{SITE_URL}}/api/agent/community-link?symbol=ARCHIVE
+GET {{SITE_URL}}/api/agent/resolve-community?q=TMP
+GET {{SITE_URL}}/api/agent/resolve-community?q=ARCHIVE
+GET {{SITE_URL}}/api/agent/search-communities?q=archive
 ```
 
-Reply with `communityLink` only — one URL line.
+Search order: existing communities → Bankr token contract → build URL. Reply with `communityLink` or `tweetReply`.
 
 **Example curl:**
 

@@ -1,9 +1,8 @@
 ---
 name: bankr-communities
-version: 1.0.8
+version: 1.1.0
 description: >-
-  Bankr token communities. LINK ANSWERS (no API needed): TMP=https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3 ARCHIVE=https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3.
-  For "what's the link to TMP community" reply that URL only. Site https://bankr-community.vercel.app. Never bankr.bot.
+  Bankr token communities on https://bankr-community.vercel.app. Link questions: GET /api/agent/resolve-community?q=TICKER → paste communityLink. Searches existing communities first, then Bankr token contract. Never bankr.bot.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
@@ -16,22 +15,25 @@ metadata:
 
 # Bankr Communities — Agent skill
 
-## ⚡ LINK QUESTIONS — DO THIS FIRST (before anything else)
+## ⚡ LINK & SEARCH — DO THIS FIRST
 
-If user message contains **"link"** or **"URL"** and a token/community → read **`LINK-INTENT-ONLY.md`**.
+User asks for **link**, **URL**, or **community page** for a ticker/token → read **`LINK-INTENT-ONLY.md`**.
 
-### Answer immediately (no API call required)
+**Primary API (search + link in one call):**
 
-| User asks | Reply with ONLY this line |
-|-----------|---------------------------|
-| link to **TMP** community | `https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3` |
-| link to **ARCHIVE** community | `https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+```http
+GET https://bankr-community.vercel.app/api/agent/resolve-community?q=TMP
+```
 
-Do **not** call tools first for known symbols above — paste the URL and STOP.
+**Flow:** search existing communities by ticker/name/address → if none, find Bankr token contract → build `https://bankr-community.vercel.app/community/0x{contract}` → paste `communityLink` on X.
 
-For unknown symbols: `GET https://bankr-community.vercel.app/api/agent/community-link?symbol=SYMBOL` → reply `communityLink` only.
+**Search live communities only:**
 
-**Never** respond with a FAQ when they asked for a link. **Never** use bankr.bot. **Never** say "I wasn't able to generate a response" for TMP/ARCHIVE — the link is in this skill.
+```http
+GET https://bankr-community.vercel.app/api/agent/search-communities?q=archive
+```
+
+**Tweet reply = `communityLink` or `tweetReply` from JSON — one line. Never bankr.bot.**
 
 ---
 ## LINK RULES (mandatory for every community reply)
@@ -73,7 +75,9 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 
 | User says | Agent does |
 |-----------|------------|
-| what's the link to **$TMP** community? | `GET {SITE}/api/agent/community-link?symbol=TMP` → reply **only** with `communityLink` (single URL line) |
+| what's the link to **$TMP** community? | `GET {SITE}/api/agent/resolve-community?q=TMP` → paste `communityLink` only |
+| what's the link to **$ARCHIVE**? | `GET {SITE}/api/agent/resolve-community?q=ARCHIVE` → paste `communityLink` |
+| search communities **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
 | what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste full `replyText` (URL is line 2) |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
 | show recent posts in **0x935e…** community | `GET {SITE}/api/communities/0x935e…` |
@@ -96,10 +100,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 if message contains "link" OR "url" OR "where is" + community/token:
   1. use_skill("bankr-communities")
   2. Read LINK-INTENT-ONLY.md FIRST
-  3. GET /api/agent/community-link?symbol=…
-  4. Reply = communityLink only → STOP (no FAQ)
-
-if message matches community / verify / post / comment / members / latest:
+  3. GET /api/agent/resolve-community?q=… (link) OR search-communities (list) OR briefing (stats)
+  4. Link questions → paste communityLink only → STOP (no FAQ)
   1. use_skill("bankr-communities")
   2. Read ONE-LINE-INTENTS.md + references/AGENT-ROUTING-COMMUNITIES.md
   3. GET /api/agent/briefing or specific API — BEFORE replying
