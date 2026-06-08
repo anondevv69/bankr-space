@@ -1,75 +1,98 @@
-# Install Bankr Space v14 (native UI + Vercel API)
+# Install Bankr Space v15 (slug: `bankr-communities-v2`)
 
-v14 matches the **bankr.space** web UI: logo, Create Space modal, verified filters, hero market stats, post filters, and light/dark theme. All data comes from **https://bankr.space** via `apiGet` / `apiWrite` scripts.
+If the one-shot update **gets stuck**, install **one file at a time** (order matters).
 
-**Files to install:** `manifest.json`, `index.html`, `scripts/apiGet.ts`, `scripts/apiWrite.ts`  
-**Slug:** `bankr-communities-v2`
+**Raw base:** `https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2`
 
 ---
 
-## One-shot install (paste in Bankr terminal)
+## Why updates hang
+
+1. **Dry-run before scripts exist** — `apiGet` must be installed before any dry-run.
+2. **Old manifest** still lists 10+ legacy scripts — Bankr tries to reconcile them slowly.
+3. **Large `index.html`** — fetching/writing in one mega-step can timeout.
+
+**Fix:** manifest + scripts first, then UI, then verify.
+
+---
+
+## Step 1 — manifest only
 
 ```text
-Update app bankr-communities-v2 to v14:
-
-1. Write manifest.json from:
+For app bankr-communities-v2, replace ONLY manifest.json from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/manifest.json
 
-2. Write index.html from:
-https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html
+Confirm version is "15", title "Bankr Space", scripts are ONLY ["apiGet","apiWrite"], schedule is [].
+Remove/delete all other scripts from this app (syncTokens, createPost, createCommunity, etc.).
+Do not change index.html yet.
+```
 
-3. Write scripts/apiGet.ts from:
+---
+
+## Step 2 — apiGet + apiWrite
+
+```text
+For app bankr-communities-v2, write these two files only:
+
+scripts/apiGet.ts from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/apiGet.ts
 
-4. Write scripts/apiWrite.ts from:
+scripts/apiWrite.ts from:
 https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/scripts/apiWrite.ts
 
-Do not modify content. Confirm manifest version is "14" and footer says "rayblanco.eth · v14".
-Disable old syncTokens schedule — v14 needs no cron scripts.
-Make the app public.
+Then run script apiGet with args { "path": "/api/communities" }.
+Expect ok:true and data.communities array.
 ```
 
 ---
 
-## Verify
+## Step 3 — index.html
 
-1. Open **Apps → Bankr Space**
-2. Footer must say: `rayblanco.eth · Bankr Space · v14` (not v13, not "Communities")
-3. Home shows **Spaces** + **Create Space** button (not inline create form)
-4. Open TMP space → hero market stats, post filters, beneficiary sidebar
-5. Sign in → post / verify / pin work
-
-**If you still see "Bankr Communities" or v13:** the app files were not updated — reinstall all 4 files from GitHub (see below). Use slug `bankr-communities-v2` or `bankr-communities` depending on which app you have installed.
-
-**Dry-run test:**
 ```text
-Run script apiGet with args { "path": "/api/communities" }
+For app bankr-communities-v2, replace ONLY index.html from:
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/index.html
+
+Footer must contain: Bankr Space · v15
 ```
-Should return `{ ok: true, data: { communities: [...] } }`
 
 ---
 
-## Features in Bankr app (v14)
+## Step 4 — verify in Bankr UI
 
-| Feature | In app | Full site only |
-|---------|--------|----------------|
-| Browse spaces | ✓ | |
-| Market stats + Dex paid | ✓ | |
-| Posts + reactions | ✓ | |
-| Verify space | ✓ | |
-| Create space | ✓ | |
-| Pin / unpin | ✓ | |
-| Edit profile / socials | | ✓ (use "Open full site") |
+Open the app. You should see:
+
+- **Bankr Space** title + TV logo
+- **Create Space** button (top right)
+- **All / Verified / Unverified** filters
+- Footer: `rayblanco.eth · Bankr Space · v15`
+
+NOT: "Bankr Communities", "Create Community", or `v13`.
 
 ---
 
-## Architecture
+## One-shot (if your Bankr agent handles it)
 
-```
-Bankr app (native HTML)
-  → bankr.scripts.run('apiGet' | 'apiWrite')
-    → http.fetch('https://bankr.space/api/...')
-      → Vercel Redis (same data as public site)
+```text
+Update app bankr-communities-v2 to v15 in this order:
+
+1. manifest.json
+2. scripts/apiGet.ts
+3. scripts/apiWrite.ts
+4. index.html
+
+URLs under:
+https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities-v2/
+
+Delete legacy scripts. schedule []. Only apiGet + apiWrite.
+Footer must say Bankr Space · v15. Then dry-run apiGet path /api/communities.
 ```
 
-Writes pass `x-wallet-address` from `ctx.caller.walletAddress` (your Bankr wallet).
+---
+
+## Manual API check (outside Bankr)
+
+```bash
+curl -sL "https://bankr.space/api/communities" | head -c 200
+```
+
+Should return JSON with `"communities"`.
