@@ -1,7 +1,7 @@
 {
   "slug": "bankr-communities-v2",
   "title": "Bankr Communities",
-  "version": "12",
+  "version": "13",
   "visibility": "public",
   "repo": "https://github.com/anondevv69/bankr-community",
   "branch": "main",
@@ -10,13 +10,20 @@
   "installMode": "update-existing-app",
   "doNotMergeUI": true,
   "fetchMethod": "http.fetch",
-  "files": ["manifest.json", "index.html"],
+  "files": [
+    "manifest.json",
+    "index.html",
+    "scripts/apiGet.ts",
+    "scripts/apiWrite.ts"
+  ],
   "schedule": [],
   "verifyAfterInstall": {
-    "footerMustContain": "rayblanco.eth · v12",
-    "manifestVersion": "12",
+    "footerMustContain": "rayblanco.eth · v13",
+    "manifestVersion": "13",
     "indexMustContain": "bankr-community.vercel.app",
-    "indexMustContainEmbed": "embed=bankr"
+    "dryRunScript": "apiGet",
+    "dryRunArgs": { "path": "/api/communities" },
+    "dryRunMustInclude": "communities"
   },
-  "notes": "v12 is a thin iframe shell — all community data and UI live on Vercel. Only manifest.json + index.html are required. Do not restore old appKV scripts."
+  "notes": "v13 uses native HTML UI + apiGet/apiWrite scripts proxying Vercel. No iframe (Bankr sandbox blocks localStorage/wagmi)."
 }
