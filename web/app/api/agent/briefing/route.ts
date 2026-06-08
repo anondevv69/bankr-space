@@ -81,16 +81,29 @@ export async function GET(req: Request) {
 
     const siteUrl = getSiteUrl();
     const pageLink = community ? communityUrl(community.tokenAddress) : null;
+    const replyText = community ? buildBriefingReplyText(community, recentPosts) : null;
+
+    if (searchParams.get('format') === 'text') {
+      if (!replyText) {
+        return new NextResponse('Community not found', { status: 404 });
+      }
+      return new NextResponse(replyText, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
 
     return NextResponse.json({
       ok: true,
       siteUrl,
       communityLink: pageLink,
       linkReply: pageLink,
-      replyText: community ? buildBriefingReplyText(community, recentPosts) : null,
-      tweetReply: pageLink,
+      replyText,
+      tweetReply: replyText,
+      linkOnlyReply: pageLink,
       communityUrlTemplate: 'https://bankr-community.vercel.app/community/{tokenContractAddress}',
       forbiddenLinks: ['https://bankr.bot', 'bankr.bot'],
+      instruction:
+        'Paste replyText verbatim as the tweet. Final line MUST be communityLink (https URL on its own line). Do not summarize without the URL.',
       syncedAt: syncAt,
       totalCommunities: communities.length,
       community: community || null,

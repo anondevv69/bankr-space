@@ -1,10 +1,9 @@
 ---
 name: bankr-communities
-version: 1.3.0
+version: 1.3.1
 description: >-
-  TMP link (paste as tweet): https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
-  ARCHIVE: https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3
-  Link question → instant reply from skill OR GET /api/agent/link?q=TICKER. Never empty reply. Never bankr.bot.
+  Briefing/latest: paste replyText verbatim — last line is community URL. TMP: https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+  Never summarize briefing without communityLink. Link-only: GET /api/agent/link?q=TICKER.
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
@@ -87,7 +86,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | what's the link to **$TMP** community? | Paste TMP URL from table above — **no HTTP** |
 | what's the link to **$ARCHIVE**? | Paste ARCHIVE URL from table above — **no HTTP** |
 | search communities **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
-| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste full `replyText` (URL is line 2) |
+| what's the latest on **$TMP** community? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste **`replyText` verbatim** (URL is **last line**) — or `?format=text` |
 | how many members in **TMP** community? | briefing → `stats.memberCount` |
 | show recent posts in **0x935e…** community | `GET {SITE}/api/communities/0x935e…` |
 | **verify** the **TMP** community | linked wallet = owner? → `POST …/verify` |
@@ -145,17 +144,19 @@ If `canPost` false → say "you need to hold $SYMBOL or be the token owner to po
 
 X does **not** render markdown links. Every reply **must** include the raw `https://` URL from API `links.communityPage`.
 
-**Required format:**
+**Required format (paste `replyText` from API — do not paraphrase without URL):**
 
 ```text
-$TMP community — ✓ verified · 1 member · 2 posts
-latest: "hiii" by @you
+$TMP community — verified · 1 member · 2 posts
+latest: "this is from X" by @you
 
 https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 **Rules:**
-- Copy `links.communityPage` from briefing or post API response — never omit
+- Paste **`replyText`** or **`tweetReply`** from briefing API verbatim — they are identical
+- **Never** summarize stats/latest without **`communityLink`** on its own line at the **end**
+- Copy `links.communityPage` or `communityLink` if building reply manually — never omit
 - Put the full URL on its **own line** (X auto-linkifies it)
 - Never end with "view community:" and nothing after it
 - Never use only `[View community](url)` markdown — always include the bare URL too
