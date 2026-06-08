@@ -34,10 +34,12 @@ Make the app public.
 ## Verify
 
 1. Open **Apps → Bankr Space**
-2. Footer: `rayblanco.eth · v13 · Vercel API`
-3. Spaces list loads (not black screen)
-4. Open TMP space → market stats, posts visible
+2. Footer must say: `rayblanco.eth · Bankr Space · v14` (not v13, not "Communities")
+3. Home shows **Spaces** + **Create Space** button (not inline create form)
+4. Open TMP space → hero market stats, post filters, beneficiary sidebar
 5. Sign in → post / verify / pin work
+
+**If you still see "Bankr Communities" or v13:** the app files were not updated — reinstall all 4 files from GitHub (see below). Use slug `bankr-communities-v2` or `bankr-communities` depending on which app you have installed.
 
 **Dry-run test:**
 ```text
@@ -47,7 +49,7 @@ Should return `{ ok: true, data: { communities: [...] } }`
 
 ---
 
-## Features in Bankr app (v13)
+## Features in Bankr app (v14)
 
 | Feature | In app | Full site only |
 |---------|--------|----------------|

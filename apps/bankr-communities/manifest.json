@@ -1,43 +1,13 @@
 {
   "slug": "bankr-communities",
-  "title": "Bankr Communities",
-  "version": "11",
-  "description": "Token-gated community discussions for Bankr-deployed tokens. Anyone can start a community; token owners verify it.",
+  "title": "Bankr Space",
+  "version": "14",
+  "description": "Bankr Space — token-gated spaces for Bankr-launched tokens. Native Bankr UI backed by bankr.space API.",
   "tags": ["community", "tokens", "social", "bankr"],
-  "permissions": [
-    "read:wallet",
-    "read:tokens",
-    "read:portfolio",
-    "read:chain",
-    "read:appdata",
-    "write:appdata",
-    "fetch:http"
-  ],
-  "scripts": [
-    "syncTokens",
-    "searchTokens",
-    "lookupLaunch",
-    "resolveUserProfiles",
-    "verifyHolder",
-    "createPost",
-    "createCommunity",
-    "verifyCommunity",
-    "addReaction"
-  ],
-  "schedule": [
-    {
-      "script": "syncTokens",
-      "cron": "0 * * * *",
-      "enabled": true
-    }
-  ],
-  "publicDataKeys": [
-    "communities",
-    "token_launches",
-    "community_posts",
-    "user_profiles",
-    "meta.syncUpdatedAt"
-  ],
+  "permissions": ["read:wallet", "fetch:http"],
+  "scripts": ["apiGet", "apiWrite"],
+  "schedule": [],
+  "publicDataKeys": [],
   "frontendIdentity": "viewer",
   "secrets": []
 }

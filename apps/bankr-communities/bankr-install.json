@@ -1,0 +1,29 @@
+{
+  "slug": "bankr-communities",
+  "title": "Bankr Space",
+  "version": "14",
+  "visibility": "public",
+  "repo": "https://github.com/anondevv69/bankr-community",
+  "branch": "main",
+  "sourcePath": "apps/bankr-communities",
+  "rawBase": "https://raw.githubusercontent.com/anondevv69/bankr-community/main/apps/bankr-communities",
+  "installMode": "update-existing-app",
+  "doNotMergeUI": true,
+  "fetchMethod": "http.fetch",
+  "files": [
+    "manifest.json",
+    "index.html",
+    "scripts/apiGet.ts",
+    "scripts/apiWrite.ts"
+  ],
+  "schedule": [],
+  "verifyAfterInstall": {
+    "footerMustContain": "rayblanco.eth · v14",
+    "manifestVersion": "14",
+    "indexMustContain": "bankr.space",
+    "dryRunScript": "apiGet",
+    "dryRunArgs": { "path": "/api/communities" },
+    "dryRunMustInclude": "communities"
+  },
+  "notes": "Legacy slug bankr-communities — same v14 UI as bankr-communities-v2. Disable old syncTokens schedule."
+}
