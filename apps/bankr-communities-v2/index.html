@@ -130,6 +130,29 @@
       transform: translateY(-2px);
     }
 
+    .card.featured {
+      background: rgba(251, 191, 36, 0.12);
+      border: 2px solid rgba(251, 191, 36, 0.65);
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18);
+    }
+
+    .card.featured:hover {
+      border-color: rgba(251, 191, 36, 0.9);
+    }
+
+    .card.featured .card-symbol {
+      color: #fbbf24;
+    }
+
+    .badge-featured {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
     .card-symbol {
       font-size: 20px;
       font-weight: 700;
@@ -1065,7 +1088,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v21 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
+    made with love &lt;3 rayblanco.eth · Bankr Space · v22 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1129,7 +1152,12 @@
     let theme = 'dark';
 
     const LOGO_URL = 'https://www.bankr.space/logo.png';
+    const NATIVE_SPACE_ADDRESS = '0xef703b860a6d422fa00cc67bbbb2662297cb6ba3';
     const THEME_KEY = 'bankr-space-theme';
+
+    function isNativeSpace(address) {
+      return address && address.toLowerCase() === NATIVE_SPACE_ADDRESS.toLowerCase();
+    }
 
     function formatPct(value) {
       if (value == null || isNaN(value)) return '—';
@@ -1772,6 +1800,40 @@
       }).join('');
     }
 
+    function renderCommunityCard(c) {
+      const featured = isNativeSpace(c.tokenAddress);
+      let badges = '';
+      if (featured) {
+        badges += '<span class="badge badge-featured">Bankr Space</span>';
+      }
+      if (c.verified) {
+        badges += '<span class="badge badge-verified">✓ Verified</span>';
+      } else if (!featured) {
+        badges += '<span class="badge badge-unverified">Unverified</span>';
+      }
+
+      return (
+        '<div class="card' + (featured ? ' featured' : '') + '" onclick="openCommunity(\'' + c.tokenAddress + '\')">' +
+          '<div style="display:flex;align-items:flex-start;gap:12px;">' +
+            tokenAvatarHtml(c.symbol, c.imageUrl || resolveTokenImageUrl(c.imageUri), 44) +
+            '<div style="min-width:0;flex:1;">' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                '<div class="card-symbol">' + escapeHtml(c.symbol) + '</div>' +
+                badges +
+              '</div>' +
+              '<div class="card-name">' + escapeHtml(c.name) + '</div>' +
+              renderMarketCompact(c) +
+              '<div class="card-meta">' +
+                '<span class="badge badge-chain">' + escapeHtml(c.chain || 'base') + '</span>' +
+                '<span>💬 ' + (c.postCount || 0) + '</span>' +
+                '<span>👥 ' + (c.memberCount || 0) + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
     function renderCommunities() {
       const el = document.getElementById('communitiesGrid');
       const filtered = communities.filter(function (c) {
@@ -1786,35 +1848,17 @@
         return;
       }
 
-      if (!filtered.length) {
+      const featured = communities.find(function (c) { return isNativeSpace(c.tokenAddress); });
+      const featuredVisible = featured && matchesSearch(featured, communitySearchQuery);
+      const withoutFeatured = filtered.filter(function (c) { return !isNativeSpace(c.tokenAddress); });
+      const displayList = featuredVisible ? [featured].concat(withoutFeatured) : filtered;
+
+      if (!displayList.length) {
         el.innerHTML = '<div class="empty">No spaces match your search or filter.</div>';
         return;
       }
 
-      el.innerHTML = filtered.map(function (c) {
-        return (
-          '<div class="card" onclick="openCommunity(\'' + c.tokenAddress + '\')">' +
-            '<div style="display:flex;align-items:flex-start;gap:12px;">' +
-              tokenAvatarHtml(c.symbol, c.imageUrl || resolveTokenImageUrl(c.imageUri), 44) +
-              '<div style="min-width:0;flex:1;">' +
-                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-                  '<div class="card-symbol">' + escapeHtml(c.symbol) + '</div>' +
-                  (c.verified
-                    ? '<span class="badge badge-verified">✓ Verified</span>'
-                    : '<span class="badge badge-unverified">Unverified</span>') +
-                '</div>' +
-                '<div class="card-name">' + escapeHtml(c.name) + '</div>' +
-                renderMarketCompact(c) +
-                '<div class="card-meta">' +
-                  '<span class="badge badge-chain">' + escapeHtml(c.chain || 'base') + '</span>' +
-                  '<span>💬 ' + (c.postCount || 0) + '</span>' +
-                  '<span>👥 ' + (c.memberCount || 0) + '</span>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
-        );
-      }).join('');
+      el.innerHTML = displayList.map(renderCommunityCard).join('');
     }
 
     function renderSocialLinks(comm, market) {

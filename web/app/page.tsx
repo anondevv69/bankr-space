@@ -5,6 +5,7 @@ import { Header, Footer } from '@/components/Header';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { CommunityCard } from '@/components/CommunityCard';
 import { CreateCommunity } from '@/components/CreateCommunity';
+import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import type { Community, TokenMarketStats } from '@/lib/types';
 
 type VerifiedFilter = 'all' | 'verified' | 'unverified';
@@ -56,21 +57,36 @@ export default function HomePage() {
     load();
   }, [load]);
 
-  const filtered = communities.filter((c) => {
-    if (filter.trim()) {
-      const q = filter.toLowerCase().replace(/\s+/g, '');
-      const name = c.name.toLowerCase().replace(/\s+/g, '');
-      const symbol = c.symbol.toLowerCase();
-      const address = c.tokenAddress.toLowerCase();
-      if (!name.includes(q) && !symbol.includes(q) && !address.includes(q)) {
-        return false;
-      }
-    }
+  const matchesSearch = (c: Community) => {
+    if (!filter.trim()) return true;
+    const q = filter.toLowerCase().replace(/\s+/g, '');
+    const name = c.name.toLowerCase().replace(/\s+/g, '');
+    const symbol = c.symbol.toLowerCase();
+    const address = c.tokenAddress.toLowerCase();
+    return name.includes(q) || symbol.includes(q) || address.includes(q);
+  };
 
+  const matchesVerifiedTab = (c: Community) => {
     if (verifiedFilter === 'verified') return c.verified;
     if (verifiedFilter === 'unverified') return !c.verified;
     return true;
-  });
+  };
+
+  const featured = communities.find((c) => isNativeSpaceCommunity(c.tokenAddress));
+  const featuredVisible = !!featured && matchesSearch(featured);
+
+  const tabFiltered = communities.filter(
+    (c) => matchesSearch(c) && matchesVerifiedTab(c)
+  );
+
+  const withoutFeatured = tabFiltered.filter(
+    (c) => !isNativeSpaceCommunity(c.tokenAddress)
+  );
+
+  const displayList =
+    featuredVisible && featured
+      ? [featured, ...withoutFeatured]
+      : tabFiltered;
 
   return (
     <div className={`max-w-[1100px] mx-auto px-5 pb-16 ${embed.isEmbedded ? 'pt-4' : ''}`}>
@@ -115,7 +131,7 @@ export default function HomePage() {
           <div className="text-red-400 text-sm p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
             {error}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : displayList.length === 0 ? (
           <p className="text-muted text-sm p-8 text-center border border-dashed border-border rounded-xl">
             {communities.length === 0
               ? 'No spaces yet. Click Create Space to search for a token and start one.'
@@ -123,11 +139,12 @@ export default function HomePage() {
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-            {filtered.map((c) => (
+            {displayList.map((c) => (
               <CommunityCard
                 key={c.tokenAddress}
                 community={c}
                 market={markets[c.tokenAddress.toLowerCase()] || null}
+                featured={isNativeSpaceCommunity(c.tokenAddress)}
               />
             ))}
           </div>
