@@ -181,9 +181,13 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 @bankrbot what's the latest on the TMP community?   ← same intent
 @bankrbot how many members in the CTO space?
 @bankrbot post in TMP space: gm holders
-@bankrbot verify the TMP space
-@bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
+@bankrbot post this in BNKR space          ← X reply: post parent tweet URL
+@bankrbot post hello my words in TMP space ← explicit text, not parent tweet
 ```
+
+**X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):
+- **"post this/that in $TICKER space"** (replying to a tweet) → parent status URL (shows tweet card on site)
+- **`post in TICKER: text`** or **`post {words} in TICKER space`** → user's text only
 
 Bankr platform must load `bankr-communities` skill **before** tool selection (same pattern as TMP fee-rights skill).
 

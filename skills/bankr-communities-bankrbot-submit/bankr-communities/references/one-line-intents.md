@@ -31,7 +31,9 @@
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
 | **pin** post in **TMP** / **pin it** after post | `POST /api/communities/{token}/pin-post` `{ postId, action: "pin" }` (verified beneficiary) |
 | **post** in **TMP** space: {text} **and pin** | post → then pin-post if `canPinPosts` |
-| **post** in **TMP** space: {text} | holder check → `POST …/posts` **with `source`** (POST-SOURCE.md) |
+| **post** in **TMP** space: {text} | holder check → **X-REPLY-POST-CONTENT.md** → `POST …/posts` **with `source`** |
+| **post this** in **$BNKR** space (X reply to a tweet) | **X-REPLY-POST-CONTENT.md** → parent status URL as `content` |
+| **post** {inline text} in **$xxx** space (no colon) | **X-REPLY-POST-CONTENT.md** → inline text only, not parent tweet |
 | **comment** in **0x935e…** space: {text} | same as post |
 | react **👍** on post **{id}** in **TMP** | `POST /api/posts/{id}/react` `{ tokenAddress, reaction: "👍" }` |
 

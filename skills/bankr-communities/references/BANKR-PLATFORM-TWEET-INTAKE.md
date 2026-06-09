@@ -39,6 +39,12 @@ Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
 **Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
 Must log: `POST …/posts` **with `source`** (see POST-SOURCE.md) then `POST …/pin-post` if verified beneficiary.
 
+**Write acceptance test (X reply — implicit):** User replies to a status with `@bankrbot post this in $BNKR space`  
+Must log: `POST …/posts` with `content` = parent status URL, `source.trigger` = `x-reply`. See **X-REPLY-POST-CONTENT.md**.
+
+**Write acceptance test (explicit inline text):** `@bankrbot post xxxxx ewrwe xx test test in $xxx space`  
+Must log: `POST …/posts` with `content` = `xxxxx ewrwe xx test test` — **not** parent tweet.
+
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 
 Must log: `GET …/api/agent/link?q=TMP`  
