@@ -13,6 +13,7 @@ import {
 } from '@/lib/post-filters';
 import { formatTime } from '@/lib/utils';
 import { AuthorBlock } from './AuthorBlock';
+import { PostContent } from './PostContent';
 import { PostSourceBadge } from './PostSourceBadge';
 import { apiFetch } from '@/lib/wagmi';
 
@@ -161,9 +162,10 @@ export function PostFeed({
                   <span className="text-xs text-muted shrink-0">{formatTime(post.timestamp)}</span>
                 </div>
 
-                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-3 pl-[52px]">
-                  {post.content}
-                </p>
+                <PostContent
+                  content={post.content}
+                  className="mt-3 pl-[52px] space-y-1"
+                />
 
                 <PostSourceBadge source={post.source} />
 
