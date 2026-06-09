@@ -1006,7 +1006,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v18
+    made with love &lt;3 rayblanco.eth · Bankr Space · v19
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1432,12 +1432,37 @@
       } catch (_) {}
     }
 
+    let sessionRestoreAttempted = false;
+
+    async function ensureBankrSession() {
+      resolveSdkSession();
+      if (wallet) return true;
+      if (sessionRestoreAttempted) return false;
+      sessionRestoreAttempted = true;
+
+      try {
+        await bankr.auth.requireSignIn();
+      } catch (_) {
+        return false;
+      }
+
+      resolveSdkSession();
+      if (!wallet) {
+        await syncSessionFromBackend();
+      }
+      return !!wallet;
+    }
+
     async function boot() {
       initTheme();
       updateWalletBar();
       try {
         await loadData();
         updateWalletBar();
+        if (!wallet) {
+          await ensureBankrSession();
+          updateWalletBar();
+        }
         if (currentCommunity && wallet) {
           await checkHolderStatus(currentCommunity.tokenAddress);
         }
@@ -2093,10 +2118,16 @@
       // Fallback if ready already fired before listener attached
       setTimeout(function() {
         var wd = document.getElementById('walletDisplay');
-        if (wd && (wd.textContent === 'Connecting...' || wd.textContent.indexOf('guest') !== -1)) {
-          resolveSdkSession();
-          if (!wallet) syncSessionFromBackend();
-          if (wd.textContent === 'Connecting...') boot();
+        if (!wallet && typeof bankr !== 'undefined') {
+          ensureBankrSession().then(function() {
+            updateWalletBar();
+            if (currentCommunity && wallet) {
+              checkHolderStatus(currentCommunity.tokenAddress);
+            }
+          });
+        }
+        if (wd && wd.textContent === 'Connecting...') {
+          boot();
         }
       }, 1500);
     } else {
