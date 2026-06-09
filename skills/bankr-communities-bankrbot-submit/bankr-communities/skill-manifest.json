@@ -41,5 +41,5 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. X replies: read X-REPLY-POST-CONTENT.md. Use linked wallet in x-wallet-address."
+  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. Read BENEFICIARY-ACTIONS.md. Use linked wallet in x-wallet-address."
 }

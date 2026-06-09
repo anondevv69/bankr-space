@@ -58,7 +58,9 @@ x-external-ref: {tweet_or_dm_id}
 | Autopilot / cron / no user message context | `autopilot` |
 | Unclear but definitely agent | `autopilot` |
 
-**Default for tweet/DM pipeline:** if DM context → `x-dm`; if public tweet → `x-mention`.
+**What goes in `content` for X replies:** read **`X-REPLY-POST-CONTENT.md`** (parent tweet URL vs explicit user text).
+
+**Default for tweet/DM pipeline:** if DM context → `x-dm`; if public tweet reply with parent → `x-reply`; if top-level mention → `x-mention`.
 
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: bankr-communities
-version: 1.6.0
+version: 1.7.0
 description: >-
-  Verify, post, pin, update profile via API like post-in-space. Every agent post MUST include source (X DM, mention, terminal). Read POST-SOURCE.md + BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
+  Verify, post, pin, update profile via API like post-in-space. X replies: post THIS = parent tweet URL; post explicit text = use that text. Read X-REPLY-POST-CONTENT.md + POST-SOURCE.md + BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -23,7 +23,7 @@ Read **`TERMINOLOGY.md`** first: users may say **community** or **space** (same 
 
 ## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-space)
 
-User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
+User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`X-REPLY-POST-CONTENT.md`** (X reply vs explicit text) and **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
 | User says | Agent does |
 |-----------|------------|
@@ -111,7 +111,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **add links** / **update profile** for **TMP** | `PATCH …/communities/{token}` (beneficiary) |
 | **post** in **TMP** space: hello **and pin it** | post → pin-post if `canPinPosts` |
 | **pin** post in **TMP** space | `POST …/pin-post` |
-| **post** in **TMP** space: hello holders | holder check → `POST …/posts` **with `source`** → paste `replyText` |
+| **post** in **TMP** space: hello holders | holder check → **`X-REPLY-POST-CONTENT.md`** (explicit text) → `POST …/posts` **with `source`** |
+| **post this** in **$BNKR** space (X reply to a tweet) | **`X-REPLY-POST-CONTENT.md`** (parent tweet URL) → `POST …/posts` **with `source`** |
 | **comment** on **$CTO** space | same as post |
 | start a space for **$PEPE** | search token → `POST …/communities/{addr}` |
 | list all spaces | `GET {SITE}/api/communities` |
@@ -135,7 +136,7 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
 else if space intent (verify, post, pin, profile, update links, members, latest):
   1. use_skill("bankr-communities")
   2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads)
-  3. If posting: Read POST-SOURCE.md → set source.trigger from DM vs tweet vs terminal
+  3. If posting: Read **X-REPLY-POST-CONTENT.md** (what goes in `content`) + **POST-SOURCE.md** → set source.trigger from DM vs tweet vs reply vs terminal
   4. GET /api/holders/{token}?wallet={linked} before writes
   5. Call API — BEFORE replying (posts must include source object)
   6. Plain English reply + communityLink on own line
@@ -224,6 +225,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | File | Purpose |
 |------|---------|
 | `TERMINOLOGY.md` | **community vs space** — read first |
+| `X-REPLY-POST-CONTENT.md` | **X reply: post THIS = parent tweet; explicit text = user words** |
 | `POST-SOURCE.md` | **Mandatory `source` on every agent post** (X DM, mention, terminal) |
 | `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin — tweet + terminal** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
