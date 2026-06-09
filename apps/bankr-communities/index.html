@@ -539,6 +539,65 @@
       word-break: break-word;
     }
 
+    .post-link {
+      color: var(--accent-hover);
+      text-decoration: none;
+    }
+
+    .post-link:hover { text-decoration: underline; }
+
+    .tweet-card {
+      margin: 8px 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    .tweet-card.loading {
+      padding: 14px 16px;
+      color: var(--muted);
+    }
+
+    .tweet-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tweet-card-handle {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .tweet-card-name {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tweet-card-text {
+      padding: 12px 16px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .tweet-card-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .tweet-card-footer a {
+      color: var(--accent-hover);
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .tweet-card-footer a:hover { text-decoration: underline; }
+
     .post-time {
       font-size: 11px;
       color: var(--muted);
@@ -1006,7 +1065,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v20 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
+    made with love &lt;3 rayblanco.eth · Bankr Space · v21 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1299,6 +1358,78 @@
           return null;
         default:
           return source.viaAgent ? 'Posted via ' + agent : 'Posted via API';
+      }
+    }
+
+    var TWEET_URL_RE = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/[^\s/]+\/status\/(\d+)(?:\?[^\s]*)?/gi;
+
+    function splitPostContent(content) {
+      var segments = [];
+      var lastIndex = 0;
+      var re = new RegExp(TWEET_URL_RE.source, 'gi');
+      var match;
+      while ((match = re.exec(content)) !== null) {
+        var before = content.slice(lastIndex, match.index);
+        if (before) segments.push({ type: 'text', value: before });
+        segments.push({ type: 'tweet', value: match[0] });
+        lastIndex = match.index + match[0].length;
+      }
+      var tail = content.slice(lastIndex);
+      if (tail) segments.push({ type: 'text', value: tail });
+      return segments.length ? segments : [{ type: 'text', value: content }];
+    }
+
+    function linkifyEscapedText(text) {
+      return escapeHtml(text).replace(
+        /https?:\/\/[^\s<>"']+/g,
+        function (url) {
+          return '<a class="post-link" href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+        }
+      );
+    }
+
+    function renderPostContentHtml(content) {
+      return splitPostContent(content).map(function (segment) {
+        if (segment.type === 'tweet') {
+          var url = segment.value.trim();
+          return '<div class="tweet-card loading" data-tweet-url="' + escapeHtml(url) + '">Loading tweet preview…</div>';
+        }
+        if (!segment.value) return '';
+        return '<span>' + linkifyEscapedText(segment.value) + '</span>';
+      }).join('');
+    }
+
+    async function hydrateTweetCards(root) {
+      if (!root) return;
+      var cards = root.querySelectorAll('.tweet-card[data-tweet-url]');
+      for (var i = 0; i < cards.length; i++) {
+        var el = cards[i];
+        var url = el.getAttribute('data-tweet-url');
+        if (!url) continue;
+        try {
+          var data = await apiGet('/api/oembed/tweet', 'url=' + encodeURIComponent(url));
+          var preview = data && data.preview;
+          if (!preview) throw new Error('no preview');
+          var handle = preview.authorHandle || ('@' + preview.authorName);
+          el.classList.remove('loading');
+          el.innerHTML =
+            '<div class="tweet-card-header">' +
+              '<span class="tweet-card-handle">' + escapeHtml(handle) + '</span>' +
+              '<span class="tweet-card-name">' + escapeHtml(preview.authorName) + '</span>' +
+            '</div>' +
+            (preview.text
+              ? '<div class="tweet-card-text">' + escapeHtml(preview.text) + '</div>'
+              : '') +
+            '<div class="tweet-card-footer">' +
+              '<a href="' + escapeHtml(preview.url) + '" target="_blank" rel="noopener noreferrer">View on X →</a>' +
+            '</div>';
+        } catch (_) {
+          el.classList.remove('loading');
+          el.innerHTML =
+            '<div class="tweet-card-text">' +
+              '<a class="post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + '</a>' +
+            '</div>';
+        }
       }
     }
 
@@ -1990,7 +2121,7 @@
               renderAuthorBlock(post, isBen) +
               '<span class="post-time">' + formatTime(post.timestamp) + '</span>' +
             '</div>' +
-            '<div class="post-content" style="margin-top:12px;padding-left:46px;">' + escapeHtml(post.content) + '</div>' +
+            '<div class="post-content" style="margin-top:12px;padding-left:46px;">' + renderPostContentHtml(post.content) + '</div>' +
             postSourceHtml(post.source) +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);padding-left:46px;">' +
               '<div class="reactions">' + reactionBtns + '</div>' +
@@ -1999,6 +2130,8 @@
           '</div>'
         );
       }).join('');
+
+      await hydrateTweetCards(el);
     }
 
     async function togglePin(postId) {
