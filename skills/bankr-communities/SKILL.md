@@ -1,8 +1,8 @@
 ---
 name: bankr-communities
-version: 1.7.0
+version: 1.7.1
 description: >-
-  Verify, post, pin, update profile via API like post-in-space. X replies: post THIS = parent tweet URL; post explicit text = use that text. Read X-REPLY-POST-CONTENT.md + POST-SOURCE.md + BENEFICIARY-ACTIONS.md. TMP: https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
+  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -19,7 +19,9 @@ metadata:
 
 # Bankr Space — Agent skill
 
-Read **`TERMINOLOGY.md`** first: users may say **community** or **space** (same intent); replies use **space**; API fields stay `community*`.
+Read **`NOT-TWITTER-X-SPACES.md`** first: **"post in $PMFI space"** = **bankr.space** API — **not** Twitter/X audio Spaces. Never refuse as "can't post to X spaces."
+
+Read **`TERMINOLOGY.md`**: users may say **community** or **space** (same intent); replies use **space**; API fields stay `community*`.
 
 ## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-space)
 
@@ -120,7 +122,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | do I hold **TMP**? can I post? | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | react 👍 on post **post_123** in **0x…** | `POST {SITE}/api/posts/post_123/react` |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call.
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**).
 
 ---
 

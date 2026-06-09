@@ -67,8 +67,17 @@ Must reply: `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b75
 
 **Fail:**
 - Generic "I can't access communities"
+- **"I don't have the ability to post to X spaces"** — wrong product; means **bankr.space** (see **NOT-TWITTER-X-SPACES.md**)
 - No HTTP call to communities site
 - Asks user to install skill manually
+
+**Production failure example (must NOT repeat):**
+
+Tweet: `@bankrbot post this in $pmfi space` (reply to a status)
+
+Wrong reply: "I don't have the ability to post to X spaces or communities directly… post manually."
+
+Pass: skill load → `POST …/communities/0xd77ce6d3137342bb5174673bdab5f51db16fcba3/posts` with parent status URL + confirmation + space link.
 
 ---
 

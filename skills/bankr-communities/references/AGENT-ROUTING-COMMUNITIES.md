@@ -2,6 +2,8 @@
 
 > Load with skill install. Overrides generic "I don't know about spaces" replies.
 
+**First:** Read **`NOT-TWITTER-X-SPACES.md`** — "post in $TICKER space" is **bankr.space**, not Twitter audio Spaces.
+
 ## TRIGGER
 
 **Link (highest priority):** link, URL, "where is the space" → **`INSTANT-LINK-REPLIES.md`** first (TMP/ARCHIVE need no HTTP).

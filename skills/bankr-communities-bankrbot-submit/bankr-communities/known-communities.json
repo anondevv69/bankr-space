@@ -19,6 +19,12 @@
       "tokenAddress": "0x76aba8089e4ba07f705fb886d17dd41793ad2ba3",
       "communityLink": "https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3",
       "linkApi": "https://bankr.space/api/agent/link?q=ARCHIVE"
+    },
+    "PMFI": {
+      "symbol": "PMFI",
+      "tokenAddress": "0xd77ce6d3137342bb5174673bdab5f51db16fcba3",
+      "communityLink": "https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3",
+      "linkApi": "https://bankr.space/api/agent/link?q=PMFI"
     }
   }
 }

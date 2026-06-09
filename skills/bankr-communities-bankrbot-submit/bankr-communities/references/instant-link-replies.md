@@ -8,6 +8,7 @@
 |---------------------|--------------------------|
 | **TMP** + link / url / space | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
 | **ARCHIVE** + link / url / space | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
+| **PMFI** + link / url / space | `https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3` |
 
 Examples that match TMP row:
 - "what's the link to the TMP space?"
@@ -20,11 +21,7 @@ Examples that match TMP row:
 GET https://bankr.space/api/agent/link?q=PEPE
 ```
 
-Or run `scripts/get-community-link.sh PEPE`. Paste response body. If HTTP fails → say token not found or ask to create — **never** empty error.
-
-## Fallback
-
-Read `known-communities.json` at skill root for TMP/ARCHIVE if HTTP fails.
+Paste response body. If HTTP fails → say token not found or ask to create — **never** empty error.
 
 ## Why two paths
 

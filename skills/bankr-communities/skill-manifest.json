@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.7.0",
+  "skillVersion": "1.7.1",
   "defaultSiteUrl": "https://bankr.space",
   "COMMUNITIES_SITE_URL": "https://bankr.space",
   "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
@@ -26,6 +26,7 @@
   ],
   "allReferences": [
     "TERMINOLOGY.md",
+    "NOT-TWITTER-X-SPACES.md",
     "BENEFICIARY-ACTIONS.md",
     "POST-SOURCE.md",
     "X-REPLY-POST-CONTENT.md",
