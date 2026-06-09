@@ -70,6 +70,10 @@ export function Footer() {
       Bankr App
     </a>
     {' · '}
+    <a href="/skill" className="text-accent-hover hover:underline">
+      Agent skill
+    </a>
+    {' · '}
     <a
       href="/agent.md"
       className="text-accent-hover hover:underline"
