@@ -3,6 +3,7 @@ import {
   fetchLaunchByAddress,
   searchBankrTokens,
 } from './bankr-api';
+import { findLegacyLaunchesByQuery } from './legacy-launches';
 import { communityUrl } from './site-url';
 import type { Community, TokenLaunch } from './types';
 
@@ -143,6 +144,10 @@ async function findBestTokenLaunch(query: string): Promise<TokenLaunch | null> {
     ) {
       addLaunch(launch);
     }
+  }
+
+  for (const launch of findLegacyLaunchesByQuery(query)) {
+    addLaunch(launch);
   }
 
   if (!results.length) return null;

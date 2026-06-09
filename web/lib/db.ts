@@ -1,3 +1,4 @@
+import { mergeLegacyLaunches } from './legacy-launches';
 import { kvGet, kvSet } from './kv-store';
 import type { Community, Post, TokenLaunch, UserProfile } from './types';
 
@@ -41,11 +42,12 @@ export async function setPostsForToken(tokenAddress: string, posts: Post[]): Pro
 }
 
 export async function getLaunches(): Promise<TokenLaunch[]> {
-  return (await kvGet<TokenLaunch[]>(KEYS.launches)) || [];
+  const stored = (await kvGet<TokenLaunch[]>(KEYS.launches)) || [];
+  return mergeLegacyLaunches(stored);
 }
 
 export async function setLaunches(launches: TokenLaunch[]): Promise<void> {
-  await kvSet(KEYS.launches, launches);
+  await kvSet(KEYS.launches, mergeLegacyLaunches(launches));
 }
 
 export async function getProfiles(): Promise<Record<string, UserProfile>> {

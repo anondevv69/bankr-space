@@ -3,6 +3,7 @@ import {
   fetchLaunchByAddress,
   searchBankrTokens,
 } from '@/lib/bankr-api';
+import { findLegacyLaunchesByQuery } from '@/lib/legacy-launches';
 import { getLaunches, setLaunches } from '@/lib/db';
 import { enrichLaunchWithImageUrl } from '@/lib/community-image';
 import type { TokenLaunch } from '@/lib/types';
@@ -49,6 +50,10 @@ export async function GET(req: Request) {
       ) {
         addLaunch(launch);
       }
+    }
+
+    for (const launch of findLegacyLaunchesByQuery(query)) {
+      addLaunch(launch);
     }
 
     if (results.length) {
