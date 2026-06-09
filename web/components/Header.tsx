@@ -43,6 +43,9 @@ export function Header({ syncUpdatedAt }: { syncUpdatedAt?: number | null }) {
   );
 }
 
+const BANKR_APP_URL =
+  'https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2';
+
 export function Footer() {
   const embed = useEmbeddedBankr();
 
@@ -57,6 +60,15 @@ export function Footer() {
   return (
   <footer className="text-center py-8 text-muted text-[13px]">
     made with love &lt;3 rayblanco.eth · Bankr Space
+    {' · '}
+    <a
+      href={BANKR_APP_URL}
+      className="text-accent-hover hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Bankr App
+    </a>
     {' · '}
     <a
       href="/agent.md"
