@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.7.0",
+  "skillVersion": "1.7.1",
   "defaultSiteUrl": "https://bankr.space",
   "COMMUNITIES_SITE_URL": "https://bankr.space",
   "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
@@ -26,6 +26,7 @@
   ],
   "allReferences": [
     "TERMINOLOGY.md",
+    "NOT-TWITTER-X-SPACES.md",
     "BENEFICIARY-ACTIONS.md",
     "POST-SOURCE.md",
     "X-REPLY-POST-CONTENT.md",
@@ -41,5 +42,5 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. Read BENEFICIARY-ACTIONS.md. Use linked wallet in x-wallet-address."
+  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. X replies: read X-REPLY-POST-CONTENT.md. Use linked wallet in x-wallet-address."
 }

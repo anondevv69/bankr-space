@@ -2,6 +2,12 @@
 
 **Product name:** Bankr Space (`https://bankr.space`)
 
+## NOT Twitter/X audio Spaces
+
+When users say **"post in $PMFI space"** or **"post this in $TICKER space"**, they mean **Bankr Space** — the token-gated feed at `bankr.space/community/0x…`.
+
+They do **not** mean Twitter/X **audio Spaces** (live rooms). **Never** refuse with "I can't post to X spaces." Load **`bankr-communities`** and call the site API. See **`NOT-TWITTER-X-SPACES.md`**.
+
 ## What agents should say
 
 | Context | Word |
