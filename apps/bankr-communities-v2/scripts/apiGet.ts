@@ -13,11 +13,22 @@ try {
   const out = { ok: true, data };
   if (args.includeSession) {
     const caller = ctx.caller || {};
-    out.session = {
-      wallet: caller.walletAddress
-        ? String(caller.walletAddress).toLowerCase()
-        : null,
-    };
+    let sessionWallet = caller.walletAddress
+      ? String(caller.walletAddress).toLowerCase()
+      : null;
+
+    if (!sessionWallet) {
+      try {
+        const me = await bankr.wallet.me();
+        if (me && me.evmAddress) {
+          sessionWallet = String(me.evmAddress).toLowerCase();
+        }
+      } catch (err) {
+        log('wallet/me unavailable', err);
+      }
+    }
+
+    out.session = { wallet: sessionWallet };
   }
   return out;
 } catch (err) {
