@@ -138,7 +138,10 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
     if (!launch) {
       return NextResponse.json(
-        { error: 'Token not found in Bankr launches. It must be deployed via Bankr.' },
+        {
+          error:
+            'Token not found in Bankr launches. It must be a Bankr-launched token (including legacy tokens like BNKR).',
+        },
         { status: 400 }
       );
     }

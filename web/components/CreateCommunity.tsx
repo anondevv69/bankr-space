@@ -128,13 +128,13 @@ export function CreateCommunity({
 
             {!query.trim() ? (
               <p className="text-muted text-sm">
-                Find a Bankr-deployed token to start a space for it.
+                Find a Bankr token to start a space for it (new launches or legacy tokens like BNKR).
               </p>
             ) : loading ? (
               <p className="text-muted text-sm">Searching Bankr tokens…</p>
             ) : results.length === 0 ? (
               <p className="text-muted text-sm">
-                No Bankr-launched tokens found for &quot;{query.trim()}&quot;.
+                No Bankr tokens found for &quot;{query.trim()}&quot;.
               </p>
             ) : (
               <div className="space-y-3 max-h-[50vh] overflow-y-auto">
