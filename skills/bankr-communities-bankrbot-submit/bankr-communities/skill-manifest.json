@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.8.0",
+  "skillVersion": "1.9.0",
   "defaultSiteUrl": "https://bankr.space",
   "COMMUNITIES_SITE_URL": "https://bankr.space",
   "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
@@ -43,5 +43,19 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. X replies: read X-REPLY-POST-CONTENT.md. Use linked wallet in x-wallet-address."
+  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin, PATCH fundraising (enable custom/Dex fundraisers) — load BEFORE swaps/deploys. enable/start/turn on + fundraiser = PATCH …/communities/{token} fundraising. X replies: read X-REPLY-POST-CONTENT.md. Use linked wallet in x-wallet-address.",
+  "routingKeywords": [
+    "space",
+    "community",
+    "fundraiser",
+    "fundraising",
+    "enable custom fundraiser",
+    "enable fundraiser",
+    "start fundraiser",
+    "contribute",
+    "verify space",
+    "post in",
+    "pin post",
+    "bankr.space"
+  ],
 }

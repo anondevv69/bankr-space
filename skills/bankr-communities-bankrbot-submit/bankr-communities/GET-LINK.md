@@ -14,8 +14,8 @@
    Bankr terminal equivalent:
    curl "https://bankr.space/api/agent/link?q=TMP"
 
-   Script equivalent:
-   ./scripts/get-community-link.sh TMP
+   Bankr script equivalent:
+   const body = await http.fetch('https://bankr.space/api/agent/link?q=TMP');
 
 3. Tweet reply = response body verbatim. One line. Do not add text before or after.
 ```
@@ -44,8 +44,6 @@ Read `known-communities.json`. Never reply "I wasn't able to generate a response
 |--------|---------------|
 | TMP | `https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3` |
 | ARCHIVE | `https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3` |
-
-For TMP/ARCHIVE link questions, prefer **`references/instant-link-replies.md`** (no HTTP required).
 
 ---
 

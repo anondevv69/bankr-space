@@ -38,6 +38,9 @@ Completed goals appear in **`fundraising.completed[]`** only — not in the acti
 | **contribute** to **ARCHIVE** space fundraiser | same — link to space; payment is **$1 USDC per x402 click** on bankr.space |
 | what **completed** fundraisers on **$TMP**? | briefing → `fundraising.completed[]` |
 | **enable** Dex fundraiser on **TMP** space | beneficiary → `PATCH …/communities/{token}` with `fundraising` (see below) |
+| **enable custom** fundraiser **"title"** **$10** on **SPACE** space | beneficiary → parse label + goal → same PATCH (`id`: `custom`) |
+
+**Title parsing:** quoted `"testing on x"` or words before `$` / `fundraiser` → `campaigns[].label` (max 80 chars). Default label if omitted: `Community goal`.
 
 ---
 
@@ -117,7 +120,11 @@ Agents may say: "Open the space, click Tip on the post, enter amount in $SYMBOL.
 @bankrbot fund $5 to TMP space for Dex profile
 @bankrbot how much raised for ARCHIVE space Dex goal?
 @bankrbot enable custom fundraiser $100 on Space space
+@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
+@bankrbot start a testing on x fundraiser $10 on SPACE space
 ```
+
+**Platform fail (must NOT repeat):** "I don't currently have a tool available for enabling custom fundraisers" — load `bankr-communities` and PATCH per **BENEFICIARY-ACTIONS.md** (Enable fundraiser).
 
 ---
 

@@ -14,9 +14,12 @@
 @bankrbot add website https://example.com to TMP space profile
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
+@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
 ```
 
 Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet paste (if X↔Bankr linked).
+
+**Fundraiser writes are NOT swaps/deploys/transfers** — route to `bankr-communities` + PATCH fundraising.
 
 ---
 
@@ -25,8 +28,8 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 On tweet/DM matching space intent (user may say community):
 
 ```
-1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER)
-2. use_skill("bankr-communities")     ← BEFORE tool selection
+1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER, **enable/start fundraiser**, **custom fundraiser**, contribute, fundraising + space)
+2. use_skill("bankr-communities")     ← BEFORE tool selection (before swaps/deploys)
 3. Writes → BENEFICIARY-ACTIONS.md → GET /api/holders?wallet= → POST/PATCH/pin-post
 4. Link question → GET /api/agent/link?q={TICKER} or instant table
 5. Other reads → GET /api/agent/briefing?...
@@ -44,6 +47,11 @@ Must log: `POST …/posts` with `content` = parent status URL, `source.trigger` 
 
 **Write acceptance test (explicit inline text):** `@bankrbot post xxxxx ewrwe xx test test in $xxx space`  
 Must log: `POST …/posts` with `content` = `xxxxx ewrwe xx test test` — **not** parent tweet.
+
+**Write acceptance test:** `@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space`  
+Must log: `PATCH …/api/communities/{token}/` with `fundraising.campaigns` including `{ "id": "custom", "label": "testing on x", "goalUsd": 10, "enabled": true }` and linked wallet header.
+
+**Fail:** "I don't currently have a tool available for enabling custom fundraisers" — wrong; skill must load first.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 

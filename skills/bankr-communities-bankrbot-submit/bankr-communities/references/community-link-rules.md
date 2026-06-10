@@ -40,8 +40,6 @@ Use the `communityLink` field from JSON if needed.
 
 For "what's the link?" → tweet reply = **only** `communityLink`, nothing else.
 
-For TMP/ARCHIVE on tweet intake, use **`references/instant-link-replies.md`** (no HTTP required).
-
 ---
 
 ## FORBIDDEN links (never share these for spaces)

@@ -32,6 +32,8 @@
 | **start** / **create** space for **$TMP** | search → `POST /api/communities/{token}` `{ description? }` + header `x-wallet-address: {linked}` |
 | **verify** **$TMP** space | `GET /api/holders/{token}?wallet={linked}` → `POST /api/communities/{token}/verify` (fee beneficiary) |
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
+| **enable** / **start** **custom** fundraiser **"title"** **$10** on **SPACE** | **`BENEFICIARY-ACTIONS.md`** → holders → GET community → merge `raisedUsd` → `PATCH …/communities/{token}` `{ fundraising: { campaigns } }` |
+| **enable** Dex profile / Dex boost fundraiser on **TMP** | same PATCH — `id`: `dex-profile` or `dex-boost`, preset labels/goals |
 | **pin** post in **TMP** / **pin it** after post | `POST /api/communities/{token}/pin-post` `{ postId, action: "pin" }` (verified beneficiary) |
 | **post** in **TMP** space: {text} **and pin** | post → then pin-post if `canPinPosts` |
 | **post** in **TMP** space: {text} | holder check → **X-REPLY-POST-CONTENT.md** → `POST …/posts` **with `source`** |
@@ -58,6 +60,7 @@
 @bankrbot post xxxxx ewrwe xx test test in $xxx space
 @bankrbot any fundraisers on the TMP space?
 @bankrbot fund $5 to TMP space for Dex profile
+@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
 @bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
