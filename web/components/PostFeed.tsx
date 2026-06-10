@@ -1,9 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSwitchChain } from 'wagmi';
+import { base } from 'wagmi/chains';
 import { useAppWallet } from '@/hooks/useAppWallet';
+import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { PinnedPost, Post } from '@/lib/types';
 import { isPostPinned } from '@/lib/community-posts';
+import { tipCommunityToken } from '@/lib/community-tip';
 import {
   filterPosts,
   sortFilteredPosts,
@@ -99,10 +103,92 @@ function ReplyForm({
   );
 }
 
+function TipForm({
+  tokenAddress,
+  tokenSymbol,
+  recipient,
+  onCancel,
+}: {
+  tokenAddress: string;
+  tokenSymbol: string;
+  recipient: string;
+  onCancel: () => void;
+}) {
+  const { address, isConnected, onBase } = usePaymentWalletClient();
+  const { switchChain } = useSwitchChain();
+  const [amount, setAmount] = useState('1');
+  const [tipping, setTipping] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+
+  async function submit() {
+    if (!address || !isConnected) {
+      setHint('Connect wallet to tip.');
+      return;
+    }
+    if (!onBase) {
+      setHint('Switch to Base, then tip again.');
+      switchChain({ chainId: base.id });
+      return;
+    }
+
+    setTipping(true);
+    setHint(`Confirm ${amount} ${tokenSymbol} tip in your wallet…`);
+    try {
+      const result = await tipCommunityToken({
+        from: address,
+        to: recipient as `0x${string}`,
+        tokenAddress: tokenAddress as `0x${string}`,
+        amount,
+      });
+      setHint(`Tip sent: ${result.amount} ${result.symbol}`);
+    } catch (err) {
+      setHint(err instanceof Error ? err.message : 'Tip failed');
+    } finally {
+      setTipping(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 p-3 border border-border rounded-lg bg-surface-2/50 space-y-2">
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          type="number"
+          min={0}
+          step="any"
+          value={amount}
+          disabled={tipping}
+          onChange={(event) => setAmount(event.target.value)}
+          className="w-24 px-3 py-1.5 bg-bg border border-border rounded-lg text-sm disabled:opacity-50"
+          aria-label={`Tip amount in ${tokenSymbol}`}
+        />
+        <span className="text-xs text-muted">{tokenSymbol}</span>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={tipping || !amount.trim()}
+          className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg disabled:opacity-50"
+        >
+          {tipping ? 'Sending…' : 'Send tip'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={tipping}
+          className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent disabled:opacity-50"
+        >
+          Close
+        </button>
+      </div>
+      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
+    </div>
+  );
+}
+
 function PostCard({
   post,
   posts,
   tokenAddress,
+  tokenSymbol,
   canInteract,
   canManage,
   pins,
@@ -110,8 +196,11 @@ function PostCard({
   ownerWallet,
   isReply,
   replyingTo,
+  tippingPostId,
   onReplyTo,
+  onTipPost,
   onCancelReply,
+  onCancelTip,
   onUpdate,
   pinningId,
   onTogglePin,
@@ -119,6 +208,7 @@ function PostCard({
   post: Post;
   posts: Post[];
   tokenAddress: string;
+  tokenSymbol: string;
   canInteract: boolean;
   canManage?: boolean;
   pins: PinnedPost[];
@@ -126,8 +216,11 @@ function PostCard({
   ownerWallet?: string | null;
   isReply?: boolean;
   replyingTo: string | null;
+  tippingPostId: string | null;
   onReplyTo: (postId: string) => void;
+  onTipPost: (postId: string) => void;
   onCancelReply: () => void;
+  onCancelTip: () => void;
   onUpdate: () => void;
   pinningId: string | null;
   onTogglePin: (postId: string) => void;
@@ -137,6 +230,7 @@ function PostCard({
   const isMostRecentPin = pins[0]?.postId === post.id;
   const isBeneficiary = isBeneficiaryWallet(post.wallet, beneficiaryWallet, ownerWallet);
   const replies = isReply ? [] : getRepliesForPost(posts, post.id);
+  const canTip = canInteract && !!address && address.toLowerCase() !== post.wallet.toLowerCase();
 
   async function react(postId: string, reaction: string) {
     if (!address || !canInteract) return;
@@ -215,6 +309,15 @@ function PostCard({
                 Reply
               </button>
             ) : null}
+            {canTip ? (
+              <button
+                type="button"
+                onClick={() => onTipPost(post.id)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-border hover:border-accent"
+              >
+                Tip
+              </button>
+            ) : null}
             {!isReply && canManage ? (
               <button
                 type="button"
@@ -242,6 +345,17 @@ function PostCard({
             />
           </div>
         ) : null}
+
+        {tippingPostId === post.id ? (
+          <div className="pl-[52px]">
+            <TipForm
+              tokenAddress={tokenAddress}
+              tokenSymbol={tokenSymbol}
+              recipient={post.wallet}
+              onCancel={onCancelTip}
+            />
+          </div>
+        ) : null}
       </article>
 
       {replies.length > 0 ? (
@@ -252,6 +366,7 @@ function PostCard({
               post={reply}
               posts={posts}
               tokenAddress={tokenAddress}
+              tokenSymbol={tokenSymbol}
               canInteract={canInteract}
               canManage={canManage}
               pins={pins}
@@ -259,8 +374,11 @@ function PostCard({
               ownerWallet={ownerWallet}
               isReply
               replyingTo={replyingTo}
+              tippingPostId={tippingPostId}
               onReplyTo={onReplyTo}
+              onTipPost={onTipPost}
               onCancelReply={onCancelReply}
+              onCancelTip={onCancelTip}
               onUpdate={onUpdate}
               pinningId={pinningId}
               onTogglePin={onTogglePin}
@@ -274,6 +392,7 @@ function PostCard({
 
 export function PostFeed({
   tokenAddress,
+  tokenSymbol,
   posts,
   canInteract,
   canManage,
@@ -283,6 +402,7 @@ export function PostFeed({
   onUpdate,
 }: {
   tokenAddress: string;
+  tokenSymbol: string;
   posts: Post[];
   canInteract: boolean;
   canManage?: boolean;
@@ -296,6 +416,7 @@ export function PostFeed({
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [tippingPostId, setTippingPostId] = useState<string | null>(null);
 
   const pins = pinnedPosts || [];
 
@@ -372,14 +493,24 @@ export function PostFeed({
               post={post}
               posts={posts}
               tokenAddress={tokenAddress}
+              tokenSymbol={tokenSymbol}
               canInteract={canInteract}
               canManage={canManage}
               pins={pins}
               beneficiaryWallet={beneficiaryWallet}
               ownerWallet={ownerWallet}
               replyingTo={replyingTo}
-              onReplyTo={setReplyingTo}
+              tippingPostId={tippingPostId}
+              onReplyTo={(postId) => {
+                setReplyingTo(postId);
+                setTippingPostId(null);
+              }}
+              onTipPost={(postId) => {
+                setTippingPostId(postId);
+                setReplyingTo(null);
+              }}
               onCancelReply={() => setReplyingTo(null)}
+              onCancelTip={() => setTippingPostId(null)}
               onUpdate={onUpdate}
               pinningId={pinningId}
               onTogglePin={togglePin}

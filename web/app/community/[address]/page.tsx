@@ -188,6 +188,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
       <PostFeed
         tokenAddress={tokenAddress}
+        tokenSymbol={community.symbol}
         posts={posts}
         canInteract={!!canPost}
         canManage={canPinPosts}
