@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAppWallet } from '@/hooks/useAppWallet';
+import { AgentWalletBadge } from '@/components/AgentWalletBadge';
 import type {
   BeneficiaryInfo,
   Community,
@@ -10,6 +11,7 @@ import type {
   StandardSocialLinkKey,
   TokenMarketStats,
   FundraisingCampaign,
+  TrustedDelegateEntry,
 } from '@/lib/types';
 import { DEFAULT_CAMPAIGNS, completedCampaigns, hasPublicFundraising } from '@/lib/fundraising';
 import { MAX_TRUSTED_DELEGATES } from '@/lib/space-delegates';
@@ -244,9 +246,10 @@ export function CommunityProfile({
     community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
   );
   const [allowDeployerEdit, setAllowDeployerEdit] = useState(community.allowDeployerEdit ?? false);
-  const [trustedDelegates, setTrustedDelegates] = useState<string[]>(
+  const [trustedDelegates, setTrustedDelegates] = useState<TrustedDelegateEntry[]>(
     community.trustedDelegates || []
   );
+  const [resolvingAgentIndex, setResolvingAgentIndex] = useState<number | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [pinningIconUrl, setPinningIconUrl] = useState(false);
@@ -326,6 +329,30 @@ export function CommunityProfile({
     setFundraisingCampaigns((current) =>
       current.map((c) => (c.id === id ? { ...c, ...patch } : c))
     );
+  }
+
+  async function identifyDelegateAgent(index: number) {
+    const entry = trustedDelegates[index];
+    const w = entry?.wallet?.trim().toLowerCase();
+    if (!w || !/^0x[a-f0-9]{40}$/.test(w)) {
+      alert('Enter a valid wallet address first');
+      return;
+    }
+    setResolvingAgentIndex(index);
+    try {
+      const res = await fetch(
+        `/api/agent/resolve-wallet?wallet=${encodeURIComponent(w)}&token=${encodeURIComponent(community.tokenAddress)}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+      setTrustedDelegates((current) =>
+        current.map((item, i) => (i === index ? { wallet: w, agent: data } : item))
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Agent lookup failed');
+    } finally {
+      setResolvingAgentIndex(null);
+    }
   }
 
   async function saveProfile() {
@@ -829,39 +856,59 @@ export function CommunityProfile({
                       Trusted wallets (up to {MAX_TRUSTED_DELEGATES})
                     </div>
                     {trustedDelegates.map((delegate, index) => (
-                      <div key={`${delegate}-${index}`} className="flex gap-2">
-                        <input
-                          className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
-                          value={delegate}
-                          onChange={(e) => {
-                            const next = [...trustedDelegates];
-                            next[index] = e.target.value.trim().toLowerCase();
-                            setTrustedDelegates(next);
-                          }}
-                          placeholder="0x…"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setTrustedDelegates(trustedDelegates.filter((_, i) => i !== index))
-                          }
-                          className="px-3 py-2 text-xs border border-border rounded-lg hover:border-red-400"
-                        >
-                          Remove
-                        </button>
+                      <div
+                        key={`${delegate.wallet}-${index}`}
+                        className="space-y-2 p-3 border border-border rounded-lg bg-bg/40"
+                      >
+                        <div className="flex gap-2">
+                          <input
+                            className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
+                            value={delegate.wallet}
+                            onChange={(e) => {
+                              const next = [...trustedDelegates];
+                              next[index] = {
+                                wallet: e.target.value.trim().toLowerCase(),
+                                agent: null,
+                              };
+                              setTrustedDelegates(next);
+                            }}
+                            placeholder="0x…"
+                          />
+                          <button
+                            type="button"
+                            disabled={resolvingAgentIndex === index}
+                            onClick={() => void identifyDelegateAgent(index)}
+                            className="px-3 py-2 text-xs border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
+                          >
+                            {resolvingAgentIndex === index ? '…' : 'Identify'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTrustedDelegates(trustedDelegates.filter((_, i) => i !== index))
+                            }
+                            className="px-3 py-2 text-xs border border-border rounded-lg hover:border-red-400"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <AgentWalletBadge agent={delegate.agent} />
                       </div>
                     ))}
                     {trustedDelegates.length < MAX_TRUSTED_DELEGATES ? (
                       <button
                         type="button"
-                        onClick={() => setTrustedDelegates([...trustedDelegates, ''])}
+                        onClick={() =>
+                          setTrustedDelegates([...trustedDelegates, { wallet: '', agent: null }])
+                        }
                         className="text-xs text-accent-hover hover:underline"
                       >
                         + Add trusted wallet
                       </button>
                     ) : null}
                     <p className="text-xs text-muted">
-                      Grant edit, post, and pin to someone you trust. They cannot touch fundraisers.
+                      Grant edit, post, and pin to someone you trust. Use Identify to tag agent
+                      wallets (bankrbot, hermes, etc.) via Bankr. They cannot touch fundraisers.
                     </p>
                   </div>
                 </EditSection>

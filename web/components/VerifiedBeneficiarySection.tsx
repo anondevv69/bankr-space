@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentWalletBadge } from '@/components/AgentWalletBadge';
 import type { BeneficiaryInfo, Community } from '@/lib/types';
 import { shortWallet } from '@/lib/social-links';
 
@@ -50,16 +51,21 @@ export function VerifiedBeneficiarySection({
                   ✓
                 </div>
               )}
-              {beneficiary.xUrl && xHandle ? (
-                <a
-                  href={beneficiary.xUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-semibold text-accent-hover hover:underline"
-                >
-                  @{xHandle}
-                </a>
-              ) : null}
+              <div className="min-w-0">
+                {beneficiary.xUrl && xHandle ? (
+                  <a
+                    href={beneficiary.xUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-semibold text-accent-hover hover:underline"
+                  >
+                    @{xHandle}
+                  </a>
+                ) : null}
+                <div className="mt-1">
+                  <AgentWalletBadge agent={beneficiary.agent} />
+                </div>
+              </div>
             </div>
 
             {beneficiary.xUrl && xHandle ? (

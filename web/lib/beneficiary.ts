@@ -4,6 +4,7 @@ import {
   beneficiaryXUrl,
   walletExplorerUrl,
 } from './social-links';
+import { resolveAgentWallet } from './bankr-agent-wallet';
 import type { BeneficiaryInfo } from './types';
 import { normalizeAddr } from './utils';
 
@@ -25,11 +26,17 @@ export async function getBeneficiaryInfo(
   const xUsername = launch.feeRecipient?.xUsername || null;
   const profileImageUrl = launch.feeRecipient?.xProfileImageUrl || null;
 
+  const agent = await resolveAgentWallet(feeRecipient, {
+    tokenAddress: token,
+    xUsername,
+  });
+
   return {
     wallet: feeRecipient,
     xUsername,
     xUrl: beneficiaryXUrl(xUsername),
     profileImageUrl,
     walletUrl: walletExplorerUrl(feeRecipient, chain),
+    agent,
   };
 }

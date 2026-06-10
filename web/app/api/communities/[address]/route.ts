@@ -12,8 +12,10 @@ import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
 import {
   canEditCommunityProfile,
   canEditCommunityFundraising,
+  getTokenBeneficiaryWallet,
   isTokenBeneficiary,
 } from '@/lib/community-owner';
+import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
 import { normalizeTrustedDelegates } from '@/lib/space-delegates';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
@@ -160,7 +162,29 @@ export async function PATCH(req: Request, { params }: RouteParams) {
           { status: 403 }
         );
       }
-      nextTrustedDelegates = normalizeTrustedDelegates(body.trustedDelegates);
+      const normalized = normalizeTrustedDelegates(body.trustedDelegates);
+      nextTrustedDelegates = await Promise.all(
+        normalized.map(async (entry) => ({
+          wallet: entry.wallet,
+          agent:
+            entry.agent ??
+            (await resolveAgentWallet(entry.wallet, { tokenAddress })),
+        }))
+      );
+    }
+
+    let nextFeeRecipientAgent = current.feeRecipientAgent ?? null;
+    if (
+      (body.trustedDelegates !== undefined ||
+        body.allowDeployerEdit !== undefined ||
+        body.refreshAgentTags === true) &&
+      (await isTokenBeneficiary(wallet, tokenAddress))
+    ) {
+      const beneficiaryWallet =
+        (await getTokenBeneficiaryWallet(tokenAddress)) || wallet;
+      nextFeeRecipientAgent = await resolveAgentWallet(beneficiaryWallet, {
+        tokenAddress,
+      });
     }
 
     const updated = mergeCommunityDefaults({
@@ -169,6 +193,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       socialLinks: nextSocialLinks,
       allowDeployerEdit: nextAllowDeployerEdit,
       trustedDelegates: nextTrustedDelegates,
+      feeRecipientAgent: nextFeeRecipientAgent,
       customIconUrl:
         body.customIconUrl !== undefined
           ? normalizeBannerUrl(body.customIconUrl)

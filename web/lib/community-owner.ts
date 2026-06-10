@@ -4,7 +4,9 @@ import { holdsToken } from './holder';
 import {
   isTrustedDelegateWallet,
   normalizeTrustedDelegates,
+  trustedDelegateWallets,
 } from './space-delegates';
+import type { TrustedDelegateEntry } from './types';
 import { normalizeAddr } from './utils';
 
 export type SpaceRoles = {
@@ -60,7 +62,8 @@ export type SpacePermissions = {
   isFounder: boolean;
   verified: boolean;
   allowDeployerEdit: boolean;
-  trustedDelegates: string[];
+  trustedDelegates: TrustedDelegateEntry[];
+  trustedDelegateWallets: string[];
   canEditProfile: boolean;
   canEditFundraising: boolean;
   canPinPosts: boolean;
@@ -114,6 +117,7 @@ export async function resolveSpacePermissions(
     verified,
     allowDeployerEdit,
     trustedDelegates,
+    trustedDelegateWallets: trustedDelegateWallets(trustedDelegates),
     canEditProfile,
     canEditFundraising,
     canPinPosts,
