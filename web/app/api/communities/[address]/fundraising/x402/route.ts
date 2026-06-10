@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server';
-import { buildSpaceFundUrl } from '@/lib/fundraising';
+import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
+import { buildSpaceFundUrl, type CampaignId } from '@/lib/fundraising';
+import { SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 type RouteParams = { params: Promise<{ address: string }> };
 
+const CAMPAIGN_IDS: CampaignId[] = ['dex-profile', 'dex-boost', 'custom'];
+
 /**
  * Same-origin proxy for Bankr x402 space-fund. Browsers cannot send X-PAYMENT
  * cross-origin to x402.bankr.bot (CORS preflight fails on 402).
+ *
+ * After x402 verifies USDC payment, credit fundraising on bankr.space here
+ * (uses Vercel X402_FUND_WEBHOOK_SECRET / KV) — not from x402 Cloud handler.
  */
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
@@ -26,10 +33,13 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const campaignId = String(body.campaignId || 'dex-profile').trim();
+  const campaignId = String(body.campaignId || 'dex-profile').trim() as CampaignId;
   const amountUsd = Number(body.amountUsd);
   const xPayment = typeof body.xPayment === 'string' ? body.xPayment.trim() : '';
 
+  if (!CAMPAIGN_IDS.includes(campaignId)) {
+    return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
+  }
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     return NextResponse.json({ error: 'amountUsd must be a positive number' }, { status: 400 });
   }
@@ -51,18 +61,59 @@ export async function POST(req: Request, { params }: RouteParams) {
       data = { error: text.slice(0, 200) || 'Non-JSON response from x402' };
     }
 
-    // Quote step: return 200 so the browser does not log a red 402 on every Contribute click.
     if (!xPayment && upstream.status === 402) {
       return NextResponse.json({ requiresPayment: true, ...data }, { status: 200 });
     }
 
-    if (upstream.status >= 400) {
-      console.error('x402 upstream error', upstream.status, data);
+    if (!xPayment) {
+      return NextResponse.json(data, { status: upstream.status });
     }
 
-    return NextResponse.json(data, { status: upstream.status });
+    if (upstream.status >= 400) {
+      const err =
+        typeof data.error === 'string'
+          ? data.error
+          : `x402 payment failed (${upstream.status})`;
+      console.error('x402 upstream error', upstream.status, data);
+      return NextResponse.json({ error: err }, { status: upstream.status });
+    }
+
+    // Handler already credited (legacy handler) — pass through.
+    if (data.success === true && data.raisedUsd != null) {
+      return NextResponse.json(data, { status: 200 });
+    }
+
+    const credit = await applyFundraisingCredit(
+      tokenAddress,
+      campaignId,
+      SPACE_FUND_X402_MAX_USDC
+    );
+
+    if (!credit.success) {
+      console.error('x402 credit after payment', credit.error);
+      return NextResponse.json(
+        {
+          error:
+            credit.error ||
+            'USDC payment succeeded but crediting the goal failed. Contact the space operator.',
+          paymentTaken: true,
+        },
+        { status: credit.status >= 500 ? 502 : credit.status }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Thank you — $${SPACE_FUND_X402_MAX_USDC} USDC credited toward ${campaignId}`,
+      token: tokenAddress,
+      campaignId,
+      raisedUsd: credit.raisedUsd,
+      goalUsd: credit.goalUsd,
+      funded: credit.funded,
+      spaceUrl: `https://www.bankr.space/community/${tokenAddress}`,
+    });
   } catch (err) {
     console.error('x402 proxy', err);
-    return NextResponse.json({ error: 'Failed to reach x402 endpoint' }, { status: 502 });
+    return NextResponse.json({ error: 'Failed to complete x402 payment' }, { status: 502 });
   }
 }
