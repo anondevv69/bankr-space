@@ -8,7 +8,7 @@
 
 **Link (highest priority):** link, URL, "where is the space" → **`INSTANT-LINK-REPLIES.md`** first (TMP/ARCHIVE need no HTTP).
 
-**Writes (same routing as post-in-space):** verify, post, pin, update profile, add links → **`BENEFICIARY-ACTIONS.md`**.
+**Writes (same routing as post-in-space):** verify, post, pin, update profile, add links, **enable/start/turn on fundraiser** → **`BENEFICIARY-ACTIONS.md`**.
 
 **Other reads:** space (user may say community), members, posts, latest on $TICKER space, start space.
 

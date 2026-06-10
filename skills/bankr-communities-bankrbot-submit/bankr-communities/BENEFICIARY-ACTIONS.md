@@ -62,9 +62,9 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 **Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
 
-**Fundraising (Model B):** optional USDC goals per space — Dex profile ($299), Dex boost, custom. Read **`FUNDRAISING.md`** for agent discovery and contribution flow. Open campaigns via `GET /api/communities/{token}/fundraising` or briefing `fundraising.open[]`. Pay on **bankr.space** ($1 USDC per x402 click). Completed goals in `fundraising.completed[]` only. Beneficiary enables via Edit profile or PATCH `fundraising` below.
-
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
+
+**Fundraising enable:** see dedicated section below — **not** swaps, deploys, or fee claims.
 
 **Steps:**
 ```
@@ -91,6 +91,62 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
   }
 }
 ```
+
+---
+
+## Enable fundraiser (beneficiary write)
+
+**User says:**
+```text
+@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
+@bankrbot start a testing on x fundraiser $10 on $SPACE space
+@bankrbot enable Dex profile fundraiser on TMP space
+@bankrbot turn on Dex boost fundraiser for ARCHIVE space
+```
+
+**This is a Bankr Space API write** — same skill as verify / post / profile. **Not** a swap, deploy, transfer, or fee-claim tool.
+
+**Parse from message:**
+
+| Field | How to extract |
+|-------|----------------|
+| **token** | `$SPACE`, `SPACE space`, or briefing `symbol=SPACE` |
+| **goalUsd** | `$10`, `$299`, `goal 100` |
+| **label** (custom only) | Quoted `"testing on x"` **or** text before `fundraiser` / after `start a` / after `called` — max **80 chars** |
+| **campaign id** | `custom` (default) · `dex-profile` if Dex profile · `dex-boost` if Dex boost |
+
+**Steps:**
+```
+1. use_skill("bankr-communities") → read FUNDRAISING.md if needed
+2. GET /api/agent/briefing?symbol=SPACE → tokenAddress (or resolve from message)
+3. GET /api/holders/{tokenAddress}?wallet={linked} → if !canEditProfile → "Only fee beneficiary can enable fundraisers" + communityLink → STOP
+4. GET /api/communities/{tokenAddress} → read fundraising.campaigns (keep existing raisedUsd per campaign)
+5. Build campaigns[] — enable requested id, set goalUsd + label (custom); leave other campaigns with current raisedUsd, enabled false unless user asked
+6. PATCH /api/communities/{tokenAddress}
+   Body: { "fundraising": { "campaigns": [ ... ] } }
+   Header: x-wallet-address: {linked}
+7. Reply: "Enabled fundraiser \"testing on x\" ($10 goal) on $SPACE space" + communityLink → STOP
+8. 403 → beneficiary-only message + communityLink
+```
+
+**PATCH body example (custom title + $10 goal):**
+```json
+{
+  "fundraising": {
+    "campaigns": [
+      { "id": "dex-profile", "label": "Enhanced DexScreener profile", "goalUsd": 299, "raisedUsd": 0, "enabled": false },
+      { "id": "dex-boost", "label": "DexScreener boost", "goalUsd": 99, "raisedUsd": 0, "enabled": false },
+      { "id": "custom", "label": "testing on x", "goalUsd": 10, "raisedUsd": 0, "enabled": true }
+    ]
+  }
+}
+```
+
+**Merge rule:** copy `raisedUsd` from step 4 for each campaign id — never reset progress to 0 on an active fundraiser.
+
+**Forbidden replies:** "I don't have a tool for enabling fundraisers" · "which skill maps to this?" · route to swaps/deploys. **Load this skill and PATCH.**
+
+Read **`FUNDRAISING.md`** for discovery / contribute flows (reads + donor guidance).
 
 ---
 
@@ -159,6 +215,8 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot post in TMP space: big update for holders — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot post in ARCHIVE space: gm
+@bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
+@bankrbot enable Dex profile fundraiser on TMP space
 ```
 
 ---
@@ -184,5 +242,8 @@ These phrases MUST load `bankr-communities` **before** tool selection — same a
 - update profile / add links / add website / set description + space/community or token
 - pin post / pin it / unpin + space/community
 - post in space + pin
+- enable / start / turn on + fundraiser / fundraising + space
+- custom fundraiser + $amount + space
 
-**Fail:** generic "I wasn't able to generate a response" without calling API.
+**Fail:** generic "I wasn't able to generate a response" without calling API.  
+**Fail:** "I don't currently have a tool available for enabling custom fundraisers" — load `bankr-communities` and PATCH per **Enable fundraiser** above.

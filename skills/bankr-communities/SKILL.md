@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.8.0
+version: 1.9.0
 description: >-
   Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
@@ -125,9 +125,10 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | react 👍 on post **post_123** in **0x…** | `POST {SITE}/api/posts/post_123/react` |
 | any **fundraising** on **$TMP** space? | `GET {SITE}/api/communities/{token}/fundraising` or briefing → `fundraising.open[]` |
 | **fund** **$5** to **TMP** space for **Dex** | **`FUNDRAISING.md`** → fundraising GET → reply progress + space URL (wallet pays on site) |
-| **contribute** to **ARCHIVE** fundraiser | same — $1 USDC per x402 click on bankr.space |
+| **enable** custom fundraiser **"testing on x"** **$10** on **SPACE** space | **`BENEFICIARY-ACTIONS.md`** → `PATCH …/communities/{token}` `{ fundraising }` (beneficiary) |
+| **enable** Dex profile fundraiser on **TMP** | same PATCH — `id`: `dex-profile` |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**).
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**).
 
 ---
 
@@ -140,13 +141,15 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
   3. If TMP or ARCHIVE → paste URL from table → STOP (no tools, no HTTP)
   4. Else try GET /api/agent/link?q={TICKER} → paste body
   5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
-else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, contribute):
-  1. use_skill("bankr-communities")
-  2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads) or FUNDRAISING.md (fundraise)
-  3. If posting: Read **X-REPLY-POST-CONTENT.md** (what goes in `content`) + **POST-SOURCE.md** → set source.trigger from DM vs tweet vs reply vs terminal
-  4. GET /api/holders/{token}?wallet={linked} before writes
-  5. Call API — BEFORE replying (posts must include source object)
-  6. Plain English reply + communityLink on own line
+else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, fundraising, contribute, enable fundraiser, start fundraiser, custom fundraiser):
+  1. use_skill("bankr-communities")     ← BEFORE swaps/deploys/transfers
+  2. enable/start/turn on + fundraiser → BENEFICIARY-ACTIONS.md (Enable fundraiser) → PATCH fundraising
+  3. Other writes → BENEFICIARY-ACTIONS.md
+  4. Reads / contribute → ONE-LINE-INTENTS.md or FUNDRAISING.md
+  5. If posting: Read **X-REPLY-POST-CONTENT.md** (what goes in `content`) + **POST-SOURCE.md** → set source.trigger from DM vs tweet vs reply vs terminal
+  6. GET /api/holders/{token}?wallet={linked} before writes
+  7. Call API — BEFORE replying (posts must include source object)
+  8. Plain English reply + communityLink on own line
 ```
 
 **Tweet = DM** — same pipeline. Load skill on `@bankrbot` intake **before** tool selection.
