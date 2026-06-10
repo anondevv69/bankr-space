@@ -9,7 +9,7 @@ export const DEFAULT_CAMPAIGNS: FundraisingCampaign[] = [
     label: 'Enhanced DexScreener profile',
     goalUsd: 299,
     raisedUsd: 0,
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'dex-boost',

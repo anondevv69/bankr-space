@@ -62,7 +62,7 @@ curl -X POST "https://bankr.space/api/communities/0xTOKEN/fundraising/credit" \
 
 | id | Default goal | Default on |
 |----|--------------|------------|
-| `dex-profile` | $299 | yes |
+| `dex-profile` | $299 | no |
 | `dex-boost` | $99 | no |
 | `custom` | $500 | no |
 

@@ -671,7 +671,7 @@ export function CommunityProfile({
               {canManage ? (
                 <EditSection
                   title="Fundraising campaigns"
-                  hint="Optional USDC goals (Dex profile ~$299). Shown in the sidebar when enabled."
+                  hint="Off by default. Enable a campaign below to show Fund this space on your page."
                 >
                   <div className="space-y-3">
                     {fundraisingCampaigns.map((campaign) => (
