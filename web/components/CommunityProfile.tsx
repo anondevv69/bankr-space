@@ -14,7 +14,7 @@ import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
-import { apiFetch } from '@/lib/wagmi';
+import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
 import { shortAddr } from '@/lib/utils';
 
 const SOCIAL_FIELDS: Array<{ key: StandardSocialLinkKey; label: string; placeholder: string }> = [
@@ -302,6 +302,11 @@ export function CommunityProfile({
               </div>
               <div className="border-t border-border pt-4 space-y-3">
                 <div className="text-sm font-medium">Banner</div>
+                <p className="text-xs text-muted">
+                  Recommended size: <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
+                  ({BANNER_ASPECT_LABEL}) — matches DexScreener enhanced token info. PNG, JPG, or WebP;
+                  max ~4.5&nbsp;MB.
+                </p>
                 <p className="text-xs text-muted">
                   Custom URL overrides DexScreener. Paste an https:// or ipfs:// image link — file
                   upload is not supported yet.

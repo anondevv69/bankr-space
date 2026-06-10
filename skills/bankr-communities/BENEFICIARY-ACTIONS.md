@@ -58,7 +58,7 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
-**Editable fields:** `description`, `socialLinks` (standard: `x`, `website`, `github`, `telegram`, `discord`; plus `custom[]` with `{ title, url }` for any extra links), `customBannerUrl`, `useDexBanner`
+**Editable fields:** `description`, `socialLinks` (standard: `x`, `website`, `github`, `telegram`, `discord`; plus `custom[]` with `{ title, url }` for any extra links), `customBannerUrl` (https or ipfs://, **recommended 1500×500px**, 3:1), `useDexBanner`
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 
