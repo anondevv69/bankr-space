@@ -105,6 +105,49 @@ function SocialPills({ pills }: { pills: ReturnType<typeof getSocialLinkPills> }
   );
 }
 
+function CompletedFundraisers({
+  campaigns,
+}: {
+  campaigns: FundraisingCampaign[];
+}) {
+  const completed = campaigns.filter((campaign) => {
+    return campaign.raisedUsd > 0 && campaign.raisedUsd >= campaign.goalUsd;
+  });
+
+  if (!completed.length) return null;
+
+  return (
+    <div className="mt-4 p-4 md:p-5 rounded-xl border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <div className="text-sm font-semibold">Completed fundraisers</div>
+          <p className="text-[11px] text-muted mt-0.5">
+            Past goals this space has funded.
+          </p>
+        </div>
+        <span className="text-[11px] text-muted">{completed.length} completed</span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {completed.map((campaign) => (
+          <div
+            key={campaign.id}
+            className="p-3 rounded-lg border border-border bg-surface-2"
+          >
+            <div className="text-sm font-medium truncate">{campaign.label}</div>
+            <div className="text-xs text-muted mt-1">
+              Raised ${campaign.raisedUsd.toLocaleString()} of $
+              {campaign.goalUsd.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-green-600 dark:text-green-400 mt-2">
+              Goal completed
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SourceToggle({
   checked,
   disabled,
@@ -771,6 +814,10 @@ export function CommunityProfile({
           refreshKey={JSON.stringify(community.fundraising?.campaigns)}
           layout="horizontal"
         />
+      ) : null}
+
+      {community.fundraising?.campaigns ? (
+        <CompletedFundraisers campaigns={community.fundraising.campaigns} />
       ) : null}
     </div>
   );
