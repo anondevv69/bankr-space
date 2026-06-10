@@ -1,17 +1,19 @@
 import type { WalletAgentMeta } from './types';
 import { normalizeAddr } from './utils';
 
-/** Default: @bankrbot agent wallet on Base (override via env). */
-const DEFAULT_PLATFORM_AGENT_WALLET = '0x824bcedc77a27c3d8d45573ff14a10bd4b215403';
-
 export const PLATFORM_AGENT_ID = 'bankr-space-agent';
 export const PLATFORM_AGENT_TYPE = 'bankr-space-agent';
+export const PLATFORM_AGENT_LABEL = 'Bankr Space Agent';
 
+/**
+ * Set via PLATFORM_AGENT_WALLET (Vercel + Aeon). Use a dedicated Base Account —
+ * not @bankrbot. Create via Base MCP (mcp.base.org) → get_wallets.
+ */
 export function getPlatformAgentWallet(): string | null {
   const raw =
     process.env.PLATFORM_AGENT_WALLET?.trim() ||
-    process.env.NEXT_PUBLIC_PLATFORM_AGENT_WALLET?.trim() ||
-    DEFAULT_PLATFORM_AGENT_WALLET;
+    process.env.NEXT_PUBLIC_PLATFORM_AGENT_WALLET?.trim();
+  if (!raw) return null;
   try {
     return normalizeAddr(raw);
   } catch {
@@ -36,7 +38,7 @@ export function platformAgentMeta(): WalletAgentMeta {
     isAgentWallet: true,
     agentId: PLATFORM_AGENT_ID,
     agentType: PLATFORM_AGENT_TYPE,
-    agentLabel: '@bankrbot · Bankr Space Agent',
+    agentLabel: PLATFORM_AGENT_LABEL,
     platform: 'bankr.space',
     source: 'known-registry',
     resolvedAt: Date.now(),

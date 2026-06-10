@@ -5,7 +5,7 @@ Set these on **Vercel** → bankr.space project → Environment Variables.
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `CRON_SECRET` | Same as Aeon GitHub secret | Protects `GET /api/agent/platform-spaces` |
-| `PLATFORM_AGENT_WALLET` | `0x824bcedc77a27c3d8d45573ff14a10bd4b215403` | Default @bankrbot agent; change when Base wallet ready |
+| `PLATFORM_AGENT_WALLET` | Your **Base Account** address (see BASE-ACCOUNT-SETUP.md) | Must match Aeon secret |
 | `NEXT_PUBLIC_PLATFORM_AGENT_UI` | `true` | Show opt-in panel after first successful worker run |
 
 **Aeon repo:** [github.com/anondevv69/bankr-space-aeon](https://github.com/anondevv69/bankr-space-aeon)

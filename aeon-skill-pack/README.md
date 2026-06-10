@@ -53,6 +53,8 @@ On **Vercel** (bankr.space deployment):
 
 Per space: deployer or fee recipient enables **Use Bankr Space Agent** → fee recipient **verifies**.
 
+**Platform wallet:** dedicated **Base Account** — see [BASE-ACCOUNT-SETUP.md](./BASE-ACCOUNT-SETUP.md) (not @bankrbot).
+
 ## 1. Fork Aeon
 
 ```bash
