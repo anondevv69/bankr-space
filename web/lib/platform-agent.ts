@@ -25,6 +25,11 @@ export function isPlatformAgentWallet(wallet: string): boolean {
   return wallet.toLowerCase() === platform.toLowerCase();
 }
 
+/** Space-page opt-in UI. Off until platform worker (e.g. Aeon) is live. */
+export function isPlatformAgentUiEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_PLATFORM_AGENT_UI === 'true';
+}
+
 export function platformAgentMeta(): WalletAgentMeta {
   return {
     wallet: getPlatformAgentWallet() || undefined,

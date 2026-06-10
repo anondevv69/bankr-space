@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { OxWorkTask } from '@/lib/oxwork-api';
 import { oxWorkTaskUrl } from '@/lib/oxwork-api';
+import { isPlatformAgentUiEnabled } from '@/lib/platform-agent';
 
 function taskTitle(task: OxWorkTask): string {
   if (task.title?.trim()) return task.title.trim();
@@ -70,8 +71,8 @@ export function OxWorkJobsPanel({
       <div className="text-center py-12 px-6 border border-dashed border-border rounded-xl bg-surface space-y-3">
         <p className="text-muted text-sm">No open 0xJobs for ${symbol} yet.</p>
         <p className="text-xs text-muted max-w-md mx-auto">
-          Holders fund a 0xWork pool via x402 (USDC stays with the fee recipient). Once the goal
-          is matched, Bankr Space Agent can post bounties on{' '}
+          Holders fund a 0xWork pool via x402 (USDC stays with the fee recipient). Once matched,
+          bounties can be posted on{' '}
           <a
             href="https://0xwork.org"
             target="_blank"
@@ -80,10 +81,12 @@ export function OxWorkJobsPanel({
           >
             0xWork
           </a>{' '}
-          — bagwork, tweets, art, and more. Enable{' '}
-          <span className="font-medium">Run skill-linked fundraisers</span> in Team access.
+          — bagwork, tweets, art, and more.
+          {isPlatformAgentUiEnabled()
+            ? ' Enable Run skill-linked fundraisers in Community agent settings.'
+            : null}
         </p>
-        {usePlatformAgent ? (
+        {isPlatformAgentUiEnabled() && usePlatformAgent ? (
           <p className="text-xs text-green-600 dark:text-green-400">
             Bankr Space Agent is enabled — jobs appear here after a matched 0xWork fundraiser runs.
           </p>

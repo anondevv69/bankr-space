@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Header, Footer } from '@/components/Header';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
+import { useAppWallet } from '@/hooks/useAppWallet';
 import { CommunityCard } from '@/components/CommunityCard';
 import { CreateCommunity } from '@/components/CreateCommunity';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
+import { isSiteAdminWallet } from '@/lib/site-admin';
+import { apiFetch } from '@/lib/wagmi';
 import type { Community, TokenMarketStats } from '@/lib/types';
 
 type VerifiedFilter = 'all' | 'verified' | 'unverified';
@@ -24,7 +27,10 @@ export default function HomePage() {
   const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState<string | null>(null);
   const embed = useEmbeddedBankr();
+  const { address, isConnected } = useAppWallet();
+  const isSiteAdmin = isConnected && isSiteAdminWallet(address);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +62,33 @@ export default function HomePage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleDeleteSpace(tokenAddress: string) {
+    if (!address || !isSiteAdminWallet(address)) return;
+    const community = communities.find(
+      (c) => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase()
+    );
+    if (!community) return;
+    if (
+      !window.confirm(
+        `Delete the $${community.symbol} space and all its posts? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeletingAddress(tokenAddress);
+    try {
+      await apiFetch(`/api/communities/${tokenAddress}`, {
+        method: 'DELETE',
+        wallet: address,
+      });
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeletingAddress(null);
+    }
+  }
 
   const matchesSearch = (c: Community) => {
     if (!filter.trim()) return true;
@@ -145,6 +178,9 @@ export default function HomePage() {
                 community={c}
                 market={markets[c.tokenAddress.toLowerCase()] || null}
                 featured={isNativeSpaceCommunity(c.tokenAddress)}
+                canDelete={isSiteAdmin}
+                onDelete={handleDeleteSpace}
+                deleting={deletingAddress === c.tokenAddress}
               />
             ))}
           </div>
