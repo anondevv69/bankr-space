@@ -1,0 +1,40 @@
+{
+  "network": "base",
+  "currency": "USDC",
+  "services": {
+    "space-fund": {
+      "description": "Fund a Bankr Space campaign (Dex profile, boost, or custom goal) in USDC",
+      "price": "1",
+      "methods": ["GET"],
+      "schema": {
+        "input": {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string",
+              "description": "Token contract address (0x…)"
+            },
+            "campaign": {
+              "type": "string",
+              "description": "Campaign id: dex-profile | dex-boost | custom",
+              "enum": ["dex-profile", "dex-boost", "custom"]
+            },
+            "amount": {
+              "type": "string",
+              "description": "Contribution amount in USD (USDC)"
+            }
+          },
+          "required": ["token", "campaign", "amount"]
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "raisedUsd": { "type": "number" },
+            "goalUsd": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

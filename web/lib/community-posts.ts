@@ -1,4 +1,5 @@
 import type { Community, PinnedPost, Post } from './types';
+import { normalizeFundraising } from './fundraising';
 
 export function normalizePinnedPosts(community: Community): PinnedPost[] {
   if (community.pinnedPosts?.length) {
@@ -60,6 +61,7 @@ export function mergeCommunityDefaults(community: Community): Community {
     dexDescription: community.dexDescription ?? null,
     dexSocialLinks: community.dexSocialLinks || {},
     profileSyncMeta: community.profileSyncMeta || {},
+    fundraising: normalizeFundraising(community.fundraising),
     pinnedPosts,
     pinnedPostId: pinnedPosts[0]?.postId ?? null,
   };
