@@ -62,7 +62,7 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 **Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
 
-**Fundraising (Model B):** optional USDC goals per space — Dex profile ($299), Dex boost, custom. Progress on space sidebar; pay via the shared Bankr x402 fund endpoint (`NEXT_PUBLIC_X402_FUND_URL`). Toggle campaigns in Edit profile. `@bankrbot fund $10 to $TICKER space for Dex` (skill routing TBD).
+**Fundraising (Model B):** optional USDC goals per space — Dex profile ($299), Dex boost, custom. Read **`FUNDRAISING.md`** for agent discovery and contribution flow. Open campaigns via `GET /api/communities/{token}/fundraising` or briefing `fundraising.open[]`. Pay on **bankr.space** ($1 USDC per x402 click). Completed goals in `fundraising.completed[]` only. Beneficiary enables via Edit profile or PATCH `fundraising` below.
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 

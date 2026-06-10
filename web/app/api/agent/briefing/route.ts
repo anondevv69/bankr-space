@@ -7,6 +7,12 @@ import {
   getSyncUpdatedAt,
 } from '@/lib/db';
 import { fetchLaunchByAddress } from '@/lib/bankr-api';
+import { mergeCommunityDefaults } from '@/lib/community-posts';
+import {
+  campaignProgress,
+  completedCampaigns,
+  openCampaigns,
+} from '@/lib/fundraising';
 import { communityUrl, getSiteUrl, communityUrlTemplate } from '@/lib/site-url';
 import { buildBriefingReplyText } from '@/lib/agent-reply';
 
@@ -56,6 +62,18 @@ export async function GET(req: Request) {
     const posts = community ? await getPosts(community.tokenAddress) : [];
     const recentPosts = posts.slice(-5).reverse();
 
+    const normalizedCommunity = community ? mergeCommunityDefaults(community) : null;
+    const openFundraisers = normalizedCommunity
+      ? openCampaigns(normalizedCommunity.fundraising)
+      : [];
+    const completedFundraisers = normalizedCommunity
+      ? completedCampaigns(normalizedCommunity.fundraising)
+      : [];
+    const x402FundUrl =
+      process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
+      process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim() ||
+      null;
+
     const opportunities: Array<{ type: string; message: string }> = [];
 
     if (!community && launch) {
@@ -76,6 +94,17 @@ export async function GET(req: Request) {
       opportunities.push({
         type: 'first_post',
         message: `No posts yet in $${community.symbol} space — holders can be first.`,
+      });
+    }
+
+    for (const campaign of openFundraisers) {
+      const remaining = Math.max(
+        0,
+        Math.round((campaign.goalUsd - campaign.raisedUsd) * 100) / 100
+      );
+      opportunities.push({
+        type: 'fundraising_open',
+        message: `$${community!.symbol} space — ${campaign.label}: $${campaign.raisedUsd}/$${campaign.goalUsd} raised ($${remaining} remaining). Contribute USDC on bankr.space.`,
       });
     }
 
@@ -125,6 +154,30 @@ export async function GET(req: Request) {
         reactions: p.reactions,
       })),
       opportunities,
+      fundraising: community
+        ? {
+            open: openFundraisers.map((c) => ({
+              id: c.id,
+              label: c.label,
+              goalUsd: c.goalUsd,
+              raisedUsd: c.raisedUsd,
+              remainingUsd: Math.max(
+                0,
+                Math.round((c.goalUsd - c.raisedUsd) * 100) / 100
+              ),
+              progressPct: campaignProgress(c),
+            })),
+            completed: completedFundraisers.map((c) => ({
+              id: c.id,
+              label: c.label,
+              goalUsd: c.goalUsd,
+              raisedUsd: c.raisedUsd,
+            })),
+            x402FundUrl,
+            contributeNote:
+              'Open campaigns accept $1 USDC per x402 click on the space page (bankr.space). Agents cannot pay via HTTP alone — wallet signature required.',
+          }
+        : null,
       links: {
         communityPage: pageLink,
         allCommunities: siteUrl,
@@ -139,6 +192,7 @@ export async function GET(req: Request) {
         verify: 'POST /api/communities/{token}/verify header x-wallet-address',
         checkHolder: 'GET /api/holders/{token}?wallet=0x…',
         react: 'POST /api/posts/{postId}/react header x-wallet-address',
+        fundraising: 'GET /api/communities/{token}/fundraising',
       },
     });
   } catch (err) {

@@ -57,6 +57,8 @@ install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/
 | **Post** in TMP: hello holders | `canPost` check → `POST …/posts` (holder OR owner) |
 | **React** 👍 on post | Holder-only reaction | `POST /api/posts/{id}/react` |
 | Can I **post** in $TMP? | Holder check | `GET /api/holders/{token}?wallet=` |
+| Any **fundraising** on **$TMP**? | Open USDC goals | `GET /api/communities/{token}/fundraising` or briefing → `fundraising` |
+| **Fund** / **contribute** to a space | x402 on site | Read skill **`FUNDRAISING.md`** → reply progress + space URL |
 
 ---
 
@@ -68,7 +70,7 @@ GET {{SITE_URL}}/api/agent/briefing?token=0x935e13a28849095db45e63040f109c34b757
 GET {{SITE_URL}}/api/agent/briefing?q=search
 ```
 
-**Returns:** `community`, `stats`, `recentPosts`, `communityLink`, `linkReply`, `replyText` (URL on line 2).
+**Returns:** `community`, `stats`, `recentPosts`, `fundraising` (open + completed campaigns), `opportunities` (may include `fundraising_open`), `communityLink`, `linkReply`, `replyText` (URL on line 2).
 
 **Link-only requests:**
 
@@ -104,7 +106,13 @@ POST /api/communities/{tokenAddress}/verify
 POST /api/communities/{tokenAddress}/posts
      Body: { "content": "max 2000 chars", "source": { ... } }  ← optional provenance
      Headers: x-client, x-post-trigger, x-agent-id, x-external-ref (optional)
+GET  /api/communities/{tokenAddress}/fundraising   ← open campaigns, x402 fund URL
+POST /api/communities/{tokenAddress}/fundraising/x402   ← browser proxy (wallet x402 signature)
 ```
+
+**Fundraising:** Optional USDC goals per space (Dex profile, boost, custom). `GET …/fundraising` returns **open** campaigns only; completed goals are in briefing `fundraising.completed[]`. Payment is **$1 USDC per x402 request** on **bankr.space** (shared platform endpoint + `?token=` query). Agents discover via API; wallet signature required to pay — see skill **`FUNDRAISING.md`**.
+
+**Post tips:** Holders can tip post authors with the **community token** on Base from the space UI (no agent HTTP API).
 
 **Post provenance (optional):** stored on each post as `source` so the UI can show how it was submitted.
 
@@ -183,6 +191,8 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 @bankrbot post in TMP space: gm holders
 @bankrbot post this in BNKR space          ← X reply: post parent tweet URL
 @bankrbot post hello my words in TMP space ← explicit text, not parent tweet
+@bankrbot any fundraisers on the TMP space?
+@bankrbot fund $5 to TMP space for Dex profile
 ```
 
 **X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):

@@ -31,6 +31,7 @@ When editing, update **`web/content/agent.md`** then redeploy. Keep this file in
 | Create space / community | search → POST `/api/communities/{token}` |
 | List all spaces | GET /api/communities |
 | Space / community link | `GET /api/agent/link?q=TICKER` or INSTANT-LINK-REPLIES.md for TMP/ARCHIVE |
+| Fundraising on a space | `GET /api/communities/{token}/fundraising` or briefing → `fundraising` |
 
 Full table: **`ONE-LINE-INTENTS.md`**
 
@@ -56,6 +57,7 @@ Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bank
 | `ONE-LINE-INTENTS.md` | Intent → API table |
 | `BENEFICIARY-ACTIONS.md` | Verify, profile, pin, post+pin |
 | `INSTANT-LINK-REPLIES.md` | TMP/ARCHIVE links — no HTTP |
+| `FUNDRAISING.md` | Discover fundraisers, guide x402 contributions |
 | `community-autopilot.md` | Step-by-step flows |
 | `references/AGENT-ROUTING-COMMUNITIES.md` | Routing guard |
 | `references/BANKR-PLATFORM-TWEET-INTAKE.md` | Tweet intake |
