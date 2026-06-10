@@ -46,10 +46,11 @@ export function FundraisingWidget({
       const res = await fetch(`/api/communities/${tokenAddress}/fundraising`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
-      setCampaigns(data.campaigns || []);
+      const open = (data.campaigns || []).filter((c: FundraisingView) => !c.funded);
+      setCampaigns(open);
       setX402BaseUrl(data.x402BaseUrl || null);
-      if (data.campaigns?.[0]?.id) {
-        setActiveCampaignId(data.campaigns[0].id);
+      if (open[0]?.id) {
+        setActiveCampaignId(open[0].id);
       }
     } catch {
       setCampaigns([]);

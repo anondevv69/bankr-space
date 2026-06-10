@@ -11,7 +11,7 @@ import type {
   TokenMarketStats,
   FundraisingCampaign,
 } from '@/lib/types';
-import { DEFAULT_CAMPAIGNS, hasPublicFundraising } from '@/lib/fundraising';
+import { DEFAULT_CAMPAIGNS, completedCampaigns, hasPublicFundraising } from '@/lib/fundraising';
 import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { FundraisingWidget } from '@/components/FundraisingWidget';
@@ -105,16 +105,18 @@ function SocialPills({ pills }: { pills: ReturnType<typeof getSocialLinkPills> }
   );
 }
 
+function campaignTypeLabel(id: string): string {
+  if (id === 'dex-profile') return 'Dex profile';
+  if (id === 'dex-boost') return 'Dex boost';
+  return 'Community goal';
+}
+
 function CompletedFundraisers({
   campaigns,
 }: {
   campaigns: FundraisingCampaign[];
 }) {
-  const completed = campaigns.filter((campaign) => {
-    return campaign.raisedUsd > 0 && campaign.raisedUsd >= campaign.goalUsd;
-  });
-
-  if (!completed.length) return null;
+  if (!campaigns.length) return null;
 
   return (
     <div className="mt-4 p-4 md:p-5 rounded-xl border border-border bg-surface">
@@ -125,18 +127,21 @@ function CompletedFundraisers({
             Past goals this space has funded.
           </p>
         </div>
-        <span className="text-[11px] text-muted">{completed.length} completed</span>
+        <span className="text-[11px] text-muted">{campaigns.length} completed</span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {completed.map((campaign) => (
+        {campaigns.map((campaign) => (
           <div
             key={campaign.id}
             className="p-3 rounded-lg border border-border bg-surface-2"
           >
-            <div className="text-sm font-medium truncate">{campaign.label}</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {campaignTypeLabel(campaign.id)}
+            </div>
+            <div className="text-sm font-medium truncate mt-1">{campaign.label}</div>
             <div className="text-xs text-muted mt-1">
               Raised ${campaign.raisedUsd.toLocaleString()} of $
-              {campaign.goalUsd.toLocaleString()}
+              {campaign.goalUsd.toLocaleString()} USDC
             </div>
             <div className="text-[11px] text-green-600 dark:text-green-400 mt-2">
               Goal completed
@@ -817,7 +822,7 @@ export function CommunityProfile({
       ) : null}
 
       {community.fundraising?.campaigns ? (
-        <CompletedFundraisers campaigns={community.fundraising.campaigns} />
+        <CompletedFundraisers campaigns={completedCampaigns(community.fundraising)} />
       ) : null}
     </div>
   );

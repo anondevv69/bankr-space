@@ -3,6 +3,7 @@ import { mergeCommunityDefaults } from '@/lib/community-posts';
 import {
   CAMPAIGN_IDS,
   creditCampaignUsd,
+  isCampaignFunded,
   readStoredFundraising,
   type CampaignId,
 } from '@/lib/fundraising';
@@ -54,6 +55,13 @@ export async function applyFundraisingCredit(
       success: false,
       error:
         'Campaign is not enabled for this space. Beneficiary must enable fundraising in Edit profile.',
+      status: 400,
+    };
+  }
+  if (isCampaignFunded(campaign)) {
+    return {
+      success: false,
+      error: 'This fundraiser goal is already complete.',
       status: 400,
     };
   }

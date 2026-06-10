@@ -107,8 +107,30 @@ export function activeCampaigns(state: FundraisingState | undefined | null): Fun
   return state.campaigns.filter((c) => c.enabled);
 }
 
+export function isCampaignFunded(campaign: FundraisingCampaign): boolean {
+  return campaign.goalUsd > 0 && campaign.raisedUsd >= campaign.goalUsd;
+}
+
+/** Enabled campaigns still accepting contributions. */
+export function openCampaigns(state: FundraisingState | undefined | null): FundraisingCampaign[] {
+  if (!state?.optedIn) return [];
+  return state.campaigns.filter((c) => c.enabled && !isCampaignFunded(c));
+}
+
+/** Enabled campaigns that reached their goal — show in history only. */
+export function completedCampaigns(
+  state: FundraisingState | undefined | null
+): FundraisingCampaign[] {
+  if (!state?.optedIn) return [];
+  return state.campaigns.filter((c) => c.enabled && isCampaignFunded(c));
+}
+
 export function hasPublicFundraising(state: FundraisingState | undefined | null): boolean {
-  return activeCampaigns(state).length > 0;
+  return openCampaigns(state).length > 0;
+}
+
+export function hasCompletedFundraising(state: FundraisingState | undefined | null): boolean {
+  return completedCampaigns(state).length > 0;
 }
 
 export function campaignProgress(campaign: FundraisingCampaign): number {

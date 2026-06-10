@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import { activeCampaigns, campaignProgress } from '@/lib/fundraising';
+import { openCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
     }
 
     const normalized = mergeCommunityDefaults(community);
-    const campaigns = activeCampaigns(normalized.fundraising!);
+    const campaigns = openCampaigns(normalized.fundraising!);
     const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
     const x402BaseUrl =
       process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
         ...c,
         progressPct: campaignProgress(c),
         remainingUsd: Math.max(0, Math.round((c.goalUsd - c.raisedUsd) * 100) / 100),
-        funded: c.raisedUsd >= c.goalUsd,
+        funded: isCampaignFunded(c),
       })),
     });
   } catch (err) {
