@@ -51,12 +51,39 @@ export interface Community {
   imageUri?: string | null;
   /** Resolved HTTPS URL for UI — set by API responses, not persisted */
   imageUrl?: string | null;
+  /** Beneficiary custom icon (https or ipfs://) */
+  customIconUrl?: string | null;
   /** Beneficiary custom banner (https or ipfs://) */
   customBannerUrl?: string | null;
-  /** When true and no custom banner, use DexScreener profile header */
+  /** When true (default), use Bankr launch image when no custom icon */
+  useBankrImage?: boolean;
+  /** When true (default), use DexScreener icon when available */
+  useDexIcon?: boolean;
+  /** When true (default), use DexScreener header when no custom banner */
   useDexBanner?: boolean;
-  /** Resolved banner for UI — custom wins, then Dex if opted in */
+  /** When true (default), use Dex profile description until beneficiary edits */
+  useDexDescription?: boolean;
+  /** When true (default), merge Dex profile links into displayed socials */
+  useDexLinks?: boolean;
+  /** IPFS URIs pinned from Bankr/Dex sync */
+  pinnedBankrIconUri?: string | null;
+  pinnedDexIconUri?: string | null;
+  pinnedDexBannerUri?: string | null;
+  /** Last seen Dex CDN URLs (fallback when Pinata unavailable) */
+  dexIconSrc?: string | null;
+  dexBannerSrc?: string | null;
+  dexDescription?: string | null;
+  dexSocialLinks?: SocialLinks;
+  profileSyncMeta?: {
+    bankrIconSrc?: string | null;
+    dexIconSrc?: string | null;
+    dexBannerSrc?: string | null;
+    syncedAt?: number;
+  };
+  /** Resolved banner for UI */
   bannerUrl?: string | null;
+  /** Merged social links for display (Dex + manual) — API only, not persisted */
+  displaySocialLinks?: SocialLinks;
   socialLinks?: SocialLinks;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
