@@ -119,6 +119,7 @@ function TipForm({
   const [amount, setAmount] = useState('1');
   const [tipping, setTipping] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
 
   async function submit() {
     if (!address || !isConnected) {
@@ -133,6 +134,7 @@ function TipForm({
 
     setTipping(true);
     setHint(`Confirm ${amount} ${tokenSymbol} tip in your wallet…`);
+    setTxHash(null);
     try {
       const result = await tipCommunityToken({
         from: address,
@@ -141,6 +143,7 @@ function TipForm({
         amount,
       });
       setHint(`Tip sent: ${result.amount} ${result.symbol}`);
+      setTxHash(result.txHash);
     } catch (err) {
       setHint(err instanceof Error ? err.message : 'Tip failed');
     } finally {
@@ -180,6 +183,25 @@ function TipForm({
         </button>
       </div>
       {hint ? <p className="text-xs text-muted">{hint}</p> : null}
+      {txHash ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <a
+            href={`https://basescan.org/tx/${txHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent-hover hover:underline"
+          >
+            View tip on BaseScan
+          </a>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(txHash)}
+            className="text-muted hover:text-text"
+          >
+            Copy tx
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
