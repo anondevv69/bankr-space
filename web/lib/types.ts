@@ -42,6 +42,12 @@ export interface Community {
   imageUri?: string | null;
   /** Resolved HTTPS URL for UI — set by API responses, not persisted */
   imageUrl?: string | null;
+  /** Beneficiary custom banner (https or ipfs://) */
+  customBannerUrl?: string | null;
+  /** When true and no custom banner, use DexScreener profile header */
+  useDexBanner?: boolean;
+  /** Resolved banner for UI — custom wins, then Dex if opted in */
+  bannerUrl?: string | null;
   socialLinks?: SocialLinks;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
@@ -108,6 +114,8 @@ export interface TokenMarketStats {
   liquidityUsd: number | null;
   txns24h: { buys: number; sells: number } | null;
   dexUrl: string | null;
+  bannerUrl: string | null;
+  iconUrl: string | null;
   dexScreener: {
     enhancedInfoPaid: boolean;
     enhancedInfoStatus: string | null;

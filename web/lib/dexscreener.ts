@@ -14,6 +14,11 @@ type DexPair = {
   volume?: { h24?: number };
   priceChange?: { h24?: number };
   txns?: { h24?: { buys?: number; sells?: number } };
+  info?: {
+    imageUrl?: string | null;
+    header?: string | null;
+    openGraph?: string | null;
+  };
 };
 
 type DexOrder = {
@@ -59,6 +64,8 @@ function emptyStats(tokenAddress: string, chainId: string): TokenMarketStats {
     liquidityUsd: null,
     txns24h: null,
     dexUrl: null,
+    bannerUrl: null,
+    iconUrl: null,
     dexScreener: {
       enhancedInfoPaid: false,
       enhancedInfoStatus: null,
@@ -131,6 +138,8 @@ export async function fetchTokenMarketStats(
         }
       : null,
     dexUrl: primary.url || null,
+    bannerUrl: primary.info?.header || null,
+    iconUrl: primary.info?.imageUrl || null,
     dexScreener: {
       enhancedInfoPaid,
       enhancedInfoStatus: tokenProfile?.status || null,

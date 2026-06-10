@@ -53,10 +53,12 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot add website https://tokenmarketplace.shop to TMP space
 @bankrbot update TMP space profile: website tokenmarketplace.shop telegram t.me/tmp
 @bankrbot set TMP space description: Token marketplace for holders
+@bankrbot enable Dex banner on Space space
+@bankrbot set Space space banner to https://example.com/banner.png
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
-**Editable fields:** `description`, `socialLinks.x`, `socialLinks.website`, `socialLinks.github`, `socialLinks.telegram`, `socialLinks.discord`
+**Editable fields:** `description`, `socialLinks.x`, `socialLinks.website`, `socialLinks.github`, `socialLinks.telegram`, `socialLinks.discord`, `customBannerUrl` (https or ipfs://), `useDexBanner` (boolean — pull DexScreener header when true and no custom URL)
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 

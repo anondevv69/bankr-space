@@ -45,6 +45,8 @@ export function mergeCommunityDefaults(community: Community): Community {
   return {
     ...community,
     socialLinks: community.socialLinks || {},
+    customBannerUrl: community.customBannerUrl ?? null,
+    useDexBanner: community.useDexBanner ?? false,
     pinnedPosts,
     pinnedPostId: pinnedPosts[0]?.postId ?? null,
   };

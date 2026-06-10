@@ -49,6 +49,10 @@
 @bankrbot post in TMP space: launch update — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot post in TMP space: gm holders
+@bankrbot post in $FUCK space "fuck"
+@bankrbot post "fukkkkkk" in the $FUCK space
+@bankrbot post this in BNKR space
+@bankrbot post xxxxx ewrwe xx test test in $xxx space
 @bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
