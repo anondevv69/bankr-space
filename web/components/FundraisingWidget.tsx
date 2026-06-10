@@ -1,10 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useWalletClient } from 'wagmi';
+import { useSwitchChain } from 'wagmi';
+import { base } from 'wagmi/chains';
 import { buildSpaceFundUrl, campaignProgress } from '@/lib/fundraising';
 import { paySpaceFundUrl, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { useAppWallet } from '@/hooks/useAppWallet';
+import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
 
 type FundraisingView = FundraisingCampaign & {
@@ -26,8 +28,9 @@ export function FundraisingWidget({
   refreshKey?: string;
   layout?: 'horizontal' | 'sidebar';
 }) {
-  const { isConnected, isEmbedded, connectWallet } = useAppWallet();
-  const { data: walletClient } = useWalletClient();
+  const { isEmbedded, connectWallet } = useAppWallet();
+  const { isConnected, onBase, resolveWalletClient } = usePaymentWalletClient();
+  const { switchChain } = useSwitchChain();
   const [campaigns, setCampaigns] = useState<FundraisingView[]>([]);
   const [x402BaseUrl, setX402BaseUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,9 +77,23 @@ export function FundraisingWidget({
       return;
     }
 
-    if (!isConnected || !walletClient) {
+    if (!isConnected) {
       setPayHint('Connect a Base wallet with USDC to pay.');
       connectWallet();
+      return;
+    }
+
+    if (!onBase) {
+      setPayHint('Switch your wallet to Base network, then try Contribute again.');
+      switchChain({ chainId: base.id });
+      return;
+    }
+
+    const walletClient = await resolveWalletClient();
+    if (!walletClient) {
+      setPayHint(
+        'Wallet connected but not ready to sign. Open MetaMask, approve bankr.space, then try again.'
+      );
       return;
     }
 
