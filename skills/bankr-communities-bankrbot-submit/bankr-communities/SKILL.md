@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.12.0
+version: 1.13.0
 description: >-
   Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
@@ -127,6 +127,8 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **fund** **$5** to **TMP** space for **Dex** | **`FUNDRAISING.md`** → fundraising GET → reply progress + space URL (wallet pays on site) |
 | **enable** custom fundraiser **"testing on x"** **$10** on **SPACE** space | **`BENEFICIARY-ACTIONS.md`** → `PATCH …/communities/{token}` `{ fundraising }` (beneficiary) |
 | **enable** Dex profile fundraiser on **TMP** | same PATCH — `id`: `dex-profile` |
+| **QRCoin** fundraiser for **SPACE** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [qrcoin skill](https://skills.bankr.bot/skills/qrcoin) |
+| **0xWork** bagwork / bounties for **TMP** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [0xwork skill](https://skills.bankr.bot/skills/0xwork) |
 
 **Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**).
 
@@ -243,6 +245,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin, enable fundraisers — tweet + terminal** |
 | `FUNDRAISING.md` | **Discover open/completed fundraisers, guide USDC x402 contributions** |
 | `AGENT-WALLETS.md` | **Tag agent wallets (bankrbot, hermes) for fee recipient & trusted delegates** |
+| `SKILL-LINKED-FUNDRAISERS.md` | **Fundraiser → USDC → Bankr Skills (qrcoin, 0xwork) on [skills.bankr.bot](https://skills.bankr.bot/)** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
 | `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |
