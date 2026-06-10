@@ -1,5 +1,6 @@
 import type { PinnedPost, Post } from './types';
 import { isPostPinned, sortPostsWithPinned } from './community-posts';
+import { getTopLevelPosts } from './post-threads';
 
 export type PostFilter = 'all' | 'beneficiary' | 'pinned' | 'community';
 export type PostSort = 'newest' | 'oldest';
@@ -22,20 +23,21 @@ export function filterPosts(
   beneficiaryWallet?: string | null,
   ownerWallet?: string | null
 ): Post[] {
+  const topLevel = getTopLevelPosts(posts);
   switch (filter) {
     case 'beneficiary':
-      return posts.filter((post) =>
+      return topLevel.filter((post) =>
         isBeneficiaryWallet(post.wallet, beneficiaryWallet, ownerWallet)
       );
     case 'pinned':
-      return posts.filter((post) => isPostPinned(pinnedPosts, post.id));
+      return topLevel.filter((post) => isPostPinned(pinnedPosts, post.id));
     case 'community':
-      return posts.filter(
+      return topLevel.filter(
         (post) => !isBeneficiaryWallet(post.wallet, beneficiaryWallet, ownerWallet)
       );
     case 'all':
     default:
-      return posts;
+      return topLevel;
   }
 }
 

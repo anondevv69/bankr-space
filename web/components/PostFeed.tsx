@@ -11,6 +11,7 @@ import {
   type PostSort,
   isBeneficiaryWallet,
 } from '@/lib/post-filters';
+import { getRepliesForPost } from '@/lib/post-threads';
 import { formatTime } from '@/lib/utils';
 import { AuthorBlock } from './AuthorBlock';
 import { PostContent } from './PostContent';
@@ -25,6 +26,251 @@ const FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'pinned', label: 'Pinned', icon: '📌' },
   { id: 'community', label: 'Community', icon: '👥' },
 ];
+
+function ReplyForm({
+  tokenAddress,
+  parentPostId,
+  canInteract,
+  onPosted,
+  onCancel,
+}: {
+  tokenAddress: string;
+  parentPostId: string;
+  canInteract: boolean;
+  onPosted: () => void;
+  onCancel: () => void;
+}) {
+  const { address, isEmbedded } = useAppWallet();
+  const [content, setContent] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  async function submit() {
+    if (!address || !content.trim()) return;
+    setPosting(true);
+    try {
+      await apiFetch(`/api/communities/${tokenAddress}/posts`, {
+        method: 'POST',
+        wallet: address,
+        client: isEmbedded ? 'bankr-app' : 'web',
+        body: JSON.stringify({
+          content,
+          parentPostId,
+          source: { trigger: 'manual' },
+        }),
+      });
+      setContent('');
+      onPosted();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Reply failed');
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  if (!canInteract) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      <textarea
+        className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm min-h-[72px]"
+        placeholder="Write a reply…"
+        maxLength={2000}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={posting || !content.trim()}
+          className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg disabled:opacity-50"
+        >
+          {posting ? 'Replying…' : 'Reply'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PostCard({
+  post,
+  posts,
+  tokenAddress,
+  canInteract,
+  canManage,
+  pins,
+  beneficiaryWallet,
+  ownerWallet,
+  isReply,
+  replyingTo,
+  onReplyTo,
+  onCancelReply,
+  onUpdate,
+  pinningId,
+  onTogglePin,
+}: {
+  post: Post;
+  posts: Post[];
+  tokenAddress: string;
+  canInteract: boolean;
+  canManage?: boolean;
+  pins: PinnedPost[];
+  beneficiaryWallet?: string | null;
+  ownerWallet?: string | null;
+  isReply?: boolean;
+  replyingTo: string | null;
+  onReplyTo: (postId: string) => void;
+  onCancelReply: () => void;
+  onUpdate: () => void;
+  pinningId: string | null;
+  onTogglePin: (postId: string) => void;
+}) {
+  const { address } = useAppWallet();
+  const isPinned = isPostPinned(pins, post.id);
+  const isMostRecentPin = pins[0]?.postId === post.id;
+  const isBeneficiary = isBeneficiaryWallet(post.wallet, beneficiaryWallet, ownerWallet);
+  const replies = isReply ? [] : getRepliesForPost(posts, post.id);
+
+  async function react(postId: string, reaction: string) {
+    if (!address || !canInteract) return;
+    try {
+      await apiFetch(`/api/posts/${postId}/react`, {
+        method: 'POST',
+        wallet: address,
+        body: JSON.stringify({ tokenAddress, reaction }),
+      });
+      onUpdate();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Reaction failed');
+    }
+  }
+
+  return (
+    <div className={isReply ? 'mt-3' : ''}>
+      <article
+        className={`bg-surface border rounded-xl p-5 ${
+          isPinned && !isReply
+            ? 'border-accent/50 ring-1 ring-accent/10'
+            : isReply
+              ? 'border-border/80 bg-surface-2/40'
+              : 'border-border'
+        }`}
+      >
+        {isPinned && !isReply ? (
+          <div className="text-[10px] font-bold uppercase tracking-wider text-accent mb-3">
+            {isMostRecentPin ? '📌 Pinned by beneficiary' : '📌 Pinned'}
+          </div>
+        ) : isReply ? (
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">
+            ↳ Reply
+          </div>
+        ) : null}
+
+        <div className="flex items-start justify-between gap-3">
+          <AuthorBlock author={post.author} isBeneficiary={isBeneficiary} compact />
+          <span className="text-xs text-muted shrink-0">{formatTime(post.timestamp)}</span>
+        </div>
+
+        <PostContent content={post.content} className="mt-3 pl-[52px] space-y-1" />
+        <PostSourceBadge source={post.source} />
+
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t border-border pl-[52px]">
+          <div className="flex flex-wrap gap-2">
+            {REACTIONS.map((emoji) => {
+              const count = post.reactions?.[emoji]?.length || 0;
+              const active =
+                address && post.reactions?.[emoji]?.includes(address.toLowerCase());
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => react(post.id, emoji)}
+                  disabled={!canInteract}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    active
+                      ? 'border-accent bg-accent/10 text-accent-hover'
+                      : 'border-border bg-surface-2 hover:border-accent/50'
+                  } disabled:opacity-40`}
+                >
+                  {emoji}
+                  {count > 0 ? <span className="text-xs font-medium">{count}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            {!isReply && canInteract ? (
+              <button
+                type="button"
+                onClick={() => onReplyTo(post.id)}
+                className="px-2.5 py-1 text-xs rounded-lg border border-border hover:border-accent"
+              >
+                Reply
+              </button>
+            ) : null}
+            {!isReply && canManage ? (
+              <button
+                type="button"
+                onClick={() => onTogglePin(post.id)}
+                disabled={pinningId === post.id}
+                className="px-2.5 py-1 text-xs rounded-lg border border-border hover:border-accent disabled:opacity-50"
+              >
+                {pinningId === post.id ? 'Saving…' : isPinned ? 'Unpin' : 'Pin'}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {replyingTo === post.id ? (
+          <div className="pl-[52px]">
+            <ReplyForm
+              tokenAddress={tokenAddress}
+              parentPostId={post.id}
+              canInteract={canInteract}
+              onPosted={() => {
+                onCancelReply();
+                onUpdate();
+              }}
+              onCancel={onCancelReply}
+            />
+          </div>
+        ) : null}
+      </article>
+
+      {replies.length > 0 ? (
+        <div className="mt-2 ml-6 sm:ml-10 pl-4 border-l-2 border-border/80 space-y-2">
+          {replies.map((reply) => (
+            <PostCard
+              key={reply.id}
+              post={reply}
+              posts={posts}
+              tokenAddress={tokenAddress}
+              canInteract={canInteract}
+              canManage={canManage}
+              pins={pins}
+              beneficiaryWallet={beneficiaryWallet}
+              ownerWallet={ownerWallet}
+              isReply
+              replyingTo={replyingTo}
+              onReplyTo={onReplyTo}
+              onCancelReply={onCancelReply}
+              onUpdate={onUpdate}
+              pinningId={pinningId}
+              onTogglePin={onTogglePin}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function PostFeed({
   tokenAddress,
@@ -49,6 +295,7 @@ export function PostFeed({
   const [filter, setFilter] = useState<PostFilter>('all');
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   const pins = pinnedPosts || [];
 
@@ -56,20 +303,6 @@ export function PostFeed({
     const filtered = filterPosts(posts, filter, pins, beneficiaryWallet, ownerWallet);
     return sortFilteredPosts(filtered, filter, sort, pins);
   }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet]);
-
-  async function react(postId: string, reaction: string) {
-    if (!address || !canInteract) return;
-    try {
-      await apiFetch(`/api/posts/${postId}/react`, {
-        method: 'POST',
-        wallet: address,
-        body: JSON.stringify({ tokenAddress, reaction }),
-      });
-      onUpdate();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Reaction failed');
-    }
-  }
 
   async function togglePin(postId: string) {
     if (!address || !canManage) return;
@@ -133,80 +366,25 @@ export function PostFeed({
         </p>
       ) : (
         <div className="space-y-4">
-          {visiblePosts.map((post) => {
-            const isPinned = isPostPinned(pins, post.id);
-            const isMostRecentPin = pins[0]?.postId === post.id;
-            const isBeneficiary = isBeneficiaryWallet(
-              post.wallet,
-              beneficiaryWallet,
-              ownerWallet
-            );
-
-            return (
-              <article
-                key={post.id}
-                className={`bg-surface border rounded-xl p-5 ${
-                  isPinned
-                    ? 'border-accent/50 ring-1 ring-accent/10'
-                    : 'border-border'
-                }`}
-              >
-                {isPinned ? (
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-accent mb-3">
-                    {isMostRecentPin ? '📌 Pinned by beneficiary' : '📌 Pinned'}
-                  </div>
-                ) : null}
-
-                <div className="flex items-start justify-between gap-3">
-                  <AuthorBlock author={post.author} isBeneficiary={isBeneficiary} compact />
-                  <span className="text-xs text-muted shrink-0">{formatTime(post.timestamp)}</span>
-                </div>
-
-                <PostContent
-                  content={post.content}
-                  className="mt-3 pl-[52px] space-y-1"
-                />
-
-                <PostSourceBadge source={post.source} />
-
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border pl-[52px]">
-                  <div className="flex gap-2">
-                    {REACTIONS.map((emoji) => {
-                      const count = post.reactions?.[emoji]?.length || 0;
-                      const active =
-                        address && post.reactions?.[emoji]?.includes(address.toLowerCase());
-                      return (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => react(post.id, emoji)}
-                          disabled={!canInteract}
-                          className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                            active
-                              ? 'border-accent bg-accent/10 text-accent-hover'
-                              : 'border-border bg-surface-2 hover:border-accent/50'
-                          } disabled:opacity-40`}
-                        >
-                          {emoji}
-                          {count > 0 ? <span className="text-xs font-medium">{count}</span> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {canManage ? (
-                    <button
-                      type="button"
-                      onClick={() => togglePin(post.id)}
-                      disabled={pinningId === post.id}
-                      className="px-2.5 py-1 text-xs rounded-lg border border-border hover:border-accent disabled:opacity-50"
-                    >
-                      {pinningId === post.id ? 'Saving…' : isPinned ? 'Unpin' : 'Pin'}
-                    </button>
-                  ) : null}
-                </div>
-              </article>
-            );
-          })}
+          {visiblePosts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              posts={posts}
+              tokenAddress={tokenAddress}
+              canInteract={canInteract}
+              canManage={canManage}
+              pins={pins}
+              beneficiaryWallet={beneficiaryWallet}
+              ownerWallet={ownerWallet}
+              replyingTo={replyingTo}
+              onReplyTo={setReplyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+              onUpdate={onUpdate}
+              pinningId={pinningId}
+              onTogglePin={togglePin}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -13,7 +13,7 @@
 |--------|-----|----------------------------|
 | **Verify** | Fee beneficiary only | No (this creates verified) |
 | **Update profile / social links** | Fee beneficiary only | No |
-| **Post / comment** | Holder OR beneficiary OR deployer | No |
+| **Post / reply** | Holder OR beneficiary OR deployer | No — replies are **one level** (`parentPostId` on top-level post only) |
 | **Pin / unpin post** | Fee beneficiary only | **Yes** |
 
 Check before writes:

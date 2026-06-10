@@ -56,9 +56,15 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const posts = await getPosts(tokenAddress);
-    const exists = posts.some((post) => post.id === postId);
-    if (!exists) {
+    const target = posts.find((post) => post.id === postId);
+    if (!target) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+    if (target.parentPostId) {
+      return NextResponse.json(
+        { error: 'Only top-level posts can be pinned' },
+        { status: 400 }
+      );
     }
 
     const current = mergeCommunityDefaults(communities[index]);

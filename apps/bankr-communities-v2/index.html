@@ -144,6 +144,18 @@
       color: #fbbf24;
     }
 
+    .reply-thread {
+      margin-top: 8px;
+      margin-left: 24px;
+      padding-left: 16px;
+      border-left: 2px solid var(--border);
+    }
+
+    .post.reply-post {
+      background: var(--surface-2);
+      opacity: 0.95;
+    }
+
     .space-banner-wrap {
       width: 100%;
       height: 160px;
@@ -1107,7 +1119,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v24 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
+    made with love &lt;3 rayblanco.eth · Bankr Space · v25 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -1262,7 +1274,19 @@
       return pinned.concat(rest);
     }
 
+    let replyToPostId = null;
+
+    function isTopLevelPost(post) {
+      return !post.parentPostId;
+    }
+
+    function getRepliesForPost(posts, parentId) {
+      return posts.filter(function (p) { return p.parentPostId === parentId; })
+        .sort(function (a, b) { return a.timestamp - b.timestamp; });
+    }
+
     function filterPosts(posts) {
+      posts = posts.filter(isTopLevelPost);
       const pins = currentCommunity?.pinnedPosts || [];
       switch (postFilter) {
         case 'beneficiary':
@@ -2160,6 +2184,100 @@
       return pins.some((p) => p.postId === postId);
     }
 
+    function renderSinglePost(post, opts) {
+      opts = opts || {};
+      const isReply = !!opts.isReply;
+      const reactions = post.reactions || {};
+      const emojis = ['👍', '❤️', '🔥'];
+      const hs = holderStatus[currentCommunity?.tokenAddress] || {};
+      const canInteract = !!hs.canPost;
+      const canPin = !!hs.canPinPosts && !isReply;
+      const reactionBtns = emojis.map(function (e) {
+        const count = (reactions[e] || []).length;
+        const active = wallet && (reactions[e] || []).includes(wallet.toLowerCase());
+        const disabled = !canInteract ? 'disabled' : '';
+        const cls = active ? 'reaction-btn active' : 'reaction-btn';
+        return '<button class="' + cls + '" ' + disabled + ' onclick="addReaction(\'' + post.id + '\', \'' + e + '\')">' + e + (count ? ' ' + count : '') + '</button>';
+      }).join('');
+
+      const pinned = !isReply && isPostPinned(post.id);
+      const mostRecentPin = currentCommunity?.pinnedPosts?.[0]?.postId === post.id;
+      const isBen = isBeneficiaryWallet(post.wallet || post.author?.wallet);
+      const pinBtn = canPin
+        ? '<button class="btn btn-secondary btn-sm" onclick="togglePin(\'' + post.id + '\')">' + (pinned ? 'Unpin' : 'Pin') + '</button>'
+        : '';
+      const replyBtn = !isReply && canInteract
+        ? '<button class="btn btn-secondary btn-sm" onclick="startReply(\'' + post.id + '\')">Reply</button>'
+        : '';
+      const replyForm = !isReply && replyToPostId === post.id
+        ? '<div style="margin-top:12px;padding-left:46px;">' +
+            '<textarea id="replyContent" placeholder="Write a reply..." maxlength="2000" rows="2" style="width:100%;margin-bottom:8px;"></textarea>' +
+            '<button class="btn btn-primary btn-sm" onclick="submitReply(\'' + post.id + '\')">Reply</button> ' +
+            '<button class="btn btn-secondary btn-sm" onclick="cancelReply()">Cancel</button>' +
+          '</div>'
+        : '';
+
+      let html = (
+        '<div class="post' + (pinned ? ' pinned' : '') + (isReply ? ' reply-post' : '') + '">' +
+          (pinned ? '<div class="post-pin-label">' + (mostRecentPin ? '📌 Pinned by beneficiary' : '📌 Pinned') + '</div>' : '') +
+          (isReply ? '<div class="post-pin-label" style="color:var(--muted);">↳ Reply</div>' : '') +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
+            renderAuthorBlock(post, isBen) +
+            '<span class="post-time">' + formatTime(post.timestamp) + '</span>' +
+          '</div>' +
+          '<div class="post-content" style="margin-top:12px;padding-left:46px;">' + renderPostContentHtml(post.content) + '</div>' +
+          postSourceHtml(post.source) +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);padding-left:46px;">' +
+            '<div class="reactions">' + reactionBtns + '</div>' +
+            '<div style="display:flex;gap:8px;">' + replyBtn + pinBtn + '</div>' +
+          '</div>' +
+          replyForm +
+        '</div>'
+      );
+
+      if (!isReply) {
+        const replies = getRepliesForPost(currentPosts || [], post.id);
+        if (replies.length) {
+          html += '<div class="reply-thread">';
+          replies.forEach(function (reply) {
+            html += renderSinglePost(reply, { isReply: true });
+          });
+          html += '</div>';
+        }
+      }
+      return html;
+    }
+
+    function startReply(postId) {
+      replyToPostId = postId;
+      if (currentCommunity) renderFeed(currentCommunity.tokenAddress);
+    }
+
+    function cancelReply() {
+      replyToPostId = null;
+      if (currentCommunity) renderFeed(currentCommunity.tokenAddress);
+    }
+
+    async function submitReply(parentPostId) {
+      if (!isAuthenticated) return requireAuth();
+      if (!currentCommunity) return;
+      const el = document.getElementById('replyContent');
+      const content = el ? el.value.trim() : '';
+      if (!content) return alert('Reply cannot be empty');
+      try {
+        await apiWrite('/api/communities/' + currentCommunity.tokenAddress + '/posts', 'POST', {
+          content: content,
+          parentPostId: parentPostId,
+          source: { client: 'bankr-app', trigger: 'manual' },
+        });
+        replyToPostId = null;
+        await openCommunity(currentCommunity.tokenAddress);
+        await loadData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
     async function renderFeed(tokenAddress) {
       const posts = currentPosts || [];
       const el = document.getElementById('communityFeed');
@@ -2179,38 +2297,7 @@
       }
 
       el.innerHTML = visiblePosts.map(function (post) {
-        const reactions = post.reactions || {};
-        const emojis = ['👍', '❤️', '🔥'];
-        const reactionBtns = emojis.map(function (e) {
-          const count = (reactions[e] || []).length;
-          const active = wallet && (reactions[e] || []).includes(wallet.toLowerCase());
-          const disabled = !canInteract ? 'disabled' : '';
-          const cls = active ? 'reaction-btn active' : 'reaction-btn';
-          return '<button class="' + cls + '" ' + disabled + ' onclick="addReaction(\'' + post.id + '\', \'' + e + '\')">' + e + (count ? ' ' + count : '') + '</button>';
-        }).join('');
-
-        const pinned = isPostPinned(post.id);
-        const mostRecentPin = currentCommunity?.pinnedPosts?.[0]?.postId === post.id;
-        const isBen = isBeneficiaryWallet(post.wallet || post.author?.wallet);
-        const pinBtn = canPin
-          ? '<button class="btn btn-secondary btn-sm" onclick="togglePin(\'' + post.id + '\')">' + (pinned ? 'Unpin' : 'Pin') + '</button>'
-          : '';
-
-        return (
-          '<div class="post' + (pinned ? ' pinned' : '') + '">' +
-            (pinned ? '<div class="post-pin-label">' + (mostRecentPin ? '📌 Pinned by beneficiary' : '📌 Pinned') + '</div>' : '') +
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
-              renderAuthorBlock(post, isBen) +
-              '<span class="post-time">' + formatTime(post.timestamp) + '</span>' +
-            '</div>' +
-            '<div class="post-content" style="margin-top:12px;padding-left:46px;">' + renderPostContentHtml(post.content) + '</div>' +
-            postSourceHtml(post.source) +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);padding-left:46px;">' +
-              '<div class="reactions">' + reactionBtns + '</div>' +
-              pinBtn +
-            '</div>' +
-          '</div>'
-        );
+        return renderSinglePost(post);
       }).join('');
 
       await hydrateTweetCards(el);
