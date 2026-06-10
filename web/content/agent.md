@@ -116,6 +116,8 @@ POST /api/communities/{tokenAddress}/fundraising/x402   ← browser proxy (walle
 
 **Skill-linked fundraisers:** Raise USDC on a space, then run [Bankr Skills](https://skills.bankr.bot/) (e.g. [QRCoin](https://skills.bankr.bot/skills/qrcoin), [0xWork](https://skills.bankr.bot/skills/0xwork)) from the fee recipient's agent — see skill **`SKILL-LINKED-FUNDRAISERS.md`**.
 
+**Platform agent:** Fee recipients without their own agent can opt in to the Bankr Space Agent (`usePlatformAgent`) — `GET /api/agent/platform`. USDC always stays with fee recipient — see **`PLATFORM-AGENT.md`**.
+
 **Post tips:** Holders can tip post authors with the **community token** on Base from the space UI (no agent HTTP API).
 
 **Post provenance (optional):** stored on each post as `source` so the UI can show how it was submitted.

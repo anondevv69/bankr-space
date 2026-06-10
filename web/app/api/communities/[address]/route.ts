@@ -173,10 +173,32 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       );
     }
 
+    let nextUsePlatformAgent = current.usePlatformAgent ?? false;
+    let nextPlatformAgentSkills = current.platformAgentSkills ?? false;
+    if (body.usePlatformAgent !== undefined || body.platformAgentSkills !== undefined) {
+      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+        return NextResponse.json(
+          { error: 'Only the fee recipient can change platform agent settings' },
+          { status: 403 }
+        );
+      }
+      if (body.usePlatformAgent !== undefined) {
+        nextUsePlatformAgent = Boolean(body.usePlatformAgent);
+        if (!nextUsePlatformAgent) {
+          nextPlatformAgentSkills = false;
+        }
+      }
+      if (body.platformAgentSkills !== undefined) {
+        nextPlatformAgentSkills =
+          nextUsePlatformAgent && Boolean(body.platformAgentSkills);
+      }
+    }
+
     let nextFeeRecipientAgent = current.feeRecipientAgent ?? null;
     if (
       (body.trustedDelegates !== undefined ||
         body.allowDeployerEdit !== undefined ||
+        body.usePlatformAgent !== undefined ||
         body.refreshAgentTags === true) &&
       (await isTokenBeneficiary(wallet, tokenAddress))
     ) {
@@ -194,6 +216,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       allowDeployerEdit: nextAllowDeployerEdit,
       trustedDelegates: nextTrustedDelegates,
       feeRecipientAgent: nextFeeRecipientAgent,
+      usePlatformAgent: nextUsePlatformAgent,
+      platformAgentSkills: nextPlatformAgentSkills,
       customIconUrl:
         body.customIconUrl !== undefined
           ? normalizeBannerUrl(body.customIconUrl)
@@ -282,6 +306,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       ownerWallet: feeRecipient || deployer,
       allowDeployerEdit: false,
       trustedDelegates: [],
+      usePlatformAgent: false,
+      platformAgentSkills: false,
       verified: isBeneficiary,
       verifiedAt: isBeneficiary ? Date.now() : null,
       verifiedBy: isBeneficiary ? wallet : null,

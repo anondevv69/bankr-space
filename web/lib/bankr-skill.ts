@@ -1,7 +1,7 @@
 export const BANKR_SKILL = {
   name: 'bankr-communities',
   displayName: 'Bankr Space',
-  version: '1.13.0',
+  version: '1.14.0',
   githubUrl:
     'https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities',
   installCommand:

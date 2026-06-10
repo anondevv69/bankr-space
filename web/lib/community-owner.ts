@@ -6,6 +6,7 @@ import {
   normalizeTrustedDelegates,
   trustedDelegateWallets,
 } from './space-delegates';
+import { isPlatformAgentWallet } from './platform-agent';
 import type { TrustedDelegateEntry } from './types';
 import { normalizeAddr } from './utils';
 
@@ -59,8 +60,11 @@ export type SpacePermissions = {
   isBeneficiary: boolean;
   isDeployer: boolean;
   isTrustedDelegate: boolean;
+  isPlatformAgent: boolean;
   isFounder: boolean;
   verified: boolean;
+  usePlatformAgent: boolean;
+  platformAgentSkills: boolean;
   allowDeployerEdit: boolean;
   trustedDelegates: TrustedDelegateEntry[];
   trustedDelegateWallets: string[];
@@ -85,6 +89,8 @@ export async function resolveSpacePermissions(
   const community = await getCommunity(token);
   const verified = !!community?.verified;
   const allowDeployerEdit = !!community?.allowDeployerEdit;
+  const usePlatformAgent = !!community?.usePlatformAgent;
+  const platformAgentSkills = !!community?.platformAgentSkills;
   const trustedDelegates = normalizeTrustedDelegates(community?.trustedDelegates);
   const isFounder = community?.founderWallet?.toLowerCase() === w;
   const resolvedChain = community?.chain || chain;
@@ -98,10 +104,13 @@ export async function resolveSpacePermissions(
   const isTrustedDelegate =
     verified && isTrustedDelegateWallet(w, trustedDelegates);
 
+  const isPlatformAgent =
+    verified && usePlatformAgent && isPlatformAgentWallet(w);
+
   const deployerHasSocialAccess =
     isDeployer && (!verified || allowDeployerEdit);
   const hasSocialAccess =
-    isBeneficiary || deployerHasSocialAccess || isTrustedDelegate;
+    isBeneficiary || deployerHasSocialAccess || isTrustedDelegate || isPlatformAgent;
 
   const canEditProfile = hasSocialAccess;
   const canEditFundraising = isBeneficiary;
@@ -113,8 +122,11 @@ export async function resolveSpacePermissions(
     isBeneficiary,
     isDeployer,
     isTrustedDelegate,
+    isPlatformAgent,
     isFounder,
     verified,
+    usePlatformAgent,
+    platformAgentSkills,
     allowDeployerEdit,
     trustedDelegates,
     trustedDelegateWallets: trustedDelegateWallets(trustedDelegates),
