@@ -13,7 +13,7 @@
 |--------|-----|----------------------------|
 | **Verify** | Fee beneficiary only | No (this creates verified) |
 | **Update profile / social links** | Fee beneficiary only | No |
-| **Post / comment** | Holder OR beneficiary OR deployer | No |
+| **Post / reply** | Holder OR beneficiary OR deployer | No — replies are **one level** (`parentPostId` on top-level post only) |
 | **Pin / unpin post** | Fee beneficiary only | **Yes** |
 
 Check before writes:
@@ -58,7 +58,11 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
-**Editable fields:** `description`, `socialLinks` (standard: `x`, `website`, `github`, `telegram`, `discord`; plus `custom[]` with `{ title, url }` for any extra links), `customBannerUrl`, `useDexBanner`
+**Editable fields:** `description`, `socialLinks`, `customIconUrl` (square **1024×1024px max**, 1:1 — matches Bankr launches), `customBannerUrl` (**exactly 1500×500px**, 3:1), source toggles (all default **on**): `useBankrImage`, `useDexIcon`, `useDexBanner`, `useDexDescription`, `useDexLinks`
+
+**Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
+
+**Fundraising (Model B):** optional USDC goals per space — Dex profile ($299), Dex boost, custom. Read **`FUNDRAISING.md`** for agent discovery and contribution flow. Open campaigns via `GET /api/communities/{token}/fundraising` or briefing `fundraising.open[]`. Pay on **bankr.space** ($1 USDC per x402 click). Completed goals in `fundraising.completed[]` only. Beneficiary enables via Edit profile or PATCH `fundraising` below.
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 

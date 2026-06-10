@@ -34,7 +34,8 @@ export function SkillInstallCard() {
         <h1 className="text-2xl font-bold tracking-tight">Bankr agent skill</h1>
         <p className="text-muted text-sm mt-2 max-w-2xl">
           Install the {BANKR_SKILL.displayName} skill so your Bankr agent can verify spaces, post
-          updates, pin threads, resolve space links, and reply on X with the correct{' '}
+          updates, pin threads, discover fundraisers, guide USDC contributions, resolve space links,
+          and reply on X with the correct{' '}
           <span className="text-text">bankr.space/community/0x…</span> URLs.
         </p>
       </div>

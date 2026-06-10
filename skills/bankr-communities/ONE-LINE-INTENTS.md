@@ -18,7 +18,10 @@
 | **list** all spaces | `GET /api/communities` | count + top symbols |
 | search Bankr token **PEPE** | `GET /api/tokens/search?q=PEPE` | launches found |
 | is there a space for **$TMP**? | `GET /api/agent/briefing?symbol=TMP` | yes/no + link |
-| what **opportunities** on spaces? | briefing → `opportunities[]` | unverified, first post, create space |
+| what **opportunities** on spaces? | briefing → `opportunities[]` | unverified, first post, create space, **fundraising_open** |
+| any **fundraising** on **$TMP**? | `GET /api/communities/{token}/fundraising` or briefing → `fundraising.open[]` | list open goals + progress |
+| **fund** / **contribute** to **TMP** Dex profile | **`FUNDRAISING.md`** → fundraising GET → space URL (pay on site) |
+| **completed** fundraisers on **$TMP**? | briefing → `fundraising.completed[]` | past goals only |
 
 ---
 
@@ -53,6 +56,8 @@
 @bankrbot post "fukkkkkk" in the $FUCK space
 @bankrbot post this in BNKR space
 @bankrbot post xxxxx ewrwe xx test test in $xxx space
+@bankrbot any fundraisers on the TMP space?
+@bankrbot fund $5 to TMP space for Dex profile
 @bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
 ```
 

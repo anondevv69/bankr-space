@@ -1,8 +1,8 @@
 ---
 name: bankr-communities
-version: 1.7.1
+version: 1.8.0
 description: >-
-  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
+  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -33,6 +33,8 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 | **add website** / **update profile** for **TMP** | `PATCH …/communities/{token}` `{ socialLinks, description }` |
 | **post** in **TMP**: text **and pin it** | `POST …/posts` **with `source`** → `POST …/pin-post` if verified beneficiary |
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
+| **fund** / **contribute** to **TMP** space fundraiser | Read **`FUNDRAISING.md`** → `GET …/fundraising` or briefing → reply progress + space URL |
+| any **fundraising** on **$ARCHIVE**? | `GET …/fundraising` or briefing → `fundraising.open[]` |
 
 **Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
 
@@ -121,6 +123,9 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | search Bankr tokens **PEPE** | `GET {SITE}/api/tokens/search?q=PEPE` |
 | do I hold **TMP**? can I post? | `GET {SITE}/api/holders/{token}?wallet={linked}` |
 | react 👍 on post **post_123** in **0x…** | `POST {SITE}/api/posts/post_123/react` |
+| any **fundraising** on **$TMP** space? | `GET {SITE}/api/communities/{token}/fundraising` or briefing → `fundraising.open[]` |
+| **fund** **$5** to **TMP** space for **Dex** | **`FUNDRAISING.md`** → fundraising GET → reply progress + space URL (wallet pays on site) |
+| **contribute** to **ARCHIVE** fundraiser | same — $1 USDC per x402 click on bankr.space |
 
 **Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**).
 
@@ -135,9 +140,9 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
   3. If TMP or ARCHIVE → paste URL from table → STOP (no tools, no HTTP)
   4. Else try GET /api/agent/link?q={TICKER} → paste body
   5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
-else if space intent (verify, post, pin, profile, update links, members, latest):
+else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, contribute):
   1. use_skill("bankr-communities")
-  2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads)
+  2. Read BENEFICIARY-ACTIONS.md (writes) or ONE-LINE-INTENTS.md (reads) or FUNDRAISING.md (fundraise)
   3. If posting: Read **X-REPLY-POST-CONTENT.md** (what goes in `content`) + **POST-SOURCE.md** → set source.trigger from DM vs tweet vs reply vs terminal
   4. GET /api/holders/{token}?wallet={linked} before writes
   5. Call API — BEFORE replying (posts must include source object)
@@ -229,7 +234,8 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `TERMINOLOGY.md` | **community vs space** — read first |
 | `X-REPLY-POST-CONTENT.md` | **X reply: post THIS = parent tweet; explicit text = user words** |
 | `POST-SOURCE.md` | **Mandatory `source` on every agent post** (X DM, mention, terminal) |
-| `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin — tweet + terminal** |
+| `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin, enable fundraisers — tweet + terminal** |
+| `FUNDRAISING.md` | **Discover open/completed fundraisers, guide USDC x402 contributions** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
 | `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |
