@@ -1,6 +1,10 @@
 import { getCommunity, getLaunches } from './db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from './bankr-api';
 import { holdsToken } from './holder';
+import {
+  isTrustedDelegateWallet,
+  normalizeTrustedDelegates,
+} from './space-delegates';
 import { normalizeAddr } from './utils';
 
 export type SpaceRoles = {
@@ -52,16 +56,19 @@ export async function isTokenDeployer(
 export type SpacePermissions = {
   isBeneficiary: boolean;
   isDeployer: boolean;
+  isTrustedDelegate: boolean;
   isFounder: boolean;
   verified: boolean;
   allowDeployerEdit: boolean;
+  trustedDelegates: string[];
   canEditProfile: boolean;
+  canEditFundraising: boolean;
   canPinPosts: boolean;
   holds: boolean;
   balance: number;
   canPost: boolean;
   canReact: boolean;
-  /** Fee recipient or deployer with active manage/post privileges (no hold required). */
+  /** Social/moderation access without holding tokens */
   isPrivilegedPoster: boolean;
 };
 
@@ -75,6 +82,7 @@ export async function resolveSpacePermissions(
   const community = await getCommunity(token);
   const verified = !!community?.verified;
   const allowDeployerEdit = !!community?.allowDeployerEdit;
+  const trustedDelegates = normalizeTrustedDelegates(community?.trustedDelegates);
   const isFounder = community?.founderWallet?.toLowerCase() === w;
   const resolvedChain = community?.chain || chain;
 
@@ -84,25 +92,36 @@ export async function resolveSpacePermissions(
     holdsToken(w, token, resolvedChain),
   ]);
 
-  const deployerMayAct = isDeployer && (!verified || allowDeployerEdit);
-  const canEditProfile = isBeneficiary || deployerMayAct;
-  const canPinPosts = canEditProfile && verified;
-  const canPost = holdResult.holds || isBeneficiary || deployerMayAct;
+  const isTrustedDelegate =
+    verified && isTrustedDelegateWallet(w, trustedDelegates);
+
+  const deployerHasSocialAccess =
+    isDeployer && (!verified || allowDeployerEdit);
+  const hasSocialAccess =
+    isBeneficiary || deployerHasSocialAccess || isTrustedDelegate;
+
+  const canEditProfile = hasSocialAccess;
+  const canEditFundraising = isBeneficiary;
+  const canPinPosts = verified && hasSocialAccess;
+  const canPost = holdResult.holds || hasSocialAccess;
   const canReact = canPost;
 
   return {
     isBeneficiary,
     isDeployer,
+    isTrustedDelegate,
     isFounder,
     verified,
     allowDeployerEdit,
+    trustedDelegates,
     canEditProfile,
+    canEditFundraising,
     canPinPosts,
     holds: holdResult.holds,
     balance: holdResult.balance,
     canPost,
     canReact,
-    isPrivilegedPoster: isBeneficiary || deployerMayAct,
+    isPrivilegedPoster: hasSocialAccess,
   };
 }
 
@@ -112,6 +131,14 @@ export async function canEditCommunityProfile(
 ): Promise<boolean> {
   const permissions = await resolveSpacePermissions(wallet, tokenAddress);
   return permissions.canEditProfile;
+}
+
+export async function canEditCommunityFundraising(
+  wallet: string,
+  tokenAddress: string
+): Promise<boolean> {
+  const permissions = await resolveSpacePermissions(wallet, tokenAddress);
+  return permissions.canEditFundraising;
 }
 
 export async function canPinCommunityPosts(

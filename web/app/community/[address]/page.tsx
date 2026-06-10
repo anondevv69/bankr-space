@@ -26,8 +26,10 @@ export default function CommunityPage({ params }: { params: { address: string } 
     isOwner: boolean;
     isBeneficiary: boolean;
     isDeployer: boolean;
+    isTrustedDelegate: boolean;
     isFounder: boolean;
     canEditProfile: boolean;
+    canEditFundraising: boolean;
     canPinPosts: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,8 +66,10 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isOwner: data.isOwner,
         isBeneficiary: data.isBeneficiary,
         isDeployer: data.isDeployer,
+        isTrustedDelegate: data.isTrustedDelegate,
         isFounder: data.isFounder,
         canEditProfile: data.canEditProfile,
+        canEditFundraising: data.canEditFundraising,
         canPinPosts: data.canPinPosts,
       });
     } catch {
@@ -76,8 +80,10 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isOwner: false,
         isBeneficiary: false,
         isDeployer: false,
+        isTrustedDelegate: false,
         isFounder: false,
         canEditProfile: false,
+        canEditFundraising: false,
         canPinPosts: false,
       });
     }
@@ -125,8 +131,9 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canEditProfile = isConnected && !!holder?.canEditProfile;
   const canPinPosts = isConnected && !!holder?.canPinPosts;
   const canVerify = isConnected && !!holder?.isBeneficiary && !community.verified;
-  const canSetDeployerAccess =
+  const canManageTeamAccess =
     isConnected && !!holder?.isBeneficiary && !!community.verified;
+  const canEditFundraising = isConnected && !!holder?.canEditFundraising;
 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
@@ -136,7 +143,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         community={community}
         beneficiary={beneficiary}
         canManage={canEditProfile}
-        canSetDeployerAccess={canSetDeployerAccess}
+        canEditFundraising={canEditFundraising}
+        canManageTeamAccess={canManageTeamAccess}
         onUpdated={load}
       />
 
@@ -173,9 +181,11 @@ export default function CommunityPage({ params }: { params: { address: string } 
               ? `✓ You are the fee recipient — you can post and react without holding`
               : holder.isDeployer
                 ? community.verified
-                  ? `✓ Deployer access enabled — you can post and react without holding`
-                  : `✓ You are the token deployer — edit this space until the fee recipient verifies`
-                : `✓ You can post and react without holding`}
+                  ? `✓ Deployer access enabled — you can post and moderate (not fundraisers)`
+                  : `✓ Token deployer — edit profile and post until the fee recipient verifies`
+                : holder.isTrustedDelegate
+                  ? `✓ Trusted delegate — you can post and moderate (not fundraisers)`
+                  : `✓ You can post and react without holding`}
         </div>
       ) : holder?.isDeployer && community.verified ? (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
