@@ -36,6 +36,15 @@ const SOCIAL_FIELDS: Array<{ key: StandardSocialLinkKey; label: string; placehol
 
 const EMPTY_CUSTOM_LINK: CustomSocialLink = { title: '', url: '' };
 
+function previewImageUrl(url: string | null | undefined): string | null {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  if (raw.startsWith('ipfs://')) {
+    return `https://gateway.pinata.cloud/ipfs/${raw.slice(7)}`;
+  }
+  return raw;
+}
+
 function SocialPills({ pills }: { pills: ReturnType<typeof getSocialLinkPills> }) {
   if (!pills.length) return null;
 
@@ -57,6 +66,36 @@ function SocialPills({ pills }: { pills: ReturnType<typeof getSocialLinkPills> }
   );
 }
 
+function SourceToggle({
+  checked,
+  disabled,
+  onChange,
+  title,
+  hint,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <label className="flex items-start gap-2 text-sm cursor-pointer">
+      <input
+        type="checkbox"
+        className="mt-1"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span>
+        {title}
+        <span className="block text-xs text-muted mt-0.5">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
 export function CommunityProfile({
   community,
   beneficiary,
@@ -73,24 +112,49 @@ export function CommunityProfile({
   const [saving, setSaving] = useState(false);
   const [description, setDescription] = useState(community.description);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(community.socialLinks || {});
+  const [customIconUrl, setCustomIconUrl] = useState(community.customIconUrl || '');
   const [customBannerUrl, setCustomBannerUrl] = useState(community.customBannerUrl || '');
-  const [useDexBanner, setUseDexBanner] = useState(community.useDexBanner ?? false);
+  const [useBankrImage, setUseBankrImage] = useState(community.useBankrImage ?? true);
+  const [useDexIcon, setUseDexIcon] = useState(community.useDexIcon ?? true);
+  const [useDexBanner, setUseDexBanner] = useState(community.useDexBanner ?? true);
+  const [useDexDescription, setUseDexDescription] = useState(community.useDexDescription ?? true);
+  const [useDexLinks, setUseDexLinks] = useState(community.useDexLinks ?? true);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [pinningIconUrl, setPinningIconUrl] = useState(false);
+  const [pinningBannerUrl, setPinningBannerUrl] = useState(false);
   const [market, setMarket] = useState<TokenMarketStats | null>(null);
 
-  const linkPills = getSocialLinkPills(community.socialLinks, market?.dexUrl);
-  const dexBannerAvailable = !!market?.bannerUrl;
-  const previewBanner = customBannerUrl.trim()
-    ? customBannerUrl.trim()
-    : useDexBanner && market?.bannerUrl
-      ? market.bannerUrl
+  const displayLinks = community.displaySocialLinks || community.socialLinks;
+  const linkPills = getSocialLinkPills(displayLinks, market?.dexUrl);
+
+  const bankrIconAvailable = !!(community.imageUri || community.pinnedBankrIconUri);
+  const dexIconAvailable = !!(market?.iconUrl || community.dexIconSrc || community.pinnedDexIconUri);
+  const dexBannerAvailable = !!(market?.bannerUrl || community.dexBannerSrc || community.pinnedDexBannerUri);
+  const dexDescriptionAvailable = !!community.dexDescription;
+
+  const previewIconUrl = customIconUrl.trim()
+    ? previewImageUrl(customIconUrl)
+    : useBankrImage || useDexIcon
+      ? community.imageUrl
+      : null;
+
+  const previewBannerUrl = customBannerUrl.trim()
+    ? previewImageUrl(customBannerUrl)
+    : useDexBanner
+      ? community.bannerUrl
       : null;
 
   useEffect(() => {
     setDescription(community.description);
     setSocialLinks(community.socialLinks || {});
+    setCustomIconUrl(community.customIconUrl || '');
     setCustomBannerUrl(community.customBannerUrl || '');
-    setUseDexBanner(community.useDexBanner ?? false);
+    setUseBankrImage(community.useBankrImage ?? true);
+    setUseDexIcon(community.useDexIcon ?? true);
+    setUseDexBanner(community.useDexBanner ?? true);
+    setUseDexDescription(community.useDexDescription ?? true);
+    setUseDexLinks(community.useDexLinks ?? true);
   }, [community]);
 
   useEffect(() => {
@@ -108,6 +172,18 @@ export function CommunityProfile({
     };
   }, [community.tokenAddress]);
 
+  function resetEditForm() {
+    setDescription(community.description);
+    setSocialLinks(community.socialLinks || {});
+    setCustomIconUrl(community.customIconUrl || '');
+    setCustomBannerUrl(community.customBannerUrl || '');
+    setUseBankrImage(community.useBankrImage ?? true);
+    setUseDexIcon(community.useDexIcon ?? true);
+    setUseDexBanner(community.useDexBanner ?? true);
+    setUseDexDescription(community.useDexDescription ?? true);
+    setUseDexLinks(community.useDexLinks ?? true);
+  }
+
   async function saveProfile() {
     if (!canManage || !address) return;
     setSaving(true);
@@ -118,8 +194,13 @@ export function CommunityProfile({
         body: JSON.stringify({
           description,
           socialLinks,
+          customIconUrl: customIconUrl.trim() || null,
           customBannerUrl: customBannerUrl.trim() || null,
+          useBankrImage,
+          useDexIcon,
           useDexBanner,
+          useDexDescription,
+          useDexLinks,
         }),
       });
       setEditing(false);
@@ -135,13 +216,16 @@ export function CommunityProfile({
     navigator.clipboard.writeText(community.tokenAddress);
   }
 
-  async function uploadBanner(file: File) {
+  async function uploadImage(file: File, kind: 'icon' | 'banner') {
     if (!canManage || !address) return;
-    setUploadingBanner(true);
+    const setUploading = kind === 'icon' ? setUploadingIcon : setUploadingBanner;
+    const setUrl = kind === 'icon' ? setCustomIconUrl : setCustomBannerUrl;
+    setUploading(true);
     try {
       const form = new FormData();
       form.append('file', file);
       form.append('tokenAddress', community.tokenAddress);
+      form.append('kind', kind);
       const headers = new Headers();
       headers.set('x-wallet-address', address);
       const res = await fetch('/api/upload/banner', {
@@ -151,12 +235,47 @@ export function CommunityProfile({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setCustomBannerUrl(data.ipfsUri || '');
-      setUseDexBanner(false);
+      setUrl(data.ipfsUri || '');
+      if (kind === 'icon') {
+        setUseBankrImage(false);
+        setUseDexIcon(false);
+      } else {
+        setUseDexBanner(false);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Upload failed');
     } finally {
-      setUploadingBanner(false);
+      setUploading(false);
+    }
+  }
+
+  async function pinImageUrl(kind: 'icon' | 'banner') {
+    if (!canManage || !address) return;
+    const url = kind === 'icon' ? customIconUrl.trim() : customBannerUrl.trim();
+    if (!url) return;
+    const setPinning = kind === 'icon' ? setPinningIconUrl : setPinningBannerUrl;
+    const setUrl = kind === 'icon' ? setCustomIconUrl : setCustomBannerUrl;
+    setPinning(true);
+    try {
+      const res = await fetch('/api/upload/banner', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': address,
+        },
+        body: JSON.stringify({
+          tokenAddress: community.tokenAddress,
+          kind,
+          url,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Pin failed');
+      setUrl(data.ipfsUri || url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Pin failed');
+    } finally {
+      setPinning(false);
     }
   }
 
@@ -219,12 +338,7 @@ export function CommunityProfile({
               <button
                 type="button"
                 onClick={() => {
-                  if (editing) {
-                    setDescription(community.description);
-                    setSocialLinks(community.socialLinks || {});
-                    setCustomBannerUrl(community.customBannerUrl || '');
-                    setUseDexBanner(community.useDexBanner ?? false);
-                  }
+                  if (editing) resetEditForm();
                   setEditing((value) => !value);
                 }}
                 className="px-4 py-2 text-sm border border-border rounded-lg hover:border-accent bg-surface-2"
@@ -243,8 +357,63 @@ export function CommunityProfile({
           {editing ? (
             <div className="mt-5 space-y-4 border-t border-border pt-5">
               <p className="text-xs text-muted">
-                Token socials are separate from the Bankr beneficiary account.
+                Token socials are separate from the Bankr beneficiary account. Bankr and DexScreener
+                sources are on by default until you turn them off or upload custom assets.
               </p>
+
+              <div className="border border-border rounded-lg p-4 space-y-3 bg-bg/40">
+                <div className="text-sm font-medium">Profile sources</div>
+                <SourceToggle
+                  checked={useBankrImage}
+                  onChange={setUseBankrImage}
+                  disabled={!!customIconUrl.trim()}
+                  title="Use Bankr token image"
+                  hint={
+                    bankrIconAvailable
+                      ? 'Launch image from Bankr — mirrored to IPFS when Pinata is configured.'
+                      : 'No Bankr launch image found for this token yet.'
+                  }
+                />
+                <SourceToggle
+                  checked={useDexIcon}
+                  onChange={setUseDexIcon}
+                  disabled={!!customIconUrl.trim()}
+                  title="Use DexScreener icon"
+                  hint={
+                    dexIconAvailable
+                      ? 'Pulls icon from Dex profile / pairs — mirrored to IPFS via Pinata.'
+                      : 'No Dex icon found yet.'
+                  }
+                />
+                <SourceToggle
+                  checked={useDexBanner}
+                  onChange={setUseDexBanner}
+                  disabled={!!customBannerUrl.trim()}
+                  title="Use DexScreener banner"
+                  hint={
+                    dexBannerAvailable
+                      ? `Paid Dex profile header (${BANNER_SIZE_LABEL} recommended).`
+                      : 'No Dex banner found yet.'
+                  }
+                />
+                <SourceToggle
+                  checked={useDexDescription}
+                  onChange={setUseDexDescription}
+                  title="Use DexScreener description"
+                  hint={
+                    dexDescriptionAvailable
+                      ? `Dex: “${(community.dexDescription || '').length > 80 ? `${community.dexDescription?.slice(0, 80)}…` : community.dexDescription}”`
+                      : 'No Dex description yet — your text is used.'
+                  }
+                />
+                <SourceToggle
+                  checked={useDexLinks}
+                  onChange={setUseDexLinks}
+                  title="Use DexScreener links"
+                  hint="Merges Dex profile links (website, X, etc.) with yours — yours win on conflict."
+                />
+              </div>
+
               <div>
                 <label className="block text-sm text-muted mb-2">Description</label>
                 <textarea
@@ -254,6 +423,44 @@ export function CommunityProfile({
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </div>
+
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="text-sm font-medium">Token icon</div>
+                <p className="text-xs text-muted">
+                  Square PNG/JPG/WebP. Upload pins to IPFS, or paste a URL and click Pin URL.
+                </p>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  disabled={uploadingIcon}
+                  className="block w-full text-sm text-muted file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border file:border-border file:bg-surface-2 file:text-text"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadImage(file, 'icon');
+                    event.target.value = '';
+                  }}
+                />
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
+                    placeholder="https://… or ipfs://…"
+                    value={customIconUrl}
+                    onChange={(event) => setCustomIconUrl(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    disabled={pinningIconUrl || !customIconUrl.trim()}
+                    onClick={() => void pinImageUrl('icon')}
+                    className="px-3 py-2 text-xs border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
+                  >
+                    {pinningIconUrl ? 'Pinning…' : 'Pin URL'}
+                  </button>
+                </div>
+                {previewIconUrl && editing ? (
+                  <TokenAvatar symbol={community.symbol} imageUrl={previewIconUrl} size={48} />
+                ) : null}
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 {SOCIAL_FIELDS.map((field) => (
                   <div key={field.key}>
@@ -272,6 +479,7 @@ export function CommunityProfile({
                   </div>
                 ))}
               </div>
+
               <div className="border-t border-border pt-4 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-sm font-medium">Additional links</div>
@@ -283,9 +491,6 @@ export function CommunityProfile({
                     + Add link
                   </button>
                 </div>
-                <p className="text-xs text-muted">
-                  Any title and URL — Bankr App, Agent skill, docs, etc.
-                </p>
                 {(socialLinks.custom || []).length === 0 ? (
                   <p className="text-xs text-muted italic">No extra links yet.</p>
                 ) : (
@@ -327,71 +532,48 @@ export function CommunityProfile({
                   </div>
                 )}
               </div>
+
               <div className="border-t border-border pt-4 space-y-3">
                 <div className="text-sm font-medium">Banner</div>
                 <p className="text-xs text-muted">
-                  Recommended size: <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
-                  ({BANNER_ASPECT_LABEL}) — matches DexScreener enhanced token info. PNG, JPG, or WebP;
-                  max ~4.5&nbsp;MB.
+                  Recommended: <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
+                  ({BANNER_ASPECT_LABEL}). Upload or paste URL — both go through Pinata when configured.
                 </p>
-                <p className="text-xs text-muted">
-                  Custom URL overrides DexScreener. Upload pins to IPFS via Pinata, or paste
-                  https:// / ipfs:// manually.
-                </p>
-                <div>
-                  <label className="block text-sm text-muted mb-2">Upload banner (Pinata IPFS)</label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={uploadingBanner}
+                  className="block w-full text-sm text-muted file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border file:border-border file:bg-surface-2 file:text-text"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadImage(file, 'banner');
+                    event.target.value = '';
+                  }}
+                />
+                <div className="flex gap-2">
                   <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingBanner}
-                    className="block w-full text-sm text-muted file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border file:border-border file:bg-surface-2 file:text-text"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) void uploadBanner(file);
-                      event.target.value = '';
-                    }}
-                  />
-                  {uploadingBanner ? (
-                    <p className="text-xs text-muted mt-1">Uploading to IPFS…</p>
-                  ) : null}
-                </div>
-                <div>
-                  <label className="block text-sm text-muted mb-2">Custom banner URL</label>
-                  <input
-                    className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
+                    className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
                     placeholder="https://… or ipfs://…"
                     value={customBannerUrl}
                     onChange={(event) => setCustomBannerUrl(event.target.value)}
                   />
+                  <button
+                    type="button"
+                    disabled={pinningBannerUrl || !customBannerUrl.trim()}
+                    onClick={() => void pinImageUrl('banner')}
+                    className="px-3 py-2 text-xs border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
+                  >
+                    {pinningBannerUrl ? 'Pinning…' : 'Pin URL'}
+                  </button>
                 </div>
-                <label className="flex items-start gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={useDexBanner}
-                    disabled={!dexBannerAvailable && !customBannerUrl.trim()}
-                    onChange={(event) => setUseDexBanner(event.target.checked)}
-                  />
-                  <span>
-                    Use DexScreener banner
-                    {dexBannerAvailable ? (
-                      <span className="block text-xs text-muted mt-0.5">
-                        Paid Dex profile detected — pulls header from DexScreener.
-                      </span>
-                    ) : (
-                      <span className="block text-xs text-muted mt-0.5">
-                        No Dex banner found for this token yet.
-                      </span>
-                    )}
-                  </span>
-                </label>
-                {previewBanner && editing ? (
+                {previewBannerUrl && editing ? (
                   <div className="relative w-full h-24 rounded-lg overflow-hidden border border-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewBanner} alt="" className="w-full h-full object-cover" />
+                    <img src={previewBannerUrl} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : null}
               </div>
+
               <button
                 type="button"
                 onClick={saveProfile}

@@ -13,12 +13,16 @@ import {
   isLaunchOwner,
   getLaunchOwnerWallets,
 } from '@/lib/bankr-api';
-import { isTokenBeneficiary, canEditCommunityProfile } from '@/lib/community-owner';
+import { canEditCommunityProfile } from '@/lib/community-owner';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
-import { enrichCommunityWithImage, withCommunityImageUrl } from '@/lib/community-image';
+import {
+  syncCommunityProfile,
+  withResolvedProfile,
+  shouldSyncProfile,
+} from '@/lib/community-profile-sync';
 import { normalizeSocialLinks } from '@/lib/social-links';
-import { normalizeBannerUrl, resolveDisplayBannerUrl } from '@/lib/banner-url';
+import { normalizeBannerUrl } from '@/lib/banner-url';
 import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
@@ -27,6 +31,16 @@ import type { SocialLinks } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 
 type RouteParams = { params: Promise<{ address: string }> };
+
+async function saveCommunity(updated: ReturnType<typeof mergeCommunityDefaults>) {
+  const communities = await getCommunities();
+  const index = communities.findIndex(
+    (item) => item.tokenAddress.toLowerCase() === updated.tokenAddress.toLowerCase()
+  );
+  if (index === -1) return;
+  communities[index] = updated;
+  await setCommunities(communities);
+}
 
 export async function GET(_req: Request, { params }: RouteParams) {
   const { address } = await params;
@@ -39,20 +53,23 @@ export async function GET(_req: Request, { params }: RouteParams) {
     if (!community) {
       return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
-    const normalized = mergeCommunityDefaults(community);
-    const [beneficiary, enriched, market] = await Promise.all([
+
+    let normalized = mergeCommunityDefaults(community);
+    const needsSync = shouldSyncProfile(normalized);
+    normalized = await syncCommunityProfile(normalized, { force: needsSync });
+    if (needsSync) {
+      await saveCommunity(normalized);
+    }
+
+    const [beneficiary, market] = await Promise.all([
       getBeneficiaryInfo(tokenAddress, normalized.chain),
-      enrichCommunityWithImage(normalized, await getLaunches()),
       fetchTokenMarketStats(tokenAddress, normalized.chain),
     ]);
 
-    const withBanner = {
-      ...enriched,
-      bannerUrl: resolveDisplayBannerUrl(enriched, market.bannerUrl),
-    };
+    const withDisplay = withResolvedProfile(normalized);
 
     return NextResponse.json({
-      community: withBanner,
+      community: withDisplay,
       market,
       posts: sortPostsWithPinned(posts, normalized.pinnedPosts || []),
       beneficiary,
@@ -61,6 +78,10 @@ export async function GET(_req: Request, { params }: RouteParams) {
     console.error('GET community', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
+}
+
+function boolField(body: Record<string, unknown>, key: string, current: boolean): boolean {
+  return body[key] !== undefined ? Boolean(body[key]) : current;
 }
 
 export async function PATCH(req: Request, { params }: RouteParams) {
@@ -105,36 +126,36 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       nextSocialLinks = normalizeSocialLinks(body.socialLinks || {});
     }
 
-    const nextCustomBanner =
-      body.customBannerUrl !== undefined
-        ? normalizeBannerUrl(body.customBannerUrl)
-        : current.customBannerUrl ?? null;
-
-    const nextUseDexBanner =
-      body.useDexBanner !== undefined
-        ? Boolean(body.useDexBanner)
-        : current.useDexBanner ?? false;
-
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
       socialLinks: nextSocialLinks,
-      customBannerUrl: nextCustomBanner,
-      useDexBanner: nextUseDexBanner,
+      customIconUrl:
+        body.customIconUrl !== undefined
+          ? normalizeBannerUrl(body.customIconUrl)
+          : current.customIconUrl ?? null,
+      customBannerUrl:
+        body.customBannerUrl !== undefined
+          ? normalizeBannerUrl(body.customBannerUrl)
+          : current.customBannerUrl ?? null,
+      useBankrImage: boolField(body, 'useBankrImage', current.useBankrImage ?? true),
+      useDexIcon: boolField(body, 'useDexIcon', current.useDexIcon ?? true),
+      useDexBanner: boolField(body, 'useDexBanner', current.useDexBanner ?? true),
+      useDexDescription: boolField(body, 'useDexDescription', current.useDexDescription ?? true),
+      useDexLinks: boolField(body, 'useDexLinks', current.useDexLinks ?? true),
     });
 
-    communities[index] = updated;
+    const synced = await syncCommunityProfile(updated, { force: true });
+    communities[index] = synced;
     await setCommunities(communities);
 
-    const market = await fetchTokenMarketStats(tokenAddress, updated.chain);
-    const community = {
-      ...updated,
-      bannerUrl: resolveDisplayBannerUrl(updated, market.bannerUrl),
-    };
+    const market = await fetchTokenMarketStats(tokenAddress, synced.chain);
+    const community = withResolvedProfile(synced);
 
     return NextResponse.json({
       success: true,
       community,
+      market,
       links: {
         communityPage: communityUrl(tokenAddress),
       },
@@ -184,7 +205,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const isOwner = isLaunchOwner(launch, wallet);
     const { feeRecipient, deployer } = getLaunchOwnerWallets(launch);
 
-    const community = {
+    const community = mergeCommunityDefaults({
       tokenAddress: launch.tokenAddress,
       name: launch.tokenName,
       symbol: launch.tokenSymbol,
@@ -203,9 +224,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       memberCount: 0,
       createdAt: Date.now(),
       launchTimestamp: launch.timestamp,
-    };
+    });
 
-    communities.unshift(community);
+    const synced = await syncCommunityProfile(community, { force: true });
+    communities.unshift(synced);
     await setCommunities(communities);
 
     const allPosts = await getAllPosts();
@@ -213,11 +235,9 @@ export async function POST(req: Request, { params }: RouteParams) {
       await setPostsForToken(tokenAddress, []);
     }
 
-    const enriched = withCommunityImageUrl(community, launch.imageUri);
-
     return NextResponse.json({
       success: true,
-      community: enriched,
+      community: withResolvedProfile(synced),
       autoVerified: isOwner,
       links: {
         communityPage: communityUrl(launch.tokenAddress),
