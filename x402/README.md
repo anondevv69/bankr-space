@@ -22,14 +22,15 @@ USDC settles through Bankr x402 (facilitator → your configured pay-to wallet).
 ## Deploy the x402 handler
 
 1. Install [Bankr CLI](https://docs.bankr.bot/) and `bankr login`
-2. From this repo:
+2. **`cd` to the repo root** — `bankr x402 deploy` looks for `./x402/` in the **current directory** (not `~/.bankr/`):
 
 ```bash
-cp -R x402/space-fund ~/.bankr/x402/space-fund   # or your bankr x402 project
-cp x402/bankr.x402.json ~/.bankr/bankr.x402.json # merge services if needed
+cd "/Volumes/X9 Pro 1/community"
 ```
 
-3. Set secrets (use **www** — apex redirects break x402 Cloud `fetch`):
+If you don't have this repo, run `bankr x402 init` in an empty folder, then copy in `x402/space-fund/` and `x402/bankr.x402.json` from this project.
+
+3. Set secrets:
 
 ```bash
 bankr x402 env set SPACE_SITE_URL=https://www.bankr.space
@@ -38,15 +39,21 @@ bankr x402 env set X402_FUND_WEBHOOK_SECRET=$(openssl rand -hex 32)
 
 Use the **same** `X402_FUND_WEBHOOK_SECRET` on Vercel. Note: do **not** use `BANKR_*` env names on x402 Cloud — that prefix is reserved by Bankr.
 
-If Request Logs show `fetch() did not return a Response`, redeploy the latest handler (it no longer calls `fetch` from x402 Cloud). Progress crediting is done by the bankr.space proxy after a successful x402 response.
-
-4. Deploy:
+4. Deploy (must still be in repo root):
 
 ```bash
 bankr x402 deploy
 ```
 
 5. Copy the deployed URL (e.g. `https://x402.bankr.bot/0xYourWallet/space-fund`)
+
+### One endpoint for all spaces
+
+The wallet in the URL (`0x374d91a5…`) is the **Bankr wallet that owns the x402 service** (who ran `bankr x402 deploy`), not a per-token address. Every space shares this URL; the **token contract** is passed as a query param:
+
+`…/space-fund?token=0xef703b8…&campaign=custom&amount=1`
+
+`NEXT_PUBLIC_X402_SPACE_FUND_URL` on Vercel is set **once** (site-wide). The proxy adds `?token=` per space when someone contributes.
 
 ## Vercel env vars
 
