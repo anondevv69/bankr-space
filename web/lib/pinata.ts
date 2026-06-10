@@ -1,3 +1,9 @@
+import { readImageDimensions } from './image-dimensions';
+import {
+  type ImageKind,
+  validateImageDimensions,
+} from './image-specs';
+
 const PINATA_PIN_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const MAX_IMAGE_BYTES = 4.5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -23,6 +29,26 @@ export function assertImageFile(file: File, label = 'Image'): void {
   if (file.size > MAX_IMAGE_BYTES) {
     throw new Error(`${label} too large (max 4.5 MB)`);
   }
+}
+
+export async function assertImageBufferDimensions(
+  buffer: ArrayBuffer,
+  kind: ImageKind
+): Promise<void> {
+  const dimensions = readImageDimensions(buffer);
+  if (!dimensions) {
+    throw new Error('Could not read image dimensions — use PNG, JPG, WebP, or GIF');
+  }
+  validateImageDimensions(dimensions, kind);
+}
+
+export async function assertImageFileDimensions(
+  file: File,
+  kind: ImageKind
+): Promise<void> {
+  const label = kind === 'icon' ? 'Token icon' : 'Banner';
+  assertImageFile(file, label);
+  await assertImageBufferDimensions(await file.arrayBuffer(), kind);
 }
 
 /** @deprecated use assertImageFile */
@@ -85,7 +111,8 @@ export async function pinFileToIpfs(
 export async function pinRemoteUrlToIpfs(
   sourceUrl: string,
   filename: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
+  options?: { validateKind?: ImageKind }
 ): Promise<PinataPinResult> {
   const url = String(sourceUrl || '').trim();
   if (!/^https?:\/\//i.test(url)) {
@@ -105,6 +132,10 @@ export async function pinRemoteUrlToIpfs(
   const buffer = await res.arrayBuffer();
   if (buffer.byteLength > MAX_IMAGE_BYTES) {
     throw new Error('Remote image too large (max 4.5 MB)');
+  }
+
+  if (options?.validateKind) {
+    await assertImageBufferDimensions(buffer, options.validateKind);
   }
 
   const ext = extensionForContentType(contentType);

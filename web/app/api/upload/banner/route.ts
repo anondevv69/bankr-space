@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { canEditCommunityProfile } from '@/lib/community-owner';
-import { assertImageFile, pinFileToIpfs, pinRemoteUrlToIpfs } from '@/lib/pinata';
+import { assertImageFileDimensions, pinFileToIpfs, pinRemoteUrlToIpfs } from '@/lib/pinata';
+import type { ImageKind } from '@/lib/image-specs';
 import { normalizeBannerUrl } from '@/lib/banner-url';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
-
-type ImageKind = 'banner' | 'icon';
 
 function parseKind(value: unknown): ImageKind {
   return String(value || 'banner').toLowerCase() === 'icon' ? 'icon' : 'banner';
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'file required' }, { status: 400 });
     }
 
-    assertImageFile(file, kind === 'icon' ? 'Icon' : 'Banner');
+    await assertImageFileDimensions(file, kind);
 
     const allowed = await canEditCommunityProfile(wallet, tokenAddress);
     if (!allowed) {
@@ -94,11 +93,16 @@ export async function PUT(req: Request) {
       });
     }
 
-    const pinned = await pinRemoteUrlToIpfs(sourceUrl, `${kind}-${tokenAddress.slice(2, 10)}`, {
-      tokenAddress,
-      uploadedBy: wallet.toLowerCase(),
-      kind: kind === 'icon' ? 'space-icon' : 'space-banner',
-    });
+    const pinned = await pinRemoteUrlToIpfs(
+      sourceUrl,
+      `${kind}-${tokenAddress.slice(2, 10)}`,
+      {
+        tokenAddress,
+        uploadedBy: wallet.toLowerCase(),
+        kind: kind === 'icon' ? 'space-icon' : 'space-banner',
+      },
+      { validateKind: kind }
+    );
 
     return NextResponse.json({
       success: true,

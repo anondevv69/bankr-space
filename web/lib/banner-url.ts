@@ -1,10 +1,10 @@
 import { resolveTokenImageUrl } from './token-image';
-
-/** Recommended space / DexScreener header dimensions (3:1). */
-export const BANNER_RECOMMENDED_WIDTH = 1500;
-export const BANNER_RECOMMENDED_HEIGHT = 500;
-export const BANNER_ASPECT_LABEL = '3:1';
-export const BANNER_SIZE_LABEL = `${BANNER_RECOMMENDED_WIDTH}×${BANNER_RECOMMENDED_HEIGHT}px`;
+export {
+  BANNER_WIDTH,
+  BANNER_HEIGHT,
+  BANNER_ASPECT_LABEL,
+  BANNER_SIZE_LABEL,
+} from './image-specs';
 
 /** Normalize beneficiary-provided banner (HTTPS or IPFS). */
 export function normalizeBannerUrl(value: unknown): string | null {
