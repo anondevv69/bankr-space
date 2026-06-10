@@ -77,13 +77,23 @@ export function CommunityProfile({
   const [saving, setSaving] = useState(false);
   const [description, setDescription] = useState(community.description);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(community.socialLinks || {});
+  const [customBannerUrl, setCustomBannerUrl] = useState(community.customBannerUrl || '');
+  const [useDexBanner, setUseDexBanner] = useState(community.useDexBanner ?? false);
   const [market, setMarket] = useState<TokenMarketStats | null>(null);
 
   const displayLinks = socialLinksForDisplay(community.socialLinks);
+  const dexBannerAvailable = !!market?.bannerUrl;
+  const previewBanner = customBannerUrl.trim()
+    ? customBannerUrl.trim()
+    : useDexBanner && market?.bannerUrl
+      ? market.bannerUrl
+      : null;
 
   useEffect(() => {
     setDescription(community.description);
     setSocialLinks(community.socialLinks || {});
+    setCustomBannerUrl(community.customBannerUrl || '');
+    setUseDexBanner(community.useDexBanner ?? false);
   }, [community]);
 
   useEffect(() => {
@@ -108,7 +118,12 @@ export function CommunityProfile({
       await apiFetch(`/api/communities/${community.tokenAddress}`, {
         method: 'PATCH',
         wallet: address,
-        body: JSON.stringify({ description, socialLinks }),
+        body: JSON.stringify({
+          description,
+          socialLinks,
+          customBannerUrl: customBannerUrl.trim() || null,
+          useDexBanner,
+        }),
       });
       setEditing(false);
       onUpdated();
@@ -125,6 +140,18 @@ export function CommunityProfile({
 
   return (
     <div className="mb-6">
+      {community.bannerUrl && !editing ? (
+        <div className="relative w-full h-36 sm:h-44 md:h-52 rounded-xl overflow-hidden mb-4 border border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={community.bannerUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-bg/70 via-transparent to-transparent pointer-events-none" />
+        </div>
+      ) : null}
+
       <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
         <div className="bg-surface border border-border rounded-xl p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -151,6 +178,8 @@ export function CommunityProfile({
                   if (editing) {
                     setDescription(community.description);
                     setSocialLinks(community.socialLinks || {});
+                    setCustomBannerUrl(community.customBannerUrl || '');
+                    setUseDexBanner(community.useDexBanner ?? false);
                   }
                   setEditing((value) => !value);
                 }}
@@ -198,6 +227,49 @@ export function CommunityProfile({
                     />
                   </div>
                 ))}
+              </div>
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="text-sm font-medium">Banner</div>
+                <p className="text-xs text-muted">
+                  Custom URL overrides DexScreener. Paste an https:// or ipfs:// image link — file
+                  upload is not supported yet.
+                </p>
+                <div>
+                  <label className="block text-sm text-muted mb-2">Custom banner URL</label>
+                  <input
+                    className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
+                    placeholder="https://… or ipfs://…"
+                    value={customBannerUrl}
+                    onChange={(event) => setCustomBannerUrl(event.target.value)}
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={useDexBanner}
+                    disabled={!dexBannerAvailable && !customBannerUrl.trim()}
+                    onChange={(event) => setUseDexBanner(event.target.checked)}
+                  />
+                  <span>
+                    Use DexScreener banner
+                    {dexBannerAvailable ? (
+                      <span className="block text-xs text-muted mt-0.5">
+                        Paid Dex profile detected — pulls header from DexScreener.
+                      </span>
+                    ) : (
+                      <span className="block text-xs text-muted mt-0.5">
+                        No Dex banner found for this token yet.
+                      </span>
+                    )}
+                  </span>
+                </label>
+                {previewBanner && editing ? (
+                  <div className="relative w-full h-24 rounded-lg overflow-hidden border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewBanner} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ) : null}
               </div>
               <button
                 type="button"

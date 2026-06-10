@@ -18,6 +18,8 @@ import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
 import { enrichCommunityWithImage, withCommunityImageUrl } from '@/lib/community-image';
 import { normalizeSocialLinks } from '@/lib/social-links';
+import { normalizeBannerUrl, resolveDisplayBannerUrl } from '@/lib/banner-url';
+import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
 import type { SocialLinks } from '@/lib/types';
@@ -38,13 +40,20 @@ export async function GET(_req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
     const normalized = mergeCommunityDefaults(community);
-    const [beneficiary, enriched] = await Promise.all([
+    const [beneficiary, enriched, market] = await Promise.all([
       getBeneficiaryInfo(tokenAddress, normalized.chain),
       enrichCommunityWithImage(normalized, await getLaunches()),
+      fetchTokenMarketStats(tokenAddress, normalized.chain),
     ]);
 
+    const withBanner = {
+      ...enriched,
+      bannerUrl: resolveDisplayBannerUrl(enriched, market.bannerUrl),
+    };
+
     return NextResponse.json({
-      community: enriched,
+      community: withBanner,
+      market,
       posts: sortPostsWithPinned(posts, normalized.pinnedPosts || []),
       beneficiary,
     });
@@ -96,18 +105,36 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       nextSocialLinks = normalizeSocialLinks(body.socialLinks || {});
     }
 
+    const nextCustomBanner =
+      body.customBannerUrl !== undefined
+        ? normalizeBannerUrl(body.customBannerUrl)
+        : current.customBannerUrl ?? null;
+
+    const nextUseDexBanner =
+      body.useDexBanner !== undefined
+        ? Boolean(body.useDexBanner)
+        : current.useDexBanner ?? false;
+
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
       socialLinks: nextSocialLinks,
+      customBannerUrl: nextCustomBanner,
+      useDexBanner: nextUseDexBanner,
     });
 
     communities[index] = updated;
     await setCommunities(communities);
 
+    const market = await fetchTokenMarketStats(tokenAddress, updated.chain);
+    const community = {
+      ...updated,
+      bannerUrl: resolveDisplayBannerUrl(updated, market.bannerUrl),
+    };
+
     return NextResponse.json({
       success: true,
-      community: updated,
+      community,
       links: {
         communityPage: communityUrl(tokenAddress),
       },

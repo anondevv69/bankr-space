@@ -67,12 +67,22 @@ https://x.com/0xtetron/status/2064237962884420005
 ```text
 @bankrbot post in $TMP space: launch update for holders
 @bankrbot post "gm holders" in ARCHIVE space
+@bankrbot post in $FUCK space "fuck"
+@bankrbot post "fukkkkkk" in the $FUCK space
 @bankrbot post in BNKR space: xxxxx ewrwe xx test test
 ```
 
 **Colon form:** everything after the **first** `:` (trimmed) is `content`.
 
-**Quoted form:** text inside `"…"` or `'…'` is `content`.
+**Quoted form:** text inside `"…"` or `'…'` is `content` — quotes may appear **before or after** the space/ticker phrase:
+
+```text
+post in $FUCK space "fuck"     → content = fuck
+post "fukkkkkk" in $FUCK space → content = fukkkkkk
+post "gm" in TMP space           → content = gm
+```
+
+**Parse order for quotes:** if the message contains `"…"` or `'…'`, extract quoted text as `content` (Mode B) unless colon form already matched.
 
 ### Inline prose (no colon)
 
@@ -135,6 +145,8 @@ If the same message also contains a **colon phrase** or **multi-word user senten
 |----------------------|---------------------|
 | Reply to `0xtetron/…4420005`: `@bankrbot post this in $BNKR space` | `https://x.com/0xtetron/status/2064237962884420005` |
 | `@bankrbot post in TMP space: weekly update` | `weekly update` |
+| `@bankrbot post in $FUCK space "fuck"` | `fuck` |
+| `@bankrbot post "fukkkkkk" in the $FUCK space` | `fukkkkkk` |
 | `@bankrbot post xxxxx ewrwe xx test test in $xxx space` | `xxxxx ewrwe xx test test` |
 | `@bankrbot post "gm holders" in ARCHIVE space` | `gm holders` |
 | Reply + `@bankrbot post in TMP: my own words` | `my own words` (**not** parent tweet) |

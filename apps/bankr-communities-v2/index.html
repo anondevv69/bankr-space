@@ -144,6 +144,22 @@
       color: #fbbf24;
     }
 
+    .space-banner-wrap {
+      width: 100%;
+      height: 160px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .space-banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
     .badge-featured {
       font-size: 11px;
       font-weight: 600;
@@ -1047,6 +1063,9 @@
         </div>
         <button class="btn btn-secondary btn-sm" type="button" id="detailThemeToggleBtn" onclick="toggleTheme()">☀️ Light</button>
       </div>
+      <div id="detailBannerWrap" style="display:none;" class="space-banner-wrap">
+        <img id="detailBanner" alt="" class="space-banner-img" />
+      </div>
       <div class="profile-grid">
         <div class="detail-header">
           <div style="display:flex;align-items:flex-start;gap:14px;">
@@ -1088,7 +1107,7 @@
   </div>
 
   <footer>
-    made with love &lt;3 rayblanco.eth · Bankr Space · v22 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
+    made with love &lt;3 rayblanco.eth · Bankr Space · v23 · <a href="https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2" onclick="openBankrApp(event)">Bankr App</a>
   </footer>
 
   <div class="modal-overlay" id="createSearchModal" onclick="closeCreateSearchModal()">
@@ -2014,6 +2033,16 @@
         document.getElementById('detailContract').textContent = shortAddr(currentCommunity.tokenAddress);
         document.getElementById('detailDesc').textContent =
           currentCommunity.description || '';
+
+        const bannerWrap = document.getElementById('detailBannerWrap');
+        const bannerImg = document.getElementById('detailBanner');
+        if (currentCommunity.bannerUrl) {
+          bannerWrap.style.display = 'block';
+          bannerImg.src = currentCommunity.bannerUrl;
+        } else {
+          bannerWrap.style.display = 'none';
+          bannerImg.removeAttribute('src');
+        }
 
         document.getElementById('socialLinksPanel').innerHTML = '';
         renderVerificationUI(currentCommunity);
