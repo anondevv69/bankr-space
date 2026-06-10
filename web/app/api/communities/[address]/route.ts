@@ -10,10 +10,11 @@ import {
 } from '@/lib/db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
 import {
-  canEditCommunityProfile,
   canEditCommunityFundraising,
   getTokenBeneficiaryWallet,
   isTokenBeneficiary,
+  isTokenDeployer,
+  resolveSpacePermissions,
 } from '@/lib/community-owner';
 import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
 import { normalizeTrustedDelegates } from '@/lib/space-delegates';
@@ -107,8 +108,23 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
 
-    const owner = await canEditCommunityProfile(wallet, tokenAddress);
-    if (!owner) {
+    const permissions = await resolveSpacePermissions(wallet, tokenAddress);
+
+    const touchesProfile =
+      body.description !== undefined ||
+      body.socialLinks !== undefined ||
+      body.customIconUrl !== undefined ||
+      body.customBannerUrl !== undefined ||
+      body.useBankrImage !== undefined ||
+      body.useDexIcon !== undefined ||
+      body.useDexBanner !== undefined ||
+      body.useDexDescription !== undefined ||
+      body.useDexLinks !== undefined;
+
+    const touchesAgent =
+      body.usePlatformAgent !== undefined || body.platformAgentSkills !== undefined;
+
+    if (touchesProfile && !permissions.canEditProfile) {
       return NextResponse.json(
         {
           error:
@@ -116,6 +132,36 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         },
         { status: 403 }
       );
+    }
+
+    if (body.usePlatformAgent !== undefined && !permissions.canManagePlatformAgent) {
+      return NextResponse.json(
+        {
+          error:
+            'Only the fee recipient or deployer can enable the Bankr Space Agent on this space',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (body.platformAgentSkills !== undefined && !permissions.canEnablePlatformAgentSkills) {
+      return NextResponse.json(
+        {
+          error:
+            'Only the verified fee recipient can enable skill-linked fundraisers (spends their Bankr wallet)',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      !touchesProfile &&
+      !touchesAgent &&
+      body.fundraising === undefined &&
+      body.allowDeployerEdit === undefined &&
+      body.trustedDelegates === undefined
+    ) {
+      return NextResponse.json({ error: 'No changes to save' }, { status: 400 });
     }
 
     if (
@@ -134,7 +180,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         ? String(body.description || '').trim().slice(0, 2000)
         : current.description;
 
-    if (!nextDescription) {
+    if (body.description !== undefined && !nextDescription) {
       return NextResponse.json({ error: 'Description cannot be empty' }, { status: 400 });
     }
 
@@ -175,23 +221,15 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     let nextUsePlatformAgent = current.usePlatformAgent ?? false;
     let nextPlatformAgentSkills = current.platformAgentSkills ?? false;
-    if (body.usePlatformAgent !== undefined || body.platformAgentSkills !== undefined) {
-      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
-        return NextResponse.json(
-          { error: 'Only the fee recipient can change platform agent settings' },
-          { status: 403 }
-        );
+    if (body.usePlatformAgent !== undefined) {
+      nextUsePlatformAgent = Boolean(body.usePlatformAgent);
+      if (!nextUsePlatformAgent) {
+        nextPlatformAgentSkills = false;
       }
-      if (body.usePlatformAgent !== undefined) {
-        nextUsePlatformAgent = Boolean(body.usePlatformAgent);
-        if (!nextUsePlatformAgent) {
-          nextPlatformAgentSkills = false;
-        }
-      }
-      if (body.platformAgentSkills !== undefined) {
-        nextPlatformAgentSkills =
-          nextUsePlatformAgent && Boolean(body.platformAgentSkills);
-      }
+    }
+    if (body.platformAgentSkills !== undefined) {
+      nextPlatformAgentSkills =
+        nextUsePlatformAgent && Boolean(body.platformAgentSkills);
     }
 
     let nextFeeRecipientAgent = current.feeRecipientAgent ?? null;

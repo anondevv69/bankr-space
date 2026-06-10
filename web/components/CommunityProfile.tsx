@@ -219,6 +219,9 @@ export function CommunityProfile({
   canManage,
   canEditFundraising = false,
   canManageTeamAccess = false,
+  canManagePlatformAgent = false,
+  canEnablePlatformAgentSkills = false,
+  isDeployer = false,
   onUpdated,
 }: {
   community: Community;
@@ -228,6 +231,11 @@ export function CommunityProfile({
   canEditFundraising?: boolean;
   /** Fee recipient only — deployer + trusted delegate wallets */
   canManageTeamAccess?: boolean;
+  /** Fee recipient (verified) or deployer — enable Bankr Space Agent */
+  canManagePlatformAgent?: boolean;
+  /** Fee recipient only — QRCoin / 0xWork after x402 match */
+  canEnablePlatformAgentSkills?: boolean;
+  isDeployer?: boolean;
   onUpdated: () => void;
 }) {
   const { address } = useAppWallet();
@@ -363,6 +371,26 @@ export function CommunityProfile({
     }
   }
 
+  async function saveAgentSettings() {
+    if (!canManagePlatformAgent || !address) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/api/communities/${community.tokenAddress}`, {
+        method: 'PATCH',
+        wallet: address,
+        body: JSON.stringify({
+          usePlatformAgent,
+          ...(canEnablePlatformAgentSkills ? { platformAgentSkills } : {}),
+        }),
+      });
+      onUpdated();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Agent settings failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveProfile() {
     if (!canManage || !address) return;
     setSaving(true);
@@ -382,7 +410,13 @@ export function CommunityProfile({
           useDexLinks,
           ...(canEditFundraising ? { fundraising: { campaigns: fundraisingCampaigns } } : {}),
           ...(canManageTeamAccess
-            ? { allowDeployerEdit, usePlatformAgent, platformAgentSkills, trustedDelegates }
+            ? { allowDeployerEdit, trustedDelegates }
+            : {}),
+          ...(canManagePlatformAgent && editing
+            ? {
+                usePlatformAgent,
+                ...(canEnablePlatformAgentSkills ? { platformAgentSkills } : {}),
+              }
             : {}),
         }),
       });
@@ -851,42 +885,6 @@ export function CommunityProfile({
                     <input
                       type="checkbox"
                       className="mt-0.5"
-                      checked={usePlatformAgent}
-                      onChange={(e) => {
-                        const on = e.target.checked;
-                        setUsePlatformAgent(on);
-                        if (!on) setPlatformAgentSkills(false);
-                      }}
-                    />
-                    <span>
-                      <span className="font-medium">Use Bankr Space Agent</span>
-                      <span className="block text-xs text-muted mt-0.5">
-                        Our internal agent moderates this space across the platform — post, pin,
-                        profile updates. USDC always stays in your wallet.
-                      </span>
-                    </span>
-                  </label>
-                  {usePlatformAgent ? (
-                    <label className="flex items-start gap-2 text-sm cursor-pointer pl-6">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
-                        checked={platformAgentSkills}
-                        onChange={(e) => setPlatformAgentSkills(e.target.checked)}
-                      />
-                      <span>
-                        <span className="font-medium">Run skill-linked fundraisers</span>
-                        <span className="block text-xs text-muted mt-0.5">
-                          When funded, agent may execute QRCoin / 0xWork using your Bankr wallet
-                          (not the agent&apos;s). Requires Bankr API link — see PLATFORM-AGENT.md.
-                        </span>
-                      </span>
-                    </label>
-                  ) : null}
-                  <label className="flex items-start gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
                       checked={allowDeployerEdit}
                       onChange={(e) => setAllowDeployerEdit(e.target.checked)}
                     />
@@ -982,6 +980,72 @@ export function CommunityProfile({
           layout="sidebar"
         />
       </div>
+
+      {canManagePlatformAgent ? (
+        <div className="mt-6 p-4 border border-border rounded-xl bg-surface space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">Community agent</h3>
+            <p className="text-xs text-muted mt-1">
+              {isDeployer && !canEnablePlatformAgentSkills
+                ? 'Enable Bankr Space Agent to help moderate and run community tasks. x402 USDC always goes to the fee recipient — not the deployer.'
+                : 'Bankr Space Agent can moderate this space and run skill tasks after fundraisers match. USDC stays with the fee recipient.'}
+            </p>
+          </div>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={usePlatformAgent}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setUsePlatformAgent(on);
+                if (!on) setPlatformAgentSkills(false);
+              }}
+            />
+            <span>
+              <span className="font-medium">Use Bankr Space Agent</span>
+              <span className="block text-xs text-muted mt-0.5">
+                Posts, pins, and profile updates on this space once verified. One platform agent
+                serves all opted-in communities.
+              </span>
+            </span>
+          </label>
+          {usePlatformAgent && canEnablePlatformAgentSkills ? (
+            <label className="flex items-start gap-2 text-sm cursor-pointer pl-6">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={platformAgentSkills}
+                onChange={(e) => setPlatformAgentSkills(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium">Run skill-linked fundraisers</span>
+                <span className="block text-xs text-muted mt-0.5">
+                  After x402 goal is matched, agent may run QRCoin / 0xWork from your Bankr wallet.
+                  You still enable fundraisers separately.
+                </span>
+              </span>
+            </label>
+          ) : null}
+          {(usePlatformAgent !== (community.usePlatformAgent ?? false) ||
+            (canEnablePlatformAgentSkills &&
+              platformAgentSkills !== (community.platformAgentSkills ?? false))) ? (
+            <button
+              type="button"
+              onClick={() => void saveAgentSettings()}
+              disabled={saving}
+              className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save agent settings'}
+            </button>
+          ) : community.usePlatformAgent ? (
+            <p className="text-xs text-green-600 dark:text-green-400">
+              Bankr Space Agent is enabled
+              {community.verified ? '' : ' — active after space is verified'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {hasPublicFundraising(community.fundraising) ? (
         <FundraisingWidget

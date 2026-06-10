@@ -247,6 +247,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `AGENT-WALLETS.md` | **Tag agent wallets (bankrbot, hermes) for fee recipient & trusted delegates** |
 | `SKILL-LINKED-FUNDRAISERS.md` | **Fundraiser → USDC → Bankr Skills (qrcoin, 0xwork) on [skills.bankr.bot](https://skills.bankr.bot/)** |
 | `PLATFORM-AGENT.md` | **Opt-in Bankr Space Agent across all spaces — money rules** |
+| `PLATFORM-AGENT-WORKER.md` | **Aeon / Hermes cron worker — platform-spaces loop, headers, internal APIs** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
 | `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |

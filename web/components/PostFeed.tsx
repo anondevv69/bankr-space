@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { useAppWallet } from '@/hooks/useAppWallet';
@@ -20,16 +20,21 @@ import { formatTime } from '@/lib/utils';
 import { AuthorBlock } from './AuthorBlock';
 import { PostContent } from './PostContent';
 import { PostSourceBadge } from './PostSourceBadge';
+import { OxWorkJobsPanel } from '@/components/OxWorkJobsPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-const FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
+type FeedTab = PostFilter | 'oxjobs';
+
+const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'all', label: 'All Posts', icon: '' },
   { id: 'beneficiary', label: 'Beneficiary', icon: '●' },
   { id: 'pinned', label: 'Pinned', icon: '📌' },
   { id: 'community', label: 'Community', icon: '👥' },
 ];
+
+const OXJOBS_TAB = { id: 'oxjobs' as const, label: '0xJobs', icon: '💼' };
 
 function ReplyForm({
   tokenAddress,
@@ -434,7 +439,9 @@ export function PostFeed({
   onUpdate: () => void;
 }) {
   const { address } = useAppWallet();
-  const [filter, setFilter] = useState<PostFilter>('all');
+  const [filter, setFilter] = useState<FeedTab>('all');
+  const [hasOxJobs, setHasOxJobs] = useState(false);
+  const isOxJobs = filter === 'oxjobs';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -442,10 +449,39 @@ export function PostFeed({
 
   const pins = pinnedPosts || [];
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/communities/${tokenAddress}/oxwork`);
+        const data = await res.json();
+        if (!cancelled && res.ok) {
+          setHasOxJobs((data.tasks?.length ?? 0) > 0);
+        }
+      } catch {
+        if (!cancelled) setHasOxJobs(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenAddress]);
+
+  useEffect(() => {
+    if (!hasOxJobs && filter === 'oxjobs') setFilter('all');
+  }, [hasOxJobs, filter]);
+
+  const visibleFilters = useMemo(
+    () => (hasOxJobs ? [...POST_FILTERS, OXJOBS_TAB] : POST_FILTERS),
+    [hasOxJobs]
+  );
+
   const visiblePosts = useMemo(() => {
-    const filtered = filterPosts(posts, filter, pins, beneficiaryWallet, ownerWallet);
-    return sortFilteredPosts(filtered, filter, sort, pins);
-  }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet]);
+    if (isOxJobs) return [];
+    const postFilter = filter as PostFilter;
+    const filtered = filterPosts(posts, postFilter, pins, beneficiaryWallet, ownerWallet);
+    return sortFilteredPosts(filtered, postFilter, sort, pins);
+  }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet, isOxJobs]);
 
   async function togglePin(postId: string) {
     if (!address || !canManage) return;
@@ -472,7 +508,7 @@ export function PostFeed({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex flex-wrap gap-1 p-1 bg-surface-2 border border-border rounded-xl">
-          {FILTERS.map((item) => (
+          {visibleFilters.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -488,20 +524,24 @@ export function PostFeed({
             </button>
           ))}
         </div>
-        <label className="inline-flex items-center gap-2 text-sm text-muted">
-          <span className="hidden sm:inline">Sort</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as PostSort)}
-            className="px-3 py-2 text-sm bg-surface border border-border rounded-lg text-text"
-          >
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-          </select>
-        </label>
+        {!isOxJobs ? (
+          <label className="inline-flex items-center gap-2 text-sm text-muted">
+            <span className="hidden sm:inline">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as PostSort)}
+              className="px-3 py-2 text-sm bg-surface border border-border rounded-lg text-text"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </label>
+        ) : null}
       </div>
 
-      {!visiblePosts.length ? (
+      {isOxJobs ? (
+        <OxWorkJobsPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
+      ) : !visiblePosts.length ? (
         <p className="text-center text-muted py-12 border border-dashed border-border rounded-xl bg-surface">
           {posts.length === 0
             ? 'No posts yet. Be the first holder to share something!'

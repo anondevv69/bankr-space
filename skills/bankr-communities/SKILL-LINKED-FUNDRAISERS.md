@@ -1,8 +1,8 @@
 # Skill-linked fundraisers — Bankr Space × [Bankr Skills](https://skills.bankr.bot/)
 
-Fee recipient (or their **trusted agent wallet**) can run a community fundraiser on **bankr.space**, collect USDC via x402, then execute a **Bankr Skill** (e.g. [QRCoin](https://skills.bankr.bot/skills/qrcoin), [0xWork](https://skills.bankr.bot/skills/0xwork)) so the space explains what is happening.
+Fee recipient (or a **trusted delegate** on their behalf) can ask for a skill-linked fundraiser on **bankr.space**. Only the **fee recipient** enables it and receives x402 USDC. Once the goal is **matched** (`raisedUsd ≥ goalUsd`), the **Bankr Space Agent** (or the fee recipient's own agent) may execute a **Bankr Skill** — [QRCoin](https://skills.bankr.bot/skills/qrcoin), [0xWork](https://skills.bankr.bot/skills/0xwork), etc.
 
-**Money rule (today):** only the **fee recipient** enables fundraisers and receives x402 USDC. Agents act **after** funds land in that wallet (via Bankr API / delegated execution).
+**Money rule:** x402 always settles to the **fee recipient** — never the platform agent. The agent is **authorized** to act after the pool is matched; spend comes from the fee recipient's Bankr wallet.
 
 ---
 
@@ -12,23 +12,31 @@ Fee recipient (or their **trusted agent wallet**) can run a community fundraiser
 Community on bankr.space
         │
         ▼
-Fee recipient enables custom fundraiser
+Fee recipient OR trusted delegate requests skill pool
+  e.g. "0xWork bagwork for $SPACE" / "QRCoin for $SPACE"
+        │
+        ▼
+Fee recipient enables custom fundraiser (PATCH — fee recipient only)
   label: "QRCoin bids for $SPACE"  OR  "0xWork bagwork pool"
   goal: $50 / $200 / …
+  optional: usePlatformAgent + platformAgentSkills
         │
         ▼
-Holders contribute (x402 USDC → fee recipient wallet)
+Holders contribute (x402 USDC → fee recipient wallet, $1/click)
         │
         ▼
-Fee recipient's agent (bankrbot, hermes, custom — see AGENT-WALLETS.md)
+Goal matched (raisedUsd ≥ goalUsd) — agent authorized to execute
+        │
+        ▼
+Platform agent OR fee recipient's agent (bankrbot, hermes — AGENT-WALLETS.md)
   loads bankr-communities + qrcoin | 0xwork skill
+  signs from fee recipient Bankr API
         │
         ▼
-Agent executes skill (on-chain USDC spend / task posts)
+Skill runs (QRCoin bid, 0xWork post, …) — USDC from fee recipient wallet
         │
         ▼
-Agent posts updates on the space (source: agent, viaAgent: true)
-  → community sees fundraiser → action → tx link
+Agent posts updates on space + 0xJobs tab (source: agent, viaAgent: true)
 ```
 
 ---
@@ -127,9 +135,27 @@ npm install -g @0xwork/cli@latest
 0xwork post --description="Create 1500x500 banner for $SPACE" --bounty=25 --category=Creative
 ```
 
-**4. Workers claim → submit → agent approves** → USDC released from escrow.
+**4. Workers claim → submit proof → poster approves** → USDC released from on-chain escrow.
 
 **5. Space posts** link to [0xwork.org](https://0xwork.org) tasks + fundraiser progress.
+
+### Completion & payment (0xWork escrow — not bankr.space)
+
+bankr.space does **not** verify deliveries or pay workers directly. After the platform agent posts tasks, **0xWork** handles the full lifecycle:
+
+| Step | Who | What |
+|------|-----|------|
+| 1. Claim | Worker / agent on 0xWork | `0xwork claim <taskId>` |
+| 2. Deliver | Worker | `0xwork submit <taskId> --files=… --summary=…` (+ proof link / screenshot per task description) |
+| 3. Review | Poster (fee recipient's agent) | Verify proof matches requirements in the task text |
+| 4. Approve | Poster via 0xWork CLI / API | Releases bounty from **TaskPool escrow** on Base |
+| 5. Payout | 0xWork on-chain | Worker receives USDC; task shows `payout_status` + `payout_tx_hash` |
+
+**Who is the poster?** The wallet that called `0xwork post` — typically the fee recipient's Bankr account (platform agent signs on their behalf after the x402 pool is matched). That same poster **must approve** submissions before USDC leaves escrow.
+
+**Results-based tasks** (e.g. "get @X to follow @Y"): 0xWork may auto-verify social proof; first valid proof wins.
+
+**Space UI:** the **0xJobs** tab appears only after at least one task is posted for the space; each row links to `0xwork.org/tasks/{id}` for claim/submit/approval status.
 
 | Task type | 0xWork category | Typical bounty |
 |-----------|-----------------|----------------|
@@ -142,12 +168,13 @@ npm install -g @0xwork/cli@latest
 
 ## Agent roles on a space
 
-| Role | Wallet | Can enable fundraiser? | Can run qrcoin / 0xwork? |
-|------|--------|------------------------|---------------------------|
-| Fee recipient | Launch metadata | ✅ | ✅ (owns USDC) |
-| Trusted agent delegate | Fee recipient adds in Team access | ❌ | ✅ if fee recipient funds + API key |
-| Deployer | Launcher | ❌ | ❌ (no money) |
-| Holders | Anyone holding token | ❌ | ❌ (contribute only) |
+| Role | Wallet | Can enable fundraiser? | Can request skill pool? | Can run qrcoin / 0xwork? |
+|------|--------|------------------------|-------------------------|---------------------------|
+| Fee recipient | Launch metadata | ✅ | ✅ | ✅ (owns USDC + Bankr API) |
+| Trusted delegate | Fee recipient adds in Team access | ❌ | ✅ (ask agent) | ❌ (agent runs after match) |
+| Platform agent | Bankr Space Agent | ❌ | — | ✅ only if opted-in + matched |
+| Deployer | Launcher | ❌ | ❌ | ❌ (no money) |
+| Holders | Anyone holding token | ❌ | ❌ | ❌ (contribute via x402 only) |
 
 Tag agent wallets: **`AGENT-WALLETS.md`** (`GET …/resolve-wallet`, `POST …/team/resolve-agents`).
 
