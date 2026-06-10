@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { campaignProgress } from '@/lib/fundraising';
-import { paySpaceFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
+import { paySpaceFundDirect } from '@/lib/fundraising-pay';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
@@ -32,7 +32,7 @@ export function FundraisingWidget({
   const { address, isConnected, onBase } = usePaymentWalletClient();
   const { switchChain } = useSwitchChain();
   const [campaigns, setCampaigns] = useState<FundraisingView[]>([]);
-  const [x402BaseUrl, setX402BaseUrl] = useState<string | null>(null);
+  const [beneficiaryWallet, setBeneficiaryWallet] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [customAmount, setCustomAmount] = useState('10');
   const [activeCampaignId, setActiveCampaignId] = useState<string>('dex-profile');
@@ -46,7 +46,7 @@ export function FundraisingWidget({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
       setCampaigns(data.campaigns || []);
-      setX402BaseUrl(data.x402BaseUrl || null);
+      setBeneficiaryWallet(data.beneficiaryWallet || null);
       if (data.campaigns?.[0]?.id) {
         setActiveCampaignId(data.campaigns[0].id);
       }
@@ -63,9 +63,9 @@ export function FundraisingWidget({
 
   async function contribute(amountUsd: number) {
     const campaignId = activeCampaignId;
-    if (!x402BaseUrl) {
+    if (!beneficiaryWallet) {
       setPayHint(
-        `x402 payments are not configured yet. Ask the space operator to set NEXT_PUBLIC_X402_SPACE_FUND_URL, or tip via @bankrbot: fund $${amountUsd} to ${symbol} space for Dex.`
+        `This space has no beneficiary wallet yet. Tip via @bankrbot: fund $${amountUsd} to ${symbol} space for Dex.`
       );
       return;
     }
@@ -97,11 +97,17 @@ export function FundraisingWidget({
 
     setPaying(true);
     setPayHint(
-      `MetaMask will ask you to sign a $${SPACE_FUND_X402_MAX_USDC} USDC authorization (not a full wallet drain). Approve the Bankr x402 signature, then wait…`
+      `MetaMask will ask you to send $${amountUsd} USDC on Base to the space beneficiary. Confirm the transfer, then wait…`
     );
 
     try {
-      const result = await paySpaceFund(address, tokenAddress, campaignId, amountUsd);
+      const result = await paySpaceFundDirect(
+        address,
+        beneficiaryWallet as `0x${string}`,
+        tokenAddress,
+        campaignId,
+        amountUsd
+      );
       if (result.success) {
         setPayHint(
           result.message ||
@@ -255,17 +261,8 @@ export function FundraisingWidget({
         <p className="text-xs text-muted border-t border-border mt-4 pt-3">{payHint}</p>
       ) : (
         <p className="text-[11px] text-muted mt-3 xl:mt-2 leading-snug">
-          ${SPACE_FUND_X402_MAX_USDC} USDC per contribution via{' '}
-          <a
-            href="https://docs.bankr.bot/x402-cloud/overview/"
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent-hover hover:underline"
-          >
-            Bankr x402
-          </a>
-          . MetaMask may warn about an unknown contract — that is the x402 USDC facilitator; you authorize exactly $
-          {SPACE_FUND_X402_MAX_USDC} USDC, not your full balance.
+          Sends USDC on Base directly to the space beneficiary. Choose any amount — progress updates after the
+          transfer confirms.
         </p>
       )}
     </div>
