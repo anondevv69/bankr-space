@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     const current = mergeCommunityDefaults(communities[index]);
     const campaign = current.fundraising!.campaigns.find((c) => c.id === campaignId);
-    if (!campaign?.enabled) {
+    if (!current.fundraising?.optedIn || !campaign?.enabled) {
       return NextResponse.json({ error: 'Campaign is not enabled for this space' }, { status: 400 });
     }
 

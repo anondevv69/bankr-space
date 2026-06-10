@@ -11,7 +11,7 @@ import type {
   TokenMarketStats,
   FundraisingCampaign,
 } from '@/lib/types';
-import { DEFAULT_CAMPAIGNS } from '@/lib/fundraising';
+import { DEFAULT_CAMPAIGNS, hasPublicFundraising } from '@/lib/fundraising';
 import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { FundraisingWidget } from '@/components/FundraisingWidget';
@@ -764,12 +764,14 @@ export function CommunityProfile({
         />
       </div>
 
-      <FundraisingWidget
-        tokenAddress={community.tokenAddress}
-        symbol={community.symbol}
-        refreshKey={JSON.stringify(community.fundraising?.campaigns)}
-        layout="horizontal"
-      />
+      {hasPublicFundraising(community.fundraising) ? (
+        <FundraisingWidget
+          tokenAddress={community.tokenAddress}
+          symbol={community.symbol}
+          refreshKey={JSON.stringify(community.fundraising?.campaigns)}
+          layout="horizontal"
+        />
+      ) : null}
     </div>
   );
 }
