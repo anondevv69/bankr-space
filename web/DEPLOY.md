@@ -40,6 +40,7 @@ In Vercel → **Settings** → **Environment Variables**, add:
 |----------|--------|
 | `NEXT_PUBLIC_SITE_URL` | `https://bankr.space` (custom domain; or your `*.vercel.app` URL during setup) |
 | `CRON_SECRET` | Random string (e.g. `openssl rand -hex 32`) |
+| `PINATA_JWT` | [Pinata](https://pinata.cloud) JWT for banner uploads (optional — URL paste still works without it) |
 
 `KV_*` vars are set automatically when you connect KV.
 

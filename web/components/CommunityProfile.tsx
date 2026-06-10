@@ -16,6 +16,7 @@ import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
 import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
 import { shortAddr } from '@/lib/utils';
+import { apiFetch } from '@/lib/wagmi';
 
 const SOCIAL_FIELDS: Array<{ key: StandardSocialLinkKey; label: string; placeholder: string }> = [
   {
@@ -74,6 +75,7 @@ export function CommunityProfile({
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(community.socialLinks || {});
   const [customBannerUrl, setCustomBannerUrl] = useState(community.customBannerUrl || '');
   const [useDexBanner, setUseDexBanner] = useState(community.useDexBanner ?? false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [market, setMarket] = useState<TokenMarketStats | null>(null);
 
   const linkPills = getSocialLinkPills(community.socialLinks, market?.dexUrl);
@@ -131,6 +133,31 @@ export function CommunityProfile({
 
   function copyContract() {
     navigator.clipboard.writeText(community.tokenAddress);
+  }
+
+  async function uploadBanner(file: File) {
+    if (!canManage || !address) return;
+    setUploadingBanner(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('tokenAddress', community.tokenAddress);
+      const headers = new Headers();
+      headers.set('x-wallet-address', address);
+      const res = await fetch('/api/upload/banner', {
+        method: 'POST',
+        headers,
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setCustomBannerUrl(data.ipfsUri || '');
+      setUseDexBanner(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploadingBanner(false);
+    }
   }
 
   function addCustomLink() {
@@ -308,9 +335,26 @@ export function CommunityProfile({
                   max ~4.5&nbsp;MB.
                 </p>
                 <p className="text-xs text-muted">
-                  Custom URL overrides DexScreener. Paste an https:// or ipfs:// image link — file
-                  upload is not supported yet.
+                  Custom URL overrides DexScreener. Upload pins to IPFS via Pinata, or paste
+                  https:// / ipfs:// manually.
                 </p>
+                <div>
+                  <label className="block text-sm text-muted mb-2">Upload banner (Pinata IPFS)</label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={uploadingBanner}
+                    className="block w-full text-sm text-muted file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border file:border-border file:bg-surface-2 file:text-text"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void uploadBanner(file);
+                      event.target.value = '';
+                    }}
+                  />
+                  {uploadingBanner ? (
+                    <p className="text-xs text-muted mt-1">Uploading to IPFS…</p>
+                  ) : null}
+                </div>
                 <div>
                   <label className="block text-sm text-muted mb-2">Custom banner URL</label>
                   <input

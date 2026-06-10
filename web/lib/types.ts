@@ -84,6 +84,8 @@ export interface Post {
   timestamp: number;
   balance?: number;
   source?: PostSource;
+  /** Set when this is a direct reply to a top-level post (one level only). */
+  parentPostId?: string | null;
 }
 
 export interface TokenLaunch {

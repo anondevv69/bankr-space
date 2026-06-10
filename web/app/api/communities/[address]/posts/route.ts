@@ -27,6 +27,9 @@ export async function POST(req: Request, { params }: RouteParams) {
   const tokenAddress = normalizeAddr(address);
   const body = await req.json().catch(() => ({}));
   const content = String(body.content || '').trim();
+  const parentPostId = body.parentPostId
+    ? String(body.parentPostId).trim()
+    : null;
 
   if (!content) {
     return NextResponse.json({ error: 'Post cannot be empty' }, { status: 400 });
@@ -56,6 +59,21 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
+    const posts = await getPosts(tokenAddress);
+
+    if (parentPostId) {
+      const parent = posts.find((post) => post.id === parentPostId);
+      if (!parent) {
+        return NextResponse.json({ error: 'Parent post not found' }, { status: 404 });
+      }
+      if (parent.parentPostId) {
+        return NextResponse.json(
+          { error: 'Replies are one level deep — reply to the main post only' },
+          { status: 400 }
+        );
+      }
+    }
+
     const author = await resolveAuthorProfile(wallet);
     const source = parsePostSource(req, body);
     const postId = `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -67,10 +85,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       reactions: { '👍': [], '❤️': [], '🔥': [] },
       timestamp: Date.now(),
       balance: participation.balance,
+      ...(parentPostId ? { parentPostId } : {}),
       ...(source ? { source } : {}),
     };
 
-    const posts = await getPosts(tokenAddress);
     posts.push(newPost);
     await setPostsForToken(tokenAddress, posts);
     await updateCommunityCounts(tokenAddress, posts);
