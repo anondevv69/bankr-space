@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import type {
   BeneficiaryInfo,
@@ -116,19 +116,46 @@ function SourceToggle({
   hint: string;
 }) {
   return (
-    <label className="flex items-start gap-2 text-sm cursor-pointer">
+    <label className="flex items-start gap-2 text-sm cursor-pointer sm:max-w-xs">
       <input
         type="checkbox"
-        className="mt-1"
+        className="mt-0.5 shrink-0"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span>
-        {title}
-        <span className="block text-xs text-muted mt-0.5">{hint}</span>
+      <span className="min-w-0">
+        <span className="font-medium">{title}</span>
+        <span className="block text-xs text-muted mt-0.5 leading-snug">{hint}</span>
       </span>
     </label>
+  );
+}
+
+function EditSection({
+  title,
+  hint,
+  toggles,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  toggles?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-t border-border pt-4 space-y-3">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium">{title}</div>
+          {hint ? <p className="text-xs text-muted mt-1">{hint}</p> : null}
+        </div>
+        {toggles ? (
+          <div className="flex flex-col gap-2 lg:items-end shrink-0">{toggles}</div>
+        ) : null}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -398,75 +425,59 @@ export function CommunityProfile({
                 sources are on by default until you turn them off or upload custom assets.
               </p>
 
-              <div className="border border-border rounded-lg p-4 space-y-3 bg-bg/40">
-                <div className="text-sm font-medium">Profile sources</div>
-                <SourceToggle
-                  checked={useBankrImage}
-                  onChange={setUseBankrImage}
-                  disabled={!!customIconUrl.trim()}
-                  title="Use Bankr token image"
-                  hint={
-                    bankrIconAvailable
-                      ? 'Launch image from Bankr — mirrored to IPFS when Pinata is configured.'
-                      : 'No Bankr launch image found for this token yet.'
-                  }
-                />
-                <SourceToggle
-                  checked={useDexIcon}
-                  onChange={setUseDexIcon}
-                  disabled={!!customIconUrl.trim()}
-                  title="Use DexScreener icon"
-                  hint={
-                    dexIconAvailable
-                      ? 'Pulls icon from Dex profile / pairs — mirrored to IPFS via Pinata.'
-                      : 'No Dex icon found yet.'
-                  }
-                />
-                <SourceToggle
-                  checked={useDexBanner}
-                  onChange={setUseDexBanner}
-                  disabled={!!customBannerUrl.trim()}
-                  title="Use DexScreener banner"
-                  hint={
-                    dexBannerAvailable
-                      ? `Paid Dex profile header (${BANNER_SIZE_LABEL}).`
-                      : 'No Dex banner found yet.'
-                  }
-                />
-                <SourceToggle
-                  checked={useDexDescription}
-                  onChange={setUseDexDescription}
-                  title="Use DexScreener description"
-                  hint={
-                    dexDescriptionAvailable
-                      ? `Dex: “${(community.dexDescription || '').length > 80 ? `${community.dexDescription?.slice(0, 80)}…` : community.dexDescription}”`
-                      : 'No Dex description yet — your text is used.'
-                  }
-                />
-                <SourceToggle
-                  checked={useDexLinks}
-                  onChange={setUseDexLinks}
-                  title="Use DexScreener links"
-                  hint="Merges Dex profile links (website, X, etc.) with yours — yours win on conflict."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-muted mb-2">Description</label>
+              <EditSection
+                title="Description"
+                toggles={
+                  <SourceToggle
+                    checked={useDexDescription}
+                    onChange={setUseDexDescription}
+                    title="Use DexScreener description"
+                    hint={
+                      dexDescriptionAvailable
+                        ? `Dex: “${(community.dexDescription || '').length > 80 ? `${community.dexDescription?.slice(0, 80)}…` : community.dexDescription}”`
+                        : 'No Dex description yet — your text is used.'
+                    }
+                  />
+                }
+              >
                 <textarea
                   className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm min-h-[120px]"
                   maxLength={2000}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                 />
-              </div>
+              </EditSection>
 
-              <div className="border-t border-border pt-4 space-y-3">
-                <div className="text-sm font-medium">Token icon</div>
-                <p className="text-xs text-muted">
-                  Required: square {ICON_ASPECT_LABEL}, {ICON_MIN_SIZE}–{ICON_SIZE_LABEL} (Bankr
-                  launch standard). PNG/JPG/WebP — upload or Pin URL via Pinata.
-                </p>
+              <EditSection
+                title="Token icon"
+                hint={`Square ${ICON_ASPECT_LABEL}, ${ICON_MIN_SIZE}–${ICON_SIZE_LABEL} (Bankr launch standard). PNG/JPG/WebP — upload or Pin URL via Pinata.`}
+                toggles={
+                  <>
+                    <SourceToggle
+                      checked={useBankrImage}
+                      onChange={setUseBankrImage}
+                      disabled={!!customIconUrl.trim()}
+                      title="Use Bankr token image"
+                      hint={
+                        bankrIconAvailable
+                          ? 'Launch image from Bankr — mirrored to IPFS when Pinata is configured.'
+                          : 'No Bankr launch image found for this token yet.'
+                      }
+                    />
+                    <SourceToggle
+                      checked={useDexIcon}
+                      onChange={setUseDexIcon}
+                      disabled={!!customIconUrl.trim()}
+                      title="Use DexScreener icon"
+                      hint={
+                        dexIconAvailable
+                          ? 'Pulls icon from Dex profile / pairs — mirrored to IPFS via Pinata.'
+                          : 'No Dex icon found yet.'
+                      }
+                    />
+                  </>
+                }
+              >
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
@@ -494,89 +505,115 @@ export function CommunityProfile({
                     {pinningIconUrl ? 'Pinning…' : 'Pin URL'}
                   </button>
                 </div>
-                {previewIconUrl && editing ? (
+                {previewIconUrl ? (
                   <TokenAvatar symbol={community.symbol} imageUrl={previewIconUrl} size={48} />
                 ) : null}
-              </div>
+              </EditSection>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {SOCIAL_FIELDS.map((field) => (
-                  <div key={field.key}>
-                    <label className="block text-sm text-muted mb-2">{field.label}</label>
-                    <input
-                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                      placeholder={field.placeholder}
-                      value={socialLinks[field.key] || ''}
-                      onChange={(event) =>
-                        setSocialLinks((current) => ({
-                          ...current,
-                          [field.key]: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t border-border pt-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Additional links</div>
-                  <button
-                    type="button"
-                    onClick={addCustomLink}
-                    className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent bg-surface-2"
-                  >
-                    + Add link
-                  </button>
+              <EditSection
+                title="Social links"
+                hint="Token socials are separate from the Bankr beneficiary account."
+                toggles={
+                  <SourceToggle
+                    checked={useDexLinks}
+                    onChange={setUseDexLinks}
+                    title="Use DexScreener links"
+                    hint="Merges Dex profile links (website, X, etc.) with yours — yours win on conflict."
+                  />
+                }
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {SOCIAL_FIELDS.map((field) => (
+                    <div key={field.key}>
+                      <label className="block text-sm text-muted mb-2">{field.label}</label>
+                      <input
+                        className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                        placeholder={field.placeholder}
+                        value={socialLinks[field.key] || ''}
+                        onChange={(event) =>
+                          setSocialLinks((current) => ({
+                            ...current,
+                            [field.key]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
-                {(socialLinks.custom || []).length === 0 ? (
-                  <p className="text-xs text-muted italic">No extra links yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(socialLinks.custom || []).map((link, index) => (
-                      <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto] items-end">
-                        <div>
-                          <label className="block text-xs text-muted mb-1">Title</label>
-                          <input
-                            className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                            placeholder="Bankr App"
-                            maxLength={40}
-                            value={link.title}
-                            onChange={(event) =>
-                              updateCustomLink(index, { title: event.target.value })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-muted mb-1">URL</label>
-                          <input
-                            className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                            placeholder="https://…"
-                            value={link.url}
-                            onChange={(event) =>
-                              updateCustomLink(index, { url: event.target.value })
-                            }
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomLink(index)}
-                          className="px-3 py-2 text-xs text-red-400 border border-border rounded-lg hover:border-red-400/50"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm text-muted">Additional links</div>
+                    <button
+                      type="button"
+                      onClick={addCustomLink}
+                      className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-accent bg-surface-2"
+                    >
+                      + Add link
+                    </button>
                   </div>
-                )}
-              </div>
+                  {(socialLinks.custom || []).length === 0 ? (
+                    <p className="text-xs text-muted italic">No extra links yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {(socialLinks.custom || []).map((link, index) => (
+                        <div
+                          key={index}
+                          className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto] items-end"
+                        >
+                          <div>
+                            <label className="block text-xs text-muted mb-1">Title</label>
+                            <input
+                              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                              placeholder="Bankr App"
+                              maxLength={40}
+                              value={link.title}
+                              onChange={(event) =>
+                                updateCustomLink(index, { title: event.target.value })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted mb-1">URL</label>
+                            <input
+                              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                              placeholder="https://…"
+                              value={link.url}
+                              onChange={(event) =>
+                                updateCustomLink(index, { url: event.target.value })
+                              }
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeCustomLink(index)}
+                            className="px-3 py-2 text-xs text-red-400 border border-border rounded-lg hover:border-red-400/50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </EditSection>
 
-              <div className="border-t border-border pt-4 space-y-3">
-                <div className="text-sm font-medium">Banner</div>
-                <p className="text-xs text-muted">
-                  Required: exactly <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
-                  ({BANNER_ASPECT_LABEL}, DexScreener standard). Upload or Pin URL via Pinata.
-                </p>
+              <EditSection
+                title="Banner"
+                hint={`Exactly ${BANNER_SIZE_LABEL} (${BANNER_ASPECT_LABEL}, DexScreener standard). Upload or Pin URL via Pinata.`}
+                toggles={
+                  <SourceToggle
+                    checked={useDexBanner}
+                    onChange={setUseDexBanner}
+                    disabled={!!customBannerUrl.trim()}
+                    title="Use DexScreener banner"
+                    hint={
+                      dexBannerAvailable
+                        ? `Paid Dex profile header (${BANNER_SIZE_LABEL}).`
+                        : 'No Dex banner found yet.'
+                    }
+                  />
+                }
+              >
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
@@ -604,13 +641,13 @@ export function CommunityProfile({
                     {pinningBannerUrl ? 'Pinning…' : 'Pin URL'}
                   </button>
                 </div>
-                {previewBannerUrl && editing ? (
+                {previewBannerUrl ? (
                   <div className="relative w-full h-24 rounded-lg overflow-hidden border border-border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={previewBannerUrl} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : null}
-              </div>
+              </EditSection>
 
               <button
                 type="button"
