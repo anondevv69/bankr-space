@@ -1,7 +1,7 @@
 import { getLaunches } from './db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from './bankr-api';
 import type { WalletAgentMeta } from './types';
-import { getPlatformAgentWallet, PLATFORM_AGENT_ID, PLATFORM_AGENT_TYPE } from './platform-agent';
+import { getPlatformAgentWallet, PLATFORM_AGENT_ID, PLATFORM_AGENT_TYPE, PLATFORM_AGENT_LABEL } from './platform-agent';
 import { normalizeAddr } from './utils';
 
 const BANKR_API = 'https://api.bankr.bot';
@@ -48,7 +48,7 @@ if (platformWallet && !KNOWN_AGENT_WALLETS[platformWallet]) {
   KNOWN_AGENT_WALLETS[platformWallet] = {
     agentId: PLATFORM_AGENT_ID,
     agentType: PLATFORM_AGENT_TYPE,
-    agentLabel: '@bankrbot · Bankr Space Agent',
+    agentLabel: PLATFORM_AGENT_LABEL,
     platform: 'bankr.space',
     source: 'known-registry',
   };
