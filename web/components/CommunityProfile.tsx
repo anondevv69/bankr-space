@@ -12,6 +12,7 @@ import type {
   FundraisingCampaign,
 } from '@/lib/types';
 import { DEFAULT_CAMPAIGNS, completedCampaigns, hasPublicFundraising } from '@/lib/fundraising';
+import { MAX_TRUSTED_DELEGATES } from '@/lib/space-delegates';
 import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
 import { FundraisingWidget } from '@/components/FundraisingWidget';
@@ -214,14 +215,17 @@ export function CommunityProfile({
   community,
   beneficiary,
   canManage,
-  canSetDeployerAccess = false,
+  canEditFundraising = false,
+  canManageTeamAccess = false,
   onUpdated,
 }: {
   community: Community;
   beneficiary: BeneficiaryInfo | null;
   canManage: boolean;
-  /** Fee recipient only — toggle deployer edit after verify */
-  canSetDeployerAccess?: boolean;
+  /** Fee recipient only — fundraisers / USDC goals */
+  canEditFundraising?: boolean;
+  /** Fee recipient only — deployer + trusted delegate wallets */
+  canManageTeamAccess?: boolean;
   onUpdated: () => void;
 }) {
   const { address } = useAppWallet();
@@ -240,6 +244,9 @@ export function CommunityProfile({
     community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
   );
   const [allowDeployerEdit, setAllowDeployerEdit] = useState(community.allowDeployerEdit ?? false);
+  const [trustedDelegates, setTrustedDelegates] = useState<string[]>(
+    community.trustedDelegates || []
+  );
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [pinningIconUrl, setPinningIconUrl] = useState(false);
@@ -280,6 +287,7 @@ export function CommunityProfile({
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
     setAllowDeployerEdit(community.allowDeployerEdit ?? false);
+    setTrustedDelegates(community.trustedDelegates || []);
   }, [community]);
 
   useEffect(() => {
@@ -311,6 +319,7 @@ export function CommunityProfile({
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
     setAllowDeployerEdit(community.allowDeployerEdit ?? false);
+    setTrustedDelegates(community.trustedDelegates || []);
   }
 
   function updateCampaign(id: FundraisingCampaign['id'], patch: Partial<FundraisingCampaign>) {
@@ -336,8 +345,8 @@ export function CommunityProfile({
           useDexBanner,
           useDexDescription,
           useDexLinks,
-          fundraising: { campaigns: fundraisingCampaigns },
-          ...(canSetDeployerAccess ? { allowDeployerEdit } : {}),
+          ...(canEditFundraising ? { fundraising: { campaigns: fundraisingCampaigns } } : {}),
+          ...(canManageTeamAccess ? { allowDeployerEdit, trustedDelegates } : {}),
         }),
       });
       setEditing(false);
@@ -723,10 +732,10 @@ export function CommunityProfile({
                 ) : null}
               </EditSection>
 
-              {canManage ? (
+              {canEditFundraising ? (
                 <EditSection
                   title="Fundraising campaigns"
-                  hint="Off by default. Enable a campaign below to show Fund this space on your page."
+                  hint="Fee recipient only. USDC goals and x402 pay-to — never shared with deployer or delegates."
                 >
                   <div className="space-y-3">
                     {fundraisingCampaigns.map((campaign) => (
@@ -796,10 +805,10 @@ export function CommunityProfile({
                 </EditSection>
               ) : null}
 
-              {canSetDeployerAccess ? (
+              {canManageTeamAccess ? (
                 <EditSection
-                  title="Deployer access"
-                  hint="After verify, the token deployer is locked out unless you allow it."
+                  title="Team access"
+                  hint="Profile, post, and pin only — no fundraisers or USDC. Applies after verify."
                 >
                   <label className="flex items-start gap-2 text-sm cursor-pointer">
                     <input
@@ -809,13 +818,52 @@ export function CommunityProfile({
                       onChange={(e) => setAllowDeployerEdit(e.target.checked)}
                     />
                     <span>
-                      <span className="font-medium">Allow deployer to edit this space</span>
+                      <span className="font-medium">Allow deployer to moderate this space</span>
                       <span className="block text-xs text-muted mt-0.5">
-                        Grants profile, pin, post, and fundraiser controls to the launcher wallet.
-                        USDC fundraisers always pay the fee recipient — never the deployer.
+                        Launcher wallet can edit profile, post, and pin — not fundraisers or money.
                       </span>
                     </span>
                   </label>
+                  <div className="mt-4 space-y-2">
+                    <div className="text-xs font-medium text-muted">
+                      Trusted wallets (up to {MAX_TRUSTED_DELEGATES})
+                    </div>
+                    {trustedDelegates.map((delegate, index) => (
+                      <div key={`${delegate}-${index}`} className="flex gap-2">
+                        <input
+                          className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono text-xs"
+                          value={delegate}
+                          onChange={(e) => {
+                            const next = [...trustedDelegates];
+                            next[index] = e.target.value.trim().toLowerCase();
+                            setTrustedDelegates(next);
+                          }}
+                          placeholder="0x…"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTrustedDelegates(trustedDelegates.filter((_, i) => i !== index))
+                          }
+                          className="px-3 py-2 text-xs border border-border rounded-lg hover:border-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    {trustedDelegates.length < MAX_TRUSTED_DELEGATES ? (
+                      <button
+                        type="button"
+                        onClick={() => setTrustedDelegates([...trustedDelegates, ''])}
+                        className="text-xs text-accent-hover hover:underline"
+                      >
+                        + Add trusted wallet
+                      </button>
+                    ) : null}
+                    <p className="text-xs text-muted">
+                      Grant edit, post, and pin to someone you trust. They cannot touch fundraisers.
+                    </p>
+                  </div>
                 </EditSection>
               ) : null}
 

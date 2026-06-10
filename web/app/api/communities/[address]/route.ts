@@ -9,7 +9,12 @@ import {
   getPosts,
 } from '@/lib/db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
-import { canEditCommunityProfile, isTokenBeneficiary } from '@/lib/community-owner';
+import {
+  canEditCommunityProfile,
+  canEditCommunityFundraising,
+  isTokenBeneficiary,
+} from '@/lib/community-owner';
+import { normalizeTrustedDelegates } from '@/lib/space-delegates';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
 import {
@@ -105,8 +110,18 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       return NextResponse.json(
         {
           error:
-            'Only the fee recipient or token deployer (before verify) can update this space profile',
+            'Only the fee recipient, deployer (before verify), or a trusted delegate can update this space profile',
         },
+        { status: 403 }
+      );
+    }
+
+    if (
+      body.fundraising !== undefined &&
+      !(await canEditCommunityFundraising(wallet, tokenAddress))
+    ) {
+      return NextResponse.json(
+        { error: 'Only the fee recipient can manage fundraisers and USDC goals' },
         { status: 403 }
       );
     }
@@ -137,11 +152,23 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       nextAllowDeployerEdit = Boolean(body.allowDeployerEdit);
     }
 
+    let nextTrustedDelegates = normalizeTrustedDelegates(current.trustedDelegates);
+    if (body.trustedDelegates !== undefined) {
+      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+        return NextResponse.json(
+          { error: 'Only the fee recipient can change trusted delegate wallets' },
+          { status: 403 }
+        );
+      }
+      nextTrustedDelegates = normalizeTrustedDelegates(body.trustedDelegates);
+    }
+
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
       socialLinks: nextSocialLinks,
       allowDeployerEdit: nextAllowDeployerEdit,
+      trustedDelegates: nextTrustedDelegates,
       customIconUrl:
         body.customIconUrl !== undefined
           ? normalizeBannerUrl(body.customIconUrl)
@@ -229,6 +256,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       founderWallet: wallet,
       ownerWallet: feeRecipient || deployer,
       allowDeployerEdit: false,
+      trustedDelegates: [],
       verified: isBeneficiary,
       verifiedAt: isBeneficiary ? Date.now() : null,
       verifiedBy: isBeneficiary ? wallet : null,

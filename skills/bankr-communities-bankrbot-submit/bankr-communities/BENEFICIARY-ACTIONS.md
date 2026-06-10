@@ -11,14 +11,17 @@
 
 | Action | Who | Space must be verified? |
 |--------|-----|----------------------------|
-| **Create space** | Anyone (holder, deployer, fee recipient, etc.) | No |
-| **Verify** | Fee beneficiary only | No (this creates verified) |
-| **Update profile / social links / fundraisers** | Fee beneficiary **or** deployer **before verify**; after verify deployer only if `allowDeployerEdit` | Pin needs verified |
-| **Post / reply** | Holder OR fee beneficiary OR deployer (before verify, or after if `allowDeployerEdit`) | No — replies are **one level** |
-| **Pin / unpin post** | Same as profile edit | **Yes** |
-| **x402 USDC** | Pays **fee recipient wallet only** — never deployer | N/A |
+| **Create space** | Anyone | No |
+| **Verify** | Fee recipient only | No (creates verified) |
+| **Profile / links / banner** | Fee recipient; deployer before verify; after verify deployer if `allowDeployerEdit`; **trusted delegate** wallets if listed | Pin needs verified |
+| **Fundraisers / USDC goals** | **Fee recipient only** — never deployer or delegate | No |
+| **Post / reply (no hold)** | Fee recipient; deployer (before verify or if allowed); trusted delegate (after verify) | No |
+| **Pin / unpin** | Same as profile (not fundraisers) | **Yes** |
+| **x402 USDC** | Pays **fee recipient wallet only** | N/A |
 
-**Roles from Bankr launch:** `deployer` = launcher · `feeRecipient` = fee recipient (may differ). `founderWallet` = who clicked Create — **no admin** by default.
+**Team access (fee recipient sets after verify):** `allowDeployerEdit` (launcher) + `trustedDelegates[]` (up to 3 wallets). Social/moderation only — **no money**.
+
+**Roles:** `deployer` = launcher · `feeRecipient` = fee recipient · `founderWallet` = who created the space (no admin).
 
 Check before writes:
 
