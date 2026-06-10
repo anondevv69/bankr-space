@@ -757,19 +757,19 @@ export function CommunityProfile({
           ) : null}
         </div>
 
-        <div className="space-y-4">
-          <VerifiedBeneficiarySection
-            community={community}
-            beneficiary={beneficiary}
-            layout="sidebar"
-          />
-          <FundraisingWidget
-            tokenAddress={community.tokenAddress}
-            symbol={community.symbol}
-            refreshKey={JSON.stringify(community.fundraising?.campaigns)}
-          />
-        </div>
+        <VerifiedBeneficiarySection
+          community={community}
+          beneficiary={beneficiary}
+          layout="sidebar"
+        />
       </div>
+
+      <FundraisingWidget
+        tokenAddress={community.tokenAddress}
+        symbol={community.symbol}
+        refreshKey={JSON.stringify(community.fundraising?.campaigns)}
+        layout="horizontal"
+      />
     </div>
   );
 }
