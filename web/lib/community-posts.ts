@@ -64,6 +64,7 @@ export function mergeCommunityDefaults(community: Community): Community {
     fundraising: normalizeFundraising(community.fundraising),
     allowDeployerEdit: community.allowDeployerEdit ?? false,
     trustedDelegates: community.trustedDelegates ?? [],
+    feeRecipientAgent: community.feeRecipientAgent ?? null,
     pinnedPosts,
     pinnedPostId: pinnedPosts[0]?.postId ?? null,
   };

@@ -19,7 +19,7 @@
 | **Pin / unpin** | Same as profile (not fundraisers) | **Yes** |
 | **x402 USDC** | Pays **fee recipient wallet only** | N/A |
 
-**Team access (fee recipient sets after verify):** `allowDeployerEdit` (launcher) + `trustedDelegates[]` (up to 3 wallets). Social/moderation only — **no money**.
+**Team access (fee recipient sets after verify):** `allowDeployerEdit` (launcher) + `trustedDelegates[]` (up to 3 wallets). Social/moderation only — **no money**. Tag agent wallets via **`AGENT-WALLETS.md`** (`GET …/resolve-wallet`, `POST …/team/resolve-agents`).
 
 **Roles:** `deployer` = launcher · `feeRecipient` = fee recipient · `founderWallet` = who created the space (no admin).
 

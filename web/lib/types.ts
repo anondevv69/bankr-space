@@ -23,12 +23,29 @@ export interface SocialLinks {
   custom?: CustomSocialLink[];
 }
 
+export interface WalletAgentMeta {
+  wallet?: string;
+  isAgentWallet: boolean;
+  agentId: string | null;
+  agentType: string | null;
+  agentLabel: string | null;
+  platform?: string | null;
+  source?: 'known-registry' | 'handle-heuristic' | 'bankr-resolve' | 'manual' | 'none';
+  resolvedAt?: number;
+}
+
+export interface TrustedDelegateEntry {
+  wallet: string;
+  agent?: WalletAgentMeta | null;
+}
+
 export interface BeneficiaryInfo {
   wallet: string;
   xUsername: string | null;
   xUrl: string | null;
   profileImageUrl: string | null;
   walletUrl: string;
+  agent?: WalletAgentMeta | null;
 }
 
 export interface PinnedPost {
@@ -65,7 +82,9 @@ export interface Community {
   /** After verify: fee recipient may grant deployer profile/pin/post access (not fundraising) */
   allowDeployerEdit?: boolean;
   /** After verify: fee recipient may grant profile/pin/post to trusted wallets (max 3) */
-  trustedDelegates?: string[];
+  trustedDelegates?: TrustedDelegateEntry[];
+  /** Cached agent classification for fee recipient wallet */
+  feeRecipientAgent?: WalletAgentMeta | null;
   description: string;
   /** Bankr launch image (ipfs://…), stored at create time when available */
   imageUri?: string | null;

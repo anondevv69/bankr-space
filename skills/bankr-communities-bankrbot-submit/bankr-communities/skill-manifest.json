@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.11.0",
+  "skillVersion": "1.12.0",
   "defaultSiteUrl": "https://bankr.space",
   "COMMUNITIES_SITE_URL": "https://bankr.space",
   "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
@@ -29,6 +29,7 @@
     "NOT-TWITTER-X-SPACES.md",
     "BENEFICIARY-ACTIONS.md",
     "FUNDRAISING.md",
+    "AGENT-WALLETS.md",
     "POST-SOURCE.md",
     "X-REPLY-POST-CONTENT.md",
     "INSTANT-LINK-REPLIES.md",
