@@ -66,7 +66,7 @@ curl -X POST "https://bankr.space/api/communities/0xTOKEN/fundraising/credit" \
 | `dex-boost` | $99 | no |
 | `custom` | $500 | no |
 
-Beneficiary toggles in **Edit profile → Fundraising campaigns**.
+Beneficiary toggles in **Edit profile → Fundraising campaigns** (off by default; widget hidden until at least one campaign is enabled and saved).
 
 ## @bankrbot (skill — future)
 

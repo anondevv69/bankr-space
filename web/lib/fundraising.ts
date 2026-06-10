@@ -27,19 +27,14 @@ export const DEFAULT_CAMPAIGNS: FundraisingCampaign[] = [
   },
 ];
 
-export function normalizeFundraising(input: unknown): FundraisingState {
-  if (!input || typeof input !== 'object') {
-    return { campaigns: DEFAULT_CAMPAIGNS.map((c) => ({ ...c })) };
-  }
-
-  const raw = input as FundraisingState;
+function mergeCampaigns(raw: FundraisingState | null | undefined): FundraisingCampaign[] {
   const byId = new Map<CampaignId, FundraisingCampaign>();
 
   for (const defaults of DEFAULT_CAMPAIGNS) {
     byId.set(defaults.id, { ...defaults });
   }
 
-  if (Array.isArray(raw.campaigns)) {
+  if (raw && Array.isArray(raw.campaigns)) {
     for (const item of raw.campaigns) {
       if (!item || typeof item !== 'object') continue;
       const id = String((item as FundraisingCampaign).id || '') as CampaignId;
@@ -55,7 +50,35 @@ export function normalizeFundraising(input: unknown): FundraisingState {
     }
   }
 
-  return { campaigns: CAMPAIGN_IDS.map((id) => byId.get(id)!) };
+  return CAMPAIGN_IDS.map((id) => byId.get(id)!);
+}
+
+/**
+ * Normalize fundraising from stored community data or beneficiary save payload.
+ * @param fromSave When true (PATCH from Edit profile), sets optedIn from checkbox state.
+ */
+export function normalizeFundraising(
+  input: unknown,
+  options?: { fromSave?: boolean }
+): FundraisingState {
+  const raw = input && typeof input === 'object' ? (input as FundraisingState) : null;
+  const campaigns = mergeCampaigns(raw);
+
+  if (options?.fromSave) {
+    const optedIn = campaigns.some((c) => c.enabled);
+    return { optedIn, campaigns };
+  }
+
+  const optedIn = Boolean(raw?.optedIn);
+  if (!optedIn) {
+    // Legacy rows may have enabled:true from an old default — hide until beneficiary opts in.
+    return {
+      optedIn: false,
+      campaigns: campaigns.map((c) => ({ ...c, enabled: false })),
+    };
+  }
+
+  return { optedIn: true, campaigns };
 }
 
 function clampGoal(value: unknown): number {
@@ -70,8 +93,13 @@ function clampRaised(value: unknown): number {
   return Math.round(n * 100) / 100;
 }
 
-export function activeCampaigns(state: FundraisingState): FundraisingCampaign[] {
+export function activeCampaigns(state: FundraisingState | undefined | null): FundraisingCampaign[] {
+  if (!state?.optedIn) return [];
   return state.campaigns.filter((c) => c.enabled);
+}
+
+export function hasPublicFundraising(state: FundraisingState | undefined | null): boolean {
+  return activeCampaigns(state).length > 0;
 }
 
 export function campaignProgress(campaign: FundraisingCampaign): number {
@@ -88,6 +116,7 @@ export function creditCampaignUsd(
   if (amount <= 0) return state;
 
   return {
+    ...state,
     campaigns: state.campaigns.map((c) =>
       c.id === campaignId ? { ...c, raisedUsd: clampRaised(c.raisedUsd + amount) } : c
     ),

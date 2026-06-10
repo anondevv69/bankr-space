@@ -47,6 +47,8 @@ export interface FundraisingCampaign {
 }
 
 export interface FundraisingState {
+  /** Set true only when beneficiary saves with at least one campaign enabled. */
+  optedIn?: boolean;
   campaigns: FundraisingCampaign[];
 }
 

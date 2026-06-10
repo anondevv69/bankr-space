@@ -146,7 +146,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       useDexLinks: boolField(body, 'useDexLinks', current.useDexLinks ?? true),
       fundraising:
         body.fundraising !== undefined
-          ? normalizeFundraising(body.fundraising)
+          ? normalizeFundraising(body.fundraising, { fromSave: true })
           : current.fundraising,
     });
 
