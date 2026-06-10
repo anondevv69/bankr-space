@@ -2,17 +2,21 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useConnectWallet } from '@/components/WalletButton';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer, Header } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
 import { PostFeed, PostForm } from '@/components/PostFeed';
+import { isNativeSpaceCommunity } from '@/lib/featured-community';
+import { isSiteAdminWallet } from '@/lib/site-admin';
 import type { BeneficiaryInfo, Community, Post } from '@/lib/types';
 import { apiFetch } from '@/lib/wagmi';
 
 export default function CommunityPage({ params }: { params: { address: string } }) {
   const tokenAddress = params.address;
+  const router = useRouter();
   const { address, isConnected, isEmbedded } = useAppWallet();
   const { connectWallet } = useConnectWallet();
   const embed = useEmbeddedBankr();
@@ -35,6 +39,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     canPinPosts: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -143,6 +148,31 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canEnablePlatformAgentSkills =
     isConnected && !!holder?.canEnablePlatformAgentSkills;
   const canEditFundraising = isConnected && !!holder?.canEditFundraising;
+  const isSiteAdmin = isConnected && isSiteAdminWallet(address);
+  const canDeleteSpace =
+    isSiteAdmin && community && !isNativeSpaceCommunity(community.tokenAddress);
+
+  async function deleteSpace() {
+    if (!address || !community || !canDeleteSpace) return;
+    if (
+      !window.confirm(
+        `Delete the $${community.symbol} space and all its posts? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/communities/${tokenAddress}`, {
+        method: 'DELETE',
+        wallet: address,
+      });
+      router.push('/');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
@@ -168,6 +198,19 @@ export default function CommunityPage({ params }: { params: { address: string } 
         >
           Verify Space
         </button>
+      ) : null}
+
+      {canDeleteSpace ? (
+        <div className="mb-6 flex justify-end">
+          <button
+            type="button"
+            onClick={() => void deleteSpace()}
+            disabled={deleting}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 text-red-500 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-50"
+          >
+            {deleting ? 'Deleting…' : 'Delete space (admin)'}
+          </button>
+        </div>
       ) : null}
 
       {!isConnected ? (

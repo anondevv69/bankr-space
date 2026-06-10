@@ -30,13 +30,14 @@ export function MarketStats({
   variant?: 'card' | 'hero' | 'inline';
 }) {
   if (!market) {
+    if (compact || variant === 'inline') return null;
     return <div className="text-xs text-muted">Loading market data…</div>;
   }
 
   if (!market.found) {
-    if (variant === 'hero') return null;
+    if (variant === 'hero' || compact || variant === 'inline') return null;
     return (
-      <div className="mt-4 p-3 bg-surface-2 border border-border rounded-lg text-sm text-muted">
+      <div className="mt-5 p-4 bg-surface-2 border border-border rounded-xl text-sm text-muted">
         No DEX trading data on DexScreener yet.
       </div>
     );

@@ -22,6 +22,7 @@ import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
 import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
 import { ICON_SIZE_LABEL, ICON_ASPECT_LABEL, ICON_MIN_SIZE, ICON_MAX_SIZE } from '@/lib/image-specs';
+import { isPlatformAgentUiEnabled } from '@/lib/platform-agent';
 import { shortAddr } from '@/lib/utils';
 import { apiFetch } from '@/lib/wagmi';
 
@@ -412,7 +413,7 @@ export function CommunityProfile({
           ...(canManageTeamAccess
             ? { allowDeployerEdit, trustedDelegates }
             : {}),
-          ...(canManagePlatformAgent && editing
+          ...(canManagePlatformAgent && isPlatformAgentUiEnabled() && editing
             ? {
                 usePlatformAgent,
                 ...(canEnablePlatformAgentSkills ? { platformAgentSkills } : {}),
@@ -981,7 +982,7 @@ export function CommunityProfile({
         />
       </div>
 
-      {canManagePlatformAgent ? (
+      {canManagePlatformAgent && isPlatformAgentUiEnabled() ? (
         <div className="mt-6 p-4 border border-border rounded-xl bg-surface space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Community agent</h3>

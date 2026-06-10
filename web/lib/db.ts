@@ -79,3 +79,20 @@ export async function updateCommunityCounts(
   comm.memberCount = new Set(posts.map((p) => p.wallet.toLowerCase())).size;
   await setCommunities(communities);
 }
+
+export async function deleteCommunity(tokenAddress: string): Promise<Community | null> {
+  const communities = await getCommunities();
+  const index = communities.findIndex(
+    (c) => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase()
+  );
+  if (index === -1) return null;
+  const [removed] = communities.splice(index, 1);
+  await setCommunities(communities);
+  return removed;
+}
+
+export async function deletePostsForToken(tokenAddress: string): Promise<void> {
+  const all = await getAllPosts();
+  delete all[tokenAddress.toLowerCase()];
+  await kvSet(KEYS.posts, all);
+}

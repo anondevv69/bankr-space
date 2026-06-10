@@ -7,6 +7,8 @@ import {
   setCommunities,
   setPostsForToken,
   getPosts,
+  deleteCommunity,
+  deletePostsForToken,
 } from '@/lib/db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
 import {
@@ -31,6 +33,8 @@ import { normalizeBannerUrl } from '@/lib/banner-url';
 import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
+import { isNativeSpaceCommunity } from '@/lib/featured-community';
+import { isSiteAdminWallet } from '@/lib/site-admin';
 import type { SocialLinks } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -379,6 +383,43 @@ export async function POST(req: Request, { params }: RouteParams) {
     });
   } catch (err) {
     console.error('POST community', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: RouteParams) {
+  const wallet = getWalletFromRequest(req);
+  if (!wallet) {
+    return NextResponse.json({ error: 'Connect wallet required' }, { status: 401 });
+  }
+  if (!isSiteAdminWallet(wallet)) {
+    return NextResponse.json({ error: 'Not authorized to delete spaces' }, { status: 403 });
+  }
+
+  const { address } = await params;
+  const tokenAddress = normalizeAddr(address);
+
+  if (isNativeSpaceCommunity(tokenAddress)) {
+    return NextResponse.json({ error: 'Cannot delete the native Bankr Space token' }, { status: 403 });
+  }
+
+  try {
+    const removed = await deleteCommunity(tokenAddress);
+    if (!removed) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
+    }
+
+    await deletePostsForToken(tokenAddress);
+
+    return NextResponse.json({
+      success: true,
+      deleted: {
+        tokenAddress: removed.tokenAddress,
+        symbol: removed.symbol,
+      },
+    });
+  } catch (err) {
+    console.error('DELETE community', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
