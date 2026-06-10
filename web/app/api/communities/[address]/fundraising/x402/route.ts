@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
+import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { buildSpaceFundUrl, type CampaignId } from '@/lib/fundraising';
+import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -21,12 +23,14 @@ const CAMPAIGN_IDS: CampaignId[] = ['dex-profile', 'dex-boost', 'custom'];
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
-  const x402BaseUrl =
-    process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
-    process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim();
+  const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
+  const x402BaseUrl = buildFundraisingX402BaseUrl(beneficiaryWallet);
 
   if (!x402BaseUrl) {
-    return NextResponse.json({ error: 'x402 fundraising is not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'x402 fundraising is not available — fee recipient wallet not found' },
+      { status: 503 }
+    );
   }
 
   let body: { campaignId?: string; amountUsd?: number; xPayment?: string };

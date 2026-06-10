@@ -25,6 +25,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     canPost: boolean;
     isOwner: boolean;
     isBeneficiary: boolean;
+    isDeployer: boolean;
     isFounder: boolean;
     canEditProfile: boolean;
     canPinPosts: boolean;
@@ -62,6 +63,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPost: data.canPost,
         isOwner: data.isOwner,
         isBeneficiary: data.isBeneficiary,
+        isDeployer: data.isDeployer,
         isFounder: data.isFounder,
         canEditProfile: data.canEditProfile,
         canPinPosts: data.canPinPosts,
@@ -73,6 +75,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPost: false,
         isOwner: false,
         isBeneficiary: false,
+        isDeployer: false,
         isFounder: false,
         canEditProfile: false,
         canPinPosts: false,
@@ -121,7 +124,9 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canPost = isConnected && !!holder?.canPost;
   const canEditProfile = isConnected && !!holder?.canEditProfile;
   const canPinPosts = isConnected && !!holder?.canPinPosts;
-  const canVerify = isConnected && !!holder?.isBeneficiary;
+  const canVerify = isConnected && !!holder?.isBeneficiary && !community.verified;
+  const canSetDeployerAccess =
+    isConnected && !!holder?.isBeneficiary && !!community.verified;
 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
@@ -131,6 +136,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         community={community}
         beneficiary={beneficiary}
         canManage={canEditProfile}
+        canSetDeployerAccess={canSetDeployerAccess}
         onUpdated={load}
       />
 
@@ -163,11 +169,23 @@ export default function CommunityPage({ params }: { params: { address: string } 
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-600 dark:text-green-400">
           {holder.holds
             ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
-            : `✓ You are the token beneficiary — you can post and react without holding`}
+            : holder.isBeneficiary
+              ? `✓ You are the fee recipient — you can post and react without holding`
+              : holder.isDeployer
+                ? community.verified
+                  ? `✓ Deployer access enabled — you can post and react without holding`
+                  : `✓ You are the token deployer — edit this space until the fee recipient verifies`
+                : `✓ You can post and react without holding`}
+        </div>
+      ) : holder?.isDeployer && community.verified ? (
+        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+          Deployer access is off for this verified space. The fee recipient can enable it in Edit
+          profile.
         </div>
       ) : holder?.isFounder ? (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
-          You created this space. Hold {community.symbol} to post and react — only the token beneficiary can verify it.
+          You created this space. Hold {community.symbol} to post and react — only the fee
+          recipient can verify it.
         </div>
       ) : (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">

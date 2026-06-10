@@ -62,6 +62,7 @@ export function mergeCommunityDefaults(community: Community): Community {
     dexSocialLinks: community.dexSocialLinks || {},
     profileSyncMeta: community.profileSyncMeta || {},
     fundraising: normalizeFundraising(community.fundraising),
+    allowDeployerEdit: community.allowDeployerEdit ?? false,
     pinnedPosts,
     pinnedPostId: pinnedPosts[0]?.postId ?? null,
   };

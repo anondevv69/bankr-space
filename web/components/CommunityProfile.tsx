@@ -214,11 +214,14 @@ export function CommunityProfile({
   community,
   beneficiary,
   canManage,
+  canSetDeployerAccess = false,
   onUpdated,
 }: {
   community: Community;
   beneficiary: BeneficiaryInfo | null;
   canManage: boolean;
+  /** Fee recipient only — toggle deployer edit after verify */
+  canSetDeployerAccess?: boolean;
   onUpdated: () => void;
 }) {
   const { address } = useAppWallet();
@@ -236,6 +239,7 @@ export function CommunityProfile({
   const [fundraisingCampaigns, setFundraisingCampaigns] = useState<FundraisingCampaign[]>(
     community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
   );
+  const [allowDeployerEdit, setAllowDeployerEdit] = useState(community.allowDeployerEdit ?? false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [pinningIconUrl, setPinningIconUrl] = useState(false);
@@ -275,6 +279,7 @@ export function CommunityProfile({
     setFundraisingCampaigns(
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
+    setAllowDeployerEdit(community.allowDeployerEdit ?? false);
   }, [community]);
 
   useEffect(() => {
@@ -305,6 +310,7 @@ export function CommunityProfile({
     setFundraisingCampaigns(
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
+    setAllowDeployerEdit(community.allowDeployerEdit ?? false);
   }
 
   function updateCampaign(id: FundraisingCampaign['id'], patch: Partial<FundraisingCampaign>) {
@@ -331,6 +337,7 @@ export function CommunityProfile({
           useDexDescription,
           useDexLinks,
           fundraising: { campaigns: fundraisingCampaigns },
+          ...(canSetDeployerAccess ? { allowDeployerEdit } : {}),
         }),
       });
       setEditing(false);
@@ -786,6 +793,29 @@ export function CommunityProfile({
                       </div>
                     ))}
                   </div>
+                </EditSection>
+              ) : null}
+
+              {canSetDeployerAccess ? (
+                <EditSection
+                  title="Deployer access"
+                  hint="After verify, the token deployer is locked out unless you allow it."
+                >
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={allowDeployerEdit}
+                      onChange={(e) => setAllowDeployerEdit(e.target.checked)}
+                    />
+                    <span>
+                      <span className="font-medium">Allow deployer to edit this space</span>
+                      <span className="block text-xs text-muted mt-0.5">
+                        Grants profile, pin, post, and fundraiser controls to the launcher wallet.
+                        USDC fundraisers always pay the fee recipient — never the deployer.
+                      </span>
+                    </span>
+                  </label>
                 </EditSection>
               ) : null}
 

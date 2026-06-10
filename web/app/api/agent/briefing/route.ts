@@ -15,6 +15,8 @@ import {
 } from '@/lib/fundraising';
 import { communityUrl, getSiteUrl, communityUrlTemplate } from '@/lib/site-url';
 import { buildBriefingReplyText } from '@/lib/agent-reply';
+import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
+import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,10 +71,10 @@ export async function GET(req: Request) {
     const completedFundraisers = normalizedCommunity
       ? completedCampaigns(normalizedCommunity.fundraising)
       : [];
-    const x402FundUrl =
-      process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
-      process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim() ||
-      null;
+    const beneficiaryWallet = community
+      ? await getTokenBeneficiaryWallet(community.tokenAddress)
+      : null;
+    const x402FundUrl = buildFundraisingX402BaseUrl(beneficiaryWallet);
 
     const opportunities: Array<{ type: string; message: string }> = [];
 
@@ -86,7 +88,7 @@ export async function GET(req: Request) {
     if (community && !community.verified) {
       opportunities.push({
         type: 'verify_pending',
-        message: `Space for $${community.symbol} is unverified — token owner can verify.`,
+        message: `Space for $${community.symbol} is unverified — fee recipient can verify; deployer can edit until then.`,
       });
     }
 

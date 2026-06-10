@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.9.0
+version: 1.10.0
 description: >-
   Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
@@ -163,7 +163,9 @@ else if space intent (verify, post, pin, profile, update links, members, latest,
 | Create space | Signed-in user, token on Bankr launches |
 | Post / comment | **Holder** OR **fee recipient** OR **deployer** (owner can post without holding) |
 | React | Holder OR fee recipient OR deployer |
-| Verify | Token owner (fee recipient or deployer) |
+| Verify | Fee recipient only |
+| Edit profile (unverified) | Fee recipient or deployer |
+| Edit profile (verified) | Fee recipient; deployer if `allowDeployerEdit` |
 
 `GET /api/holders/{token}?wallet=` returns `canPost: true` for holders **and** owners.
 

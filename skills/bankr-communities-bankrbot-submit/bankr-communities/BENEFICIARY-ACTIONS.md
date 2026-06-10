@@ -11,10 +11,14 @@
 
 | Action | Who | Space must be verified? |
 |--------|-----|----------------------------|
+| **Create space** | Anyone (holder, deployer, fee recipient, etc.) | No |
 | **Verify** | Fee beneficiary only | No (this creates verified) |
-| **Update profile / social links** | Fee beneficiary only | No |
-| **Post / reply** | Holder OR beneficiary OR deployer | No — replies are **one level** (`parentPostId` on top-level post only) |
-| **Pin / unpin post** | Fee beneficiary only | **Yes** |
+| **Update profile / social links / fundraisers** | Fee beneficiary **or** deployer **before verify**; after verify deployer only if `allowDeployerEdit` | Pin needs verified |
+| **Post / reply** | Holder OR fee beneficiary OR deployer (before verify, or after if `allowDeployerEdit`) | No — replies are **one level** |
+| **Pin / unpin post** | Same as profile edit | **Yes** |
+| **x402 USDC** | Pays **fee recipient wallet only** — never deployer | N/A |
+
+**Roles from Bankr launch:** `deployer` = launcher · `feeRecipient` = fee recipient (may differ). `founderWallet` = who clicked Create — **no admin** by default.
 
 Check before writes:
 
