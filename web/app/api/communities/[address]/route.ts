@@ -22,6 +22,7 @@ import {
   shouldSyncProfile,
 } from '@/lib/community-profile-sync';
 import { normalizeSocialLinks } from '@/lib/social-links';
+import { normalizeFundraising } from '@/lib/fundraising';
 import { normalizeBannerUrl } from '@/lib/banner-url';
 import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
@@ -143,6 +144,10 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       useDexBanner: boolField(body, 'useDexBanner', current.useDexBanner ?? true),
       useDexDescription: boolField(body, 'useDexDescription', current.useDexDescription ?? true),
       useDexLinks: boolField(body, 'useDexLinks', current.useDexLinks ?? true),
+      fundraising:
+        body.fundraising !== undefined
+          ? normalizeFundraising(body.fundraising)
+          : current.fundraising,
     });
 
     const synced = await syncCommunityProfile(updated, { force: true });

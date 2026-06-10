@@ -9,9 +9,12 @@ import type {
   SocialLinks,
   StandardSocialLinkKey,
   TokenMarketStats,
+  FundraisingCampaign,
 } from '@/lib/types';
+import { DEFAULT_CAMPAIGNS } from '@/lib/fundraising';
 import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
+import { FundraisingWidget } from '@/components/FundraisingWidget';
 import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
 import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
@@ -182,6 +185,9 @@ export function CommunityProfile({
   const [useDexBanner, setUseDexBanner] = useState(community.useDexBanner ?? true);
   const [useDexDescription, setUseDexDescription] = useState(community.useDexDescription ?? true);
   const [useDexLinks, setUseDexLinks] = useState(community.useDexLinks ?? true);
+  const [fundraisingCampaigns, setFundraisingCampaigns] = useState<FundraisingCampaign[]>(
+    community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
+  );
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [pinningIconUrl, setPinningIconUrl] = useState(false);
@@ -218,6 +224,9 @@ export function CommunityProfile({
     setUseDexBanner(community.useDexBanner ?? true);
     setUseDexDescription(community.useDexDescription ?? true);
     setUseDexLinks(community.useDexLinks ?? true);
+    setFundraisingCampaigns(
+      community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
+    );
   }, [community]);
 
   useEffect(() => {
@@ -245,6 +254,15 @@ export function CommunityProfile({
     setUseDexBanner(community.useDexBanner ?? true);
     setUseDexDescription(community.useDexDescription ?? true);
     setUseDexLinks(community.useDexLinks ?? true);
+    setFundraisingCampaigns(
+      community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
+    );
+  }
+
+  function updateCampaign(id: FundraisingCampaign['id'], patch: Partial<FundraisingCampaign>) {
+    setFundraisingCampaigns((current) =>
+      current.map((c) => (c.id === id ? { ...c, ...patch } : c))
+    );
   }
 
   async function saveProfile() {
@@ -264,6 +282,7 @@ export function CommunityProfile({
           useDexBanner,
           useDexDescription,
           useDexLinks,
+          fundraising: { campaigns: fundraisingCampaigns },
         }),
       });
       setEditing(false);
@@ -649,6 +668,79 @@ export function CommunityProfile({
                 ) : null}
               </EditSection>
 
+              {canManage ? (
+                <EditSection
+                  title="Fundraising campaigns"
+                  hint="Optional USDC goals (Dex profile ~$299). Shown in the sidebar when enabled."
+                >
+                  <div className="space-y-3">
+                    {fundraisingCampaigns.map((campaign) => (
+                      <div
+                        key={campaign.id}
+                        className="p-3 border border-border rounded-lg bg-bg/40 space-y-2"
+                      >
+                        <label className="flex items-start gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={campaign.enabled}
+                            onChange={(e) =>
+                              updateCampaign(campaign.id, { enabled: e.target.checked })
+                            }
+                          />
+                          <span>
+                            <span className="font-medium">{campaign.label}</span>
+                            <span className="block text-xs text-muted mt-0.5">
+                              ${campaign.raisedUsd.toLocaleString()} raised · goal $
+                              {campaign.goalUsd.toLocaleString()}
+                            </span>
+                          </span>
+                        </label>
+                        {campaign.id === 'custom' ? (
+                          <div className="grid gap-2 sm:grid-cols-2 pl-6">
+                            <input
+                              className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                              placeholder="Goal label"
+                              value={campaign.label}
+                              onChange={(e) =>
+                                updateCampaign(campaign.id, { label: e.target.value })
+                              }
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                              placeholder="Goal USD"
+                              value={campaign.goalUsd}
+                              onChange={(e) =>
+                                updateCampaign(campaign.id, {
+                                  goalUsd: Math.max(1, Number(e.target.value) || 1),
+                                })
+                              }
+                            />
+                          </div>
+                        ) : campaign.id === 'dex-boost' ? (
+                          <div className="pl-6">
+                            <label className="block text-xs text-muted mb-1">Goal USD</label>
+                            <input
+                              type="number"
+                              min={1}
+                              className="w-full max-w-[140px] px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                              value={campaign.goalUsd}
+                              onChange={(e) =>
+                                updateCampaign(campaign.id, {
+                                  goalUsd: Math.max(1, Number(e.target.value) || 1),
+                                })
+                              }
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </EditSection>
+              ) : null}
+
               <button
                 type="button"
                 onClick={saveProfile}
@@ -665,11 +757,18 @@ export function CommunityProfile({
           ) : null}
         </div>
 
-        <VerifiedBeneficiarySection
-          community={community}
-          beneficiary={beneficiary}
-          layout="sidebar"
-        />
+        <div className="space-y-4">
+          <VerifiedBeneficiarySection
+            community={community}
+            beneficiary={beneficiary}
+            layout="sidebar"
+          />
+          <FundraisingWidget
+            tokenAddress={community.tokenAddress}
+            symbol={community.symbol}
+            refreshKey={JSON.stringify(community.fundraising?.campaigns)}
+          />
+        </div>
       </div>
     </div>
   );

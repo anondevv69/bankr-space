@@ -41,6 +41,8 @@ In Vercel → **Settings** → **Environment Variables**, add:
 | `NEXT_PUBLIC_SITE_URL` | `https://bankr.space` (custom domain; or your `*.vercel.app` URL during setup) |
 | `CRON_SECRET` | Random string (e.g. `openssl rand -hex 32`) |
 | `PINATA_JWT` | [Pinata](https://pinata.cloud) JWT — banner/icon uploads **and** mirroring Bankr/Dex default images to IPFS (optional; URL paste still works without it) |
+| `NEXT_PUBLIC_X402_SPACE_FUND_URL` | Bankr x402 fund endpoint, e.g. `https://x402.bankr.bot/0x…/space-fund` — see [x402/README.md](../x402/README.md) |
+| `X402_FUND_WEBHOOK_SECRET` | Shared secret for x402 handler → `/api/communities/{token}/fundraising/credit` |
 
 `KV_*` vars are set automatically when you connect KV.
 

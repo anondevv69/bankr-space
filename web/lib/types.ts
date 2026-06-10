@@ -36,6 +36,20 @@ export interface PinnedPost {
   pinnedAt: number;
 }
 
+export type FundraisingCampaignId = 'dex-profile' | 'dex-boost' | 'custom';
+
+export interface FundraisingCampaign {
+  id: FundraisingCampaignId;
+  label: string;
+  goalUsd: number;
+  raisedUsd: number;
+  enabled: boolean;
+}
+
+export interface FundraisingState {
+  campaigns: FundraisingCampaign[];
+}
+
 export interface Community {
   tokenAddress: string;
   name: string;
@@ -85,6 +99,8 @@ export interface Community {
   /** Merged social links for display (Dex + manual) — API only, not persisted */
   displaySocialLinks?: SocialLinks;
   socialLinks?: SocialLinks;
+  /** Optional USDC fundraise campaigns (Dex profile, boost, custom) */
+  fundraising?: FundraisingState;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
   pinnedPosts?: PinnedPost[];
