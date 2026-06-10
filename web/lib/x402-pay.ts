@@ -1,7 +1,7 @@
 import { ChainIdToNetwork, PaymentRequirementsSchema } from 'x402/types';
 import { createPaymentHeader, selectPaymentRequirements } from 'x402/client';
-import type { Signer } from 'x402/types';
 import type { WalletClient } from 'viem';
+import { toX402Signer } from '@/lib/x402-signer';
 
 /** Matches bankr.x402.json price for space-fund ($1 USDC per request). */
 export const SPACE_FUND_X402_MAX_USDC = 1;
@@ -96,7 +96,7 @@ export async function paySpaceFundUrl(walletClient: WalletClient, fundUrl: strin
   }
 
   const paymentHeader = await createPaymentHeader(
-    walletClient as Signer,
+    toX402Signer(walletClient),
     x402Version ?? 2,
     selected
   );
