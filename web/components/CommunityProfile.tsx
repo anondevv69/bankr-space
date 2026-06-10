@@ -15,6 +15,7 @@ import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySect
 import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
 import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
+import { ICON_SIZE_LABEL, ICON_ASPECT_LABEL, ICON_MIN_SIZE, ICON_MAX_SIZE } from '@/lib/image-specs';
 import { shortAddr } from '@/lib/utils';
 import { apiFetch } from '@/lib/wagmi';
 
@@ -35,6 +36,41 @@ const SOCIAL_FIELDS: Array<{ key: StandardSocialLinkKey; label: string; placehol
 ];
 
 const EMPTY_CUSTOM_LINK: CustomSocialLink = { title: '', url: '' };
+
+function validateImageFileClient(file: File, kind: 'icon' | 'banner'): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      try {
+        if (kind === 'icon') {
+          if (width !== height) {
+            throw new Error(`Token icon must be square (${ICON_ASPECT_LABEL}). Got ${width}×${height}px.`);
+          }
+          if (width < ICON_MIN_SIZE || width > ICON_MAX_SIZE) {
+            throw new Error(
+              `Token icon must be ${ICON_MIN_SIZE}–${ICON_MAX_SIZE}px square (Bankr standard ${ICON_SIZE_LABEL}). Got ${width}×${height}px.`
+            );
+          }
+        } else if (width !== 1500 || height !== 500) {
+          throw new Error(
+            `Banner must be exactly ${BANNER_SIZE_LABEL} (${BANNER_ASPECT_LABEL}). Got ${width}×${height}px.`
+          );
+        }
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not read image file'));
+    };
+    img.src = url;
+  });
+}
 
 function previewImageUrl(url: string | null | undefined): string | null {
   const raw = String(url || '').trim();
@@ -222,6 +258,7 @@ export function CommunityProfile({
     const setUrl = kind === 'icon' ? setCustomIconUrl : setCustomBannerUrl;
     setUploading(true);
     try {
+      await validateImageFileClient(file, kind);
       const form = new FormData();
       form.append('file', file);
       form.append('tokenAddress', community.tokenAddress);
@@ -392,7 +429,7 @@ export function CommunityProfile({
                   title="Use DexScreener banner"
                   hint={
                     dexBannerAvailable
-                      ? `Paid Dex profile header (${BANNER_SIZE_LABEL} recommended).`
+                      ? `Paid Dex profile header (${BANNER_SIZE_LABEL}).`
                       : 'No Dex banner found yet.'
                   }
                 />
@@ -427,7 +464,8 @@ export function CommunityProfile({
               <div className="border-t border-border pt-4 space-y-3">
                 <div className="text-sm font-medium">Token icon</div>
                 <p className="text-xs text-muted">
-                  Square PNG/JPG/WebP. Upload pins to IPFS, or paste a URL and click Pin URL.
+                  Required: square {ICON_ASPECT_LABEL}, {ICON_MIN_SIZE}–{ICON_SIZE_LABEL} (Bankr
+                  launch standard). PNG/JPG/WebP — upload or Pin URL via Pinata.
                 </p>
                 <input
                   type="file"
@@ -536,8 +574,8 @@ export function CommunityProfile({
               <div className="border-t border-border pt-4 space-y-3">
                 <div className="text-sm font-medium">Banner</div>
                 <p className="text-xs text-muted">
-                  Recommended: <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
-                  ({BANNER_ASPECT_LABEL}). Upload or paste URL — both go through Pinata when configured.
+                  Required: exactly <strong className="text-text font-medium">{BANNER_SIZE_LABEL}</strong>{' '}
+                  ({BANNER_ASPECT_LABEL}, DexScreener standard). Upload or Pin URL via Pinata.
                 </p>
                 <input
                   type="file"

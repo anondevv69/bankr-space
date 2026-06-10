@@ -58,7 +58,7 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
-**Editable fields:** `description`, `socialLinks` (standard: `x`, `website`, `github`, `telegram`, `discord`; plus `custom[]` with `{ title, url }`), `customIconUrl`, `customBannerUrl` (https or ipfs:// — **banner recommended 1500×500px**, 3:1), source toggles (all default **on**): `useBankrImage`, `useDexIcon`, `useDexBanner`, `useDexDescription`, `useDexLinks`
+**Editable fields:** `description`, `socialLinks`, `customIconUrl` (square **1024×1024px max**, 1:1 — matches Bankr launches), `customBannerUrl` (**exactly 1500×500px**, 3:1), source toggles (all default **on**): `useBankrImage`, `useDexIcon`, `useDexBanner`, `useDexDescription`, `useDexLinks`
 
 **Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
 
