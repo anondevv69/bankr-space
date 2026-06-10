@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useAccount, useChainId, useConfig, useConnectorClient } from 'wagmi';
+import { useAccount, useChainId, useConfig } from 'wagmi';
 import { getWalletClient } from 'wagmi/actions';
 import { base } from 'wagmi/chains';
 import type { WalletClient } from 'viem';
@@ -10,17 +10,16 @@ export function usePaymentWalletClient() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const config = useConfig();
-  const { data: connectorClient } = useConnectorClient();
 
   const resolveWalletClient = useCallback(async (): Promise<WalletClient | null> => {
-    if (connectorClient) return connectorClient as WalletClient;
     if (!address) return null;
     try {
+      // Fresh client at pay time — cached connector clients can lose signTypedData.
       return await getWalletClient(config, { account: address, chainId: base.id });
     } catch {
       return null;
     }
-  }, [address, config, connectorClient]);
+  }, [address, config]);
 
   return {
     address,
