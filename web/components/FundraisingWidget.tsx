@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { buildSpaceFundUrl, campaignProgress } from '@/lib/fundraising';
-import { paySpaceFundUrl, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
+import { campaignProgress } from '@/lib/fundraising';
+import { paySpaceFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
@@ -95,12 +95,13 @@ export function FundraisingWidget({
       return;
     }
 
-    const url = buildSpaceFundUrl(x402BaseUrl, tokenAddress, campaignId, amountUsd);
     setPaying(true);
-    setPayHint(`Confirm the $${SPACE_FUND_X402_MAX_USDC} USDC payment in your wallet…`);
+    setPayHint(
+      `MetaMask will ask you to sign a $${SPACE_FUND_X402_MAX_USDC} USDC authorization (not a full wallet drain). Approve the Bankr x402 signature, then wait…`
+    );
 
     try {
-      const result = await paySpaceFundUrl(address, url);
+      const result = await paySpaceFund(address, tokenAddress, campaignId, amountUsd);
       if (result.success) {
         setPayHint(
           result.message ||
@@ -263,7 +264,8 @@ export function FundraisingWidget({
           >
             Bankr x402
           </a>
-          . Connect wallet to pay.
+          . MetaMask may warn about an unknown contract — that is the x402 USDC facilitator; you authorize exactly $
+          {SPACE_FUND_X402_MAX_USDC} USDC, not your full balance.
         </p>
       )}
     </div>

@@ -47,24 +47,46 @@ function formatPayError(data: unknown, status: number): string {
   return `Payment failed (${status})`;
 }
 
-export async function paySpaceFundUrl(walletAddress: Address, fundUrl: string) {
-  const response = await fetch(fundUrl);
-  if (response.status !== 402) {
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(formatPayError(data, response.status));
+type PayResult = {
+  success?: boolean;
+  raisedUsd?: number;
+  goalUsd?: number;
+  message?: string;
+  error?: string;
+};
+
+async function proxyX402(
+  tokenAddress: string,
+  campaignId: string,
+  amountUsd: number,
+  xPayment?: string
+): Promise<{ status: number; data: unknown }> {
+  const res = await fetch(`/api/communities/${tokenAddress}/fundraising/x402`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId, amountUsd, xPayment }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { status: res.status, data };
+}
+
+export async function paySpaceFund(
+  walletAddress: Address,
+  tokenAddress: string,
+  campaignId: string,
+  amountUsd: number
+): Promise<PayResult> {
+  const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
+
+  if (status !== 402) {
+    if (status >= 400) {
+      throw new Error(formatPayError(data, status));
     }
-    return data as {
-      success?: boolean;
-      raisedUsd?: number;
-      goalUsd?: number;
-      message?: string;
-      error?: string;
-    };
+    return data as PayResult;
   }
 
-  const body = await response.json();
-  const { x402Version, accepts } = body as { x402Version?: number; accepts?: unknown[] };
+  const body = data as { x402Version?: number; accepts?: unknown[] };
+  const { x402Version, accepts } = body;
   if (!Array.isArray(accepts) || accepts.length === 0) {
     throw new Error('No payment options returned by x402 endpoint');
   }
@@ -94,23 +116,10 @@ export async function paySpaceFundUrl(walletAddress: Address, fundUrl: string) {
     selected
   );
 
-  const paidResponse = await fetch(fundUrl, {
-    headers: {
-      'X-PAYMENT': paymentHeader,
-      'Access-Control-Expose-Headers': 'X-PAYMENT-RESPONSE',
-    },
-  });
-
-  const data = await paidResponse.json().catch(() => ({}));
-  if (!paidResponse.ok) {
-    throw new Error(formatPayError(data, paidResponse.status));
+  const paid = await proxyX402(tokenAddress, campaignId, amountUsd, paymentHeader);
+  if (paid.status >= 400) {
+    throw new Error(formatPayError(paid.data, paid.status));
   }
 
-  return data as {
-    success?: boolean;
-    raisedUsd?: number;
-    goalUsd?: number;
-    message?: string;
-    error?: string;
-  };
+  return paid.data as PayResult;
 }
