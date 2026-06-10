@@ -2,17 +2,19 @@
   "network": "base",
   "currency": "USDC",
   "services": {
-    "space-fund": {
-      "description": "Fund a Bankr Space campaign (Dex profile, boost, or custom goal) in USDC",
+    "fund": {
+      "description": "Contribute USDC to a Bankr community fundraiser",
       "price": "1",
       "methods": ["GET"],
+      "category": "payments",
+      "tags": ["fundraiser", "community", "bankr"],
       "schema": {
         "input": {
           "type": "object",
           "properties": {
             "token": {
               "type": "string",
-              "description": "Token contract address (0x…)"
+              "description": "Community token contract address (0x...)"
             },
             "campaign": {
               "type": "string",
@@ -30,6 +32,8 @@
           "type": "object",
           "properties": {
             "success": { "type": "boolean" },
+            "token": { "type": "string" },
+            "campaignId": { "type": "string" },
             "raisedUsd": { "type": "number" },
             "goalUsd": { "type": "number" }
           }

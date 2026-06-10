@@ -6,14 +6,14 @@ Optional USDC contributions toward DexScreener or custom goals. **Posts stay fre
 
 ```text
 Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
-     → x402.bankr.bot/{wallet}/space-fund?token=0x…&campaign=dex-profile&amount=1
-     → Bankr verifies USDC ($1/request) via EIP-3009 → runs space-fund handler → settles
-     → space-fund handler returns 200 (no outbound fetch)
+     → x402.bankr.bot/{wallet}/fund?token=0x…&campaign=dex-profile&amount=1
+     → Bankr verifies USDC ($1/request) via EIP-3009 → runs fund handler → settles
+     → fund handler returns 200 (no outbound fetch)
      → bankr.space proxy credits KV via applyFundraisingCredit()
      → progress bar updates on space page
 ```
 
-There is **no** `/space-fund` route on bankr.space. The handler lives in `x402/space-fund/index.ts` and deploys to **Bankr x402 Cloud** (`bankr x402 deploy`).
+There is **no** `/fund` route on bankr.space. The handler lives in `x402/fund/index.ts` and deploys to **Bankr x402 Cloud** (`bankr x402 deploy`).
 
 **Important:** Do not use plain USDC `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request ($1 USDC).
 
@@ -28,7 +28,7 @@ USDC settles through Bankr x402 (facilitator → your configured pay-to wallet).
 cd "/Volumes/X9 Pro 1/community"
 ```
 
-If you don't have this repo, run `bankr x402 init` in an empty folder, then copy in `x402/space-fund/` and `x402/bankr.x402.json` from this project.
+If you don't have this repo, run `bankr x402 init` in an empty folder, then copy in `x402/fund/` and `x402/bankr.x402.json` from this project.
 
 3. Set secrets:
 
@@ -45,21 +45,21 @@ Use the **same** `X402_FUND_WEBHOOK_SECRET` on Vercel. Note: do **not** use `BAN
 bankr x402 deploy
 ```
 
-5. Copy the deployed URL (e.g. `https://x402.bankr.bot/0xYourWallet/space-fund`)
+5. Copy the deployed URL (e.g. `https://x402.bankr.bot/0xYourWallet/fund`)
 
 ### One endpoint for all spaces
 
-The wallet in the URL (`0x374d91a5…`) is the **Bankr wallet that owns the x402 service** (who ran `bankr x402 deploy`), not a per-token address. Every space shares this URL; the **token contract** is passed as a query param:
+The wallet in the URL (`0x374d91a5...`) is the **Bankr wallet that owns the x402 service** (who ran `bankr x402 deploy`), not a per-token address. Every space shares this URL; the **token contract** is passed as a query param:
 
-`…/space-fund?token=0xef703b8…&campaign=custom&amount=1`
+`.../fund?token=0xef703b8...&campaign=custom&amount=1`
 
-`NEXT_PUBLIC_X402_SPACE_FUND_URL` on Vercel is set **once** (site-wide). The proxy adds `?token=` per space when someone contributes.
+`NEXT_PUBLIC_X402_FUND_URL` on Vercel is set **once** (site-wide). The proxy adds `?token=` per space when someone contributes.
 
 ## Vercel env vars
 
 | Variable | Value |
 |----------|--------|
-| `NEXT_PUBLIC_X402_SPACE_FUND_URL` | `https://x402.bankr.bot/0xYourWallet/space-fund` |
+| `NEXT_PUBLIC_X402_FUND_URL` | `https://x402.bankr.bot/0xYourWallet/fund` |
 | `X402_FUND_WEBHOOK_SECRET` | Same secret as x402 handler |
 
 Redeploy after setting.

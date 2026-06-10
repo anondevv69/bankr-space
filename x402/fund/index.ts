@@ -1,12 +1,13 @@
 /**
- * Bankr x402 space-fund handler (runs on x402.bankr.bot — NOT on bankr.space).
+ * Platform-wide Bankr x402 fundraiser handler.
  *
- * Bankr verifies USDC payment, runs this handler, then settles on-chain only if
- * the handler returns HTTP 200. KV credit runs on www.bankr.space (x402 proxy route)
- * so secrets stay on Vercel and we avoid fetch() from x402 Cloud (Bun runtime crash:
- * "fetch() did not return a Response").
+ * Runs on x402.bankr.bot, not on bankr.space:
+ *   GET /{wallet}/fund?token=0x...&campaign=dex-profile&amount=1
  *
- * Query: ?token=0x…&campaign=dex-profile&amount=25
+ * Bankr verifies the USDC payment before this handler runs. This handler only
+ * validates routing metadata and returns 200 so x402 can settle. The
+ * bankr.space proxy credits the correct community after the paid request
+ * succeeds, using the token and campaign query params.
  */
 function parseRequestUrl(req: Request): URL {
   try {
@@ -32,6 +33,8 @@ export default async function handler(req: Request): Promise<Response> {
     if (!/^0x[a-f0-9]{40}$/.test(token)) {
       return jsonResponse({
         success: false,
+        token,
+        campaignId,
         raisedUsd: 0,
         goalUsd: 0,
         error: 'token query param required (0x contract address)',
@@ -41,22 +44,23 @@ export default async function handler(req: Request): Promise<Response> {
     if (!['dex-profile', 'dex-boost', 'custom'].includes(campaignId)) {
       return jsonResponse({
         success: false,
+        token,
+        campaignId,
         raisedUsd: 0,
         goalUsd: 0,
         error: 'invalid campaign query param',
       });
     }
 
-    // Match bankr.x402.json output schema. raisedUsd/goalUsd filled by bankr.space proxy.
     return jsonResponse({
       success: true,
-      raisedUsd: 0,
-      goalUsd: 0,
       token,
       campaignId,
+      raisedUsd: 0,
+      goalUsd: 0,
     });
   } catch (err) {
-    console.error('space-fund handler', err);
+    console.error('fund handler', err);
     return jsonResponse({ success: true, raisedUsd: 0, goalUsd: 0 });
   }
 }

@@ -67,7 +67,7 @@ export function FundraisingWidget({
     const count = Math.max(1, Math.min(10, Math.round(paymentCount)));
     if (!x402BaseUrl) {
       setPayHint(
-        `x402 payments are not configured yet. Ask the space operator to set NEXT_PUBLIC_X402_SPACE_FUND_URL and redeploy space-fund on Bankr x402.`
+        `x402 payments are not configured yet. Ask the operator to set NEXT_PUBLIC_X402_FUND_URL and deploy the shared fund endpoint on Bankr x402.`
       );
       return;
     }

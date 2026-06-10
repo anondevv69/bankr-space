@@ -3,7 +3,7 @@ import { createPaymentHeader, selectPaymentRequirements } from 'x402/client';
 import type { Address } from 'viem';
 import { toX402Signer } from '@/lib/x402-signer';
 
-/** Matches bankr.x402.json price for space-fund ($1 USDC per request). */
+/** Matches bankr.x402.json price for the shared fund service ($1 USDC per request). */
 export const SPACE_FUND_X402_MAX_USDC = 1;
 const USDC_BASE_UNITS = BigInt(SPACE_FUND_X402_MAX_USDC * 1_000_000);
 

@@ -11,17 +11,19 @@ type RouteParams = { params: Promise<{ address: string }> };
 const CAMPAIGN_IDS: CampaignId[] = ['dex-profile', 'dex-boost', 'custom'];
 
 /**
- * Same-origin proxy for Bankr x402 space-fund. Browsers cannot send X-PAYMENT
+ * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send X-PAYMENT
  * cross-origin to x402.bankr.bot (CORS preflight fails on 402).
  *
- * After x402 verifies USDC payment and the space-fund handler returns 200,
+ * After x402 verifies USDC payment and the fund handler returns 200,
  * credit fundraising here (Vercel KV). The x402 Cloud handler intentionally does
  * not fetch bankr.space — that fetch crashed Bun with "fetch() did not return a Response".
  */
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
-  const x402BaseUrl = process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim();
+  const x402BaseUrl =
+    process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
+    process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim();
 
   if (!x402BaseUrl) {
     return NextResponse.json({ error: 'x402 fundraising is not configured' }, { status: 503 });
