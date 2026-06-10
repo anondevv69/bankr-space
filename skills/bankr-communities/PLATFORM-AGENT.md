@@ -102,7 +102,7 @@ When raised ≥ goal (matched):
 
 | Variable | Purpose |
 |----------|---------|
-| `PLATFORM_AGENT_WALLET` | Wallet that posts/pins on opted-in spaces (default: @bankrbot agent) |
+| `PLATFORM_AGENT_WALLET` | Dedicated **Base Account** address (see `aeon-skill-pack/BASE-ACCOUNT-SETUP.md`) — posts/pins on opted-in spaces |
 | `CRON_SECRET` | Protects `GET /api/agent/platform-spaces` |
 | Fee recipient `BANKR_API_KEY` | Scoped spend for QRCoin / 0xWork (per fee recipient, not platform) |
 
