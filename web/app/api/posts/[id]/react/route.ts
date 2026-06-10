@@ -33,7 +33,10 @@ export async function POST(req: Request, { params }: RouteParams) {
     );
     if (!participation.canPost) {
       return NextResponse.json(
-        { error: 'You must hold the token or be the fee recipient / deployer to react' },
+        {
+          error:
+            'You must hold the token, be the fee recipient, or be the deployer (before verify or when allowed) to react',
+        },
         { status: 403 }
       );
     }

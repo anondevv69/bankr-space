@@ -3,6 +3,7 @@ import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import { openCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
+import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
     const normalized = mergeCommunityDefaults(community);
     const campaigns = openCampaigns(normalized.fundraising!);
     const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
-    const x402BaseUrl =
-      process.env.NEXT_PUBLIC_X402_FUND_URL?.trim() ||
-      process.env.NEXT_PUBLIC_X402_SPACE_FUND_URL?.trim() ||
-      null;
+    const x402BaseUrl = buildFundraisingX402BaseUrl(beneficiaryWallet);
 
     return NextResponse.json({
       tokenAddress,

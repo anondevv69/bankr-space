@@ -53,7 +53,7 @@ The wallet in the URL (`0x374d91a5...`) is the **Bankr wallet that owns the x402
 
 `.../fund?token=0xef703b8...&campaign=custom&amount=1`
 
-`NEXT_PUBLIC_X402_FUND_URL` on Vercel is set **once** (site-wide). The proxy adds `?token=` per space when someone contributes.
+`NEXT_PUBLIC_X402_FUND_URL` on Vercel is a **host/template**. Each space builds pay-to from the token **fee recipient** wallet (`…/{feeRecipient}/fund`) — never the deployer. The proxy adds `?token=` per space when someone contributes.
 
 ## Vercel env vars
 

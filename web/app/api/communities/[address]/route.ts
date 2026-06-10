@@ -8,12 +8,8 @@ import {
   setPostsForToken,
   getPosts,
 } from '@/lib/db';
-import {
-  fetchLaunchByAddress,
-  isLaunchOwner,
-  getLaunchOwnerWallets,
-} from '@/lib/bankr-api';
-import { canEditCommunityProfile } from '@/lib/community-owner';
+import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
+import { canEditCommunityProfile, isTokenBeneficiary } from '@/lib/community-owner';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
 import {
@@ -107,7 +103,10 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     const owner = await canEditCommunityProfile(wallet, tokenAddress);
     if (!owner) {
       return NextResponse.json(
-        { error: 'Only the token fee beneficiary can update community profile' },
+        {
+          error:
+            'Only the fee recipient or token deployer (before verify) can update this space profile',
+        },
         { status: 403 }
       );
     }
@@ -127,10 +126,22 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       nextSocialLinks = normalizeSocialLinks(body.socialLinks || {});
     }
 
+    let nextAllowDeployerEdit = current.allowDeployerEdit ?? false;
+    if (body.allowDeployerEdit !== undefined) {
+      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+        return NextResponse.json(
+          { error: 'Only the fee recipient can change deployer access' },
+          { status: 403 }
+        );
+      }
+      nextAllowDeployerEdit = Boolean(body.allowDeployerEdit);
+    }
+
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
       socialLinks: nextSocialLinks,
+      allowDeployerEdit: nextAllowDeployerEdit,
       customIconUrl:
         body.customIconUrl !== undefined
           ? normalizeBannerUrl(body.customIconUrl)
@@ -207,8 +218,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    const isOwner = isLaunchOwner(launch, wallet);
     const { feeRecipient, deployer } = getLaunchOwnerWallets(launch);
+    const isBeneficiary = await isTokenBeneficiary(wallet, tokenAddress);
 
     const community = mergeCommunityDefaults({
       tokenAddress: launch.tokenAddress,
@@ -217,9 +228,10 @@ export async function POST(req: Request, { params }: RouteParams) {
       chain: launch.chain || 'base',
       founderWallet: wallet,
       ownerWallet: feeRecipient || deployer,
-      verified: isOwner,
-      verifiedAt: isOwner ? Date.now() : null,
-      verifiedBy: isOwner ? wallet : null,
+      allowDeployerEdit: false,
+      verified: isBeneficiary,
+      verifiedAt: isBeneficiary ? Date.now() : null,
+      verifiedBy: isBeneficiary ? wallet : null,
       description: description || `${launch.tokenName} holder space`,
       imageUri: launch.imageUri ?? null,
       socialLinks: {},
@@ -243,7 +255,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       community: withResolvedProfile(synced),
-      autoVerified: isOwner,
+      autoVerified: isBeneficiary,
       links: {
         communityPage: communityUrl(launch.tokenAddress),
       },

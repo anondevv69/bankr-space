@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
-import { checkParticipation } from '@/lib/participation';
-import { isTokenBeneficiary } from '@/lib/community-owner';
+import { resolveSpacePermissions } from '@/lib/community-owner';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -24,16 +23,21 @@ export async function GET(req: Request, { params }: RouteParams) {
   try {
     const community = await getCommunity(tokenAddress);
     const chain = community?.chain || 'base';
-    const result = await checkParticipation(wallet.toLowerCase(), tokenAddress, chain);
-    const isBeneficiary = await isTokenBeneficiary(wallet.toLowerCase(), tokenAddress);
-    const isFounder =
-      community?.founderWallet?.toLowerCase() === wallet.toLowerCase();
+    const permissions = await resolveSpacePermissions(wallet.toLowerCase(), tokenAddress, chain);
+
     return NextResponse.json({
-      ...result,
-      isBeneficiary,
-      isFounder,
-      canEditProfile: isBeneficiary,
-      canPinPosts: isBeneficiary && !!community?.verified,
+      holds: permissions.holds,
+      balance: permissions.balance,
+      canPost: permissions.canPost,
+      canReact: permissions.canReact,
+      isOwner: permissions.isPrivilegedPoster,
+      isBeneficiary: permissions.isBeneficiary,
+      isDeployer: permissions.isDeployer,
+      isFounder: permissions.isFounder,
+      canEditProfile: permissions.canEditProfile,
+      canPinPosts: permissions.canPinPosts,
+      verified: permissions.verified,
+      allowDeployerEdit: permissions.allowDeployerEdit,
       wallet: wallet.toLowerCase(),
       chain,
     });

@@ -54,7 +54,7 @@ Donor → bankr.space/community/0x… → Contribute
      → Progress credited on bankr.space after settlement
 ```
 
-**One shared x402 URL** for the whole platform. The **token** and **campaign** are query params — not separate endpoints per space.
+**x402 pay-to** is the token **fee recipient** wallet (`https://x402.bankr.bot/{feeRecipient}/fund`) — never the deployer. Token and campaign are query params on that URL.
 
 Agents **cannot** complete x402 payment via HTTP alone — the linked wallet must sign USDC authorization (MetaMask / Bankr wallet on **bankr.space**).
 

@@ -62,6 +62,8 @@ export interface Community {
   verified: boolean;
   verifiedAt: number | null;
   verifiedBy: string | null;
+  /** After verify: fee recipient may grant deployer profile/pin/post access */
+  allowDeployerEdit?: boolean;
   description: string;
   /** Bankr launch image (ipfs://…), stored at create time when available */
   imageUri?: string | null;
