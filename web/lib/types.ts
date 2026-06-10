@@ -85,6 +85,10 @@ export interface Community {
   trustedDelegates?: TrustedDelegateEntry[];
   /** Cached agent classification for fee recipient wallet */
   feeRecipientAgent?: WalletAgentMeta | null;
+  /** Fee recipient opts in to Bankr Space platform agent (cross-space moderator) */
+  usePlatformAgent?: boolean;
+  /** Fee recipient authorizes platform agent to run skill-linked fundraisers when funded */
+  platformAgentSkills?: boolean;
   description: string;
   /** Bankr launch image (ipfs://…), stored at create time when available */
   imageUri?: string | null;

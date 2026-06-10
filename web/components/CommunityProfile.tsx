@@ -246,6 +246,10 @@ export function CommunityProfile({
     community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
   );
   const [allowDeployerEdit, setAllowDeployerEdit] = useState(community.allowDeployerEdit ?? false);
+  const [usePlatformAgent, setUsePlatformAgent] = useState(community.usePlatformAgent ?? false);
+  const [platformAgentSkills, setPlatformAgentSkills] = useState(
+    community.platformAgentSkills ?? false
+  );
   const [trustedDelegates, setTrustedDelegates] = useState<TrustedDelegateEntry[]>(
     community.trustedDelegates || []
   );
@@ -290,6 +294,8 @@ export function CommunityProfile({
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
     setAllowDeployerEdit(community.allowDeployerEdit ?? false);
+    setUsePlatformAgent(community.usePlatformAgent ?? false);
+    setPlatformAgentSkills(community.platformAgentSkills ?? false);
     setTrustedDelegates(community.trustedDelegates || []);
   }, [community]);
 
@@ -322,6 +328,8 @@ export function CommunityProfile({
       community.fundraising?.campaigns || DEFAULT_CAMPAIGNS.map((c) => ({ ...c }))
     );
     setAllowDeployerEdit(community.allowDeployerEdit ?? false);
+    setUsePlatformAgent(community.usePlatformAgent ?? false);
+    setPlatformAgentSkills(community.platformAgentSkills ?? false);
     setTrustedDelegates(community.trustedDelegates || []);
   }
 
@@ -373,7 +381,9 @@ export function CommunityProfile({
           useDexDescription,
           useDexLinks,
           ...(canEditFundraising ? { fundraising: { campaigns: fundraisingCampaigns } } : {}),
-          ...(canManageTeamAccess ? { allowDeployerEdit, trustedDelegates } : {}),
+          ...(canManageTeamAccess
+            ? { allowDeployerEdit, usePlatformAgent, platformAgentSkills, trustedDelegates }
+            : {}),
         }),
       });
       setEditing(false);
@@ -837,6 +847,42 @@ export function CommunityProfile({
                   title="Team access"
                   hint="Profile, post, and pin only — no fundraisers or USDC. Applies after verify."
                 >
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={usePlatformAgent}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setUsePlatformAgent(on);
+                        if (!on) setPlatformAgentSkills(false);
+                      }}
+                    />
+                    <span>
+                      <span className="font-medium">Use Bankr Space Agent</span>
+                      <span className="block text-xs text-muted mt-0.5">
+                        Our internal agent moderates this space across the platform — post, pin,
+                        profile updates. USDC always stays in your wallet.
+                      </span>
+                    </span>
+                  </label>
+                  {usePlatformAgent ? (
+                    <label className="flex items-start gap-2 text-sm cursor-pointer pl-6">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={platformAgentSkills}
+                        onChange={(e) => setPlatformAgentSkills(e.target.checked)}
+                      />
+                      <span>
+                        <span className="font-medium">Run skill-linked fundraisers</span>
+                        <span className="block text-xs text-muted mt-0.5">
+                          When funded, agent may execute QRCoin / 0xWork using your Bankr wallet
+                          (not the agent&apos;s). Requires Bankr API link — see PLATFORM-AGENT.md.
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
                   <label className="flex items-start gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"

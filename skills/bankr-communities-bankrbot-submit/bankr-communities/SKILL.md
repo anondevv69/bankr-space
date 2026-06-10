@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.13.0
+version: 1.14.0
 description: >-
   Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
 siteUrl: https://bankr.space
@@ -246,6 +246,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `FUNDRAISING.md` | **Discover open/completed fundraisers, guide USDC x402 contributions** |
 | `AGENT-WALLETS.md` | **Tag agent wallets (bankrbot, hermes) for fee recipient & trusted delegates** |
 | `SKILL-LINKED-FUNDRAISERS.md` | **Fundraiser → USDC → Bankr Skills (qrcoin, 0xwork) on [skills.bankr.bot](https://skills.bankr.bot/)** |
+| `PLATFORM-AGENT.md` | **Opt-in Bankr Space Agent across all spaces — money rules** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
 | `LINK-INTENT-ONLY.md` | Pointer to GET-LINK.md |

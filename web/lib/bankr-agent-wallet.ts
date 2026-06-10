@@ -1,6 +1,7 @@
 import { getLaunches } from './db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from './bankr-api';
 import type { WalletAgentMeta } from './types';
+import { getPlatformAgentWallet, PLATFORM_AGENT_ID, PLATFORM_AGENT_TYPE } from './platform-agent';
 import { normalizeAddr } from './utils';
 
 const BANKR_API = 'https://api.bankr.bot';
@@ -41,6 +42,17 @@ const KNOWN_AGENT_WALLETS: Record<
     source: 'known-registry',
   },
 };
+
+const platformWallet = getPlatformAgentWallet();
+if (platformWallet && !KNOWN_AGENT_WALLETS[platformWallet]) {
+  KNOWN_AGENT_WALLETS[platformWallet] = {
+    agentId: PLATFORM_AGENT_ID,
+    agentType: PLATFORM_AGENT_TYPE,
+    agentLabel: '@bankrbot · Bankr Space Agent',
+    platform: 'bankr.space',
+    source: 'known-registry',
+  };
+}
 
 function stripAt(value: string): string {
   return String(value || '').replace(/^@/, '').trim();
