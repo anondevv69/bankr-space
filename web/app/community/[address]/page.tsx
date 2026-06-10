@@ -30,6 +30,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
     isFounder: boolean;
     canEditProfile: boolean;
     canEditFundraising: boolean;
+    canManagePlatformAgent: boolean;
+    canEnablePlatformAgentSkills: boolean;
     canPinPosts: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isFounder: data.isFounder,
         canEditProfile: data.canEditProfile,
         canEditFundraising: data.canEditFundraising,
+        canManagePlatformAgent: data.canManagePlatformAgent,
+        canEnablePlatformAgentSkills: data.canEnablePlatformAgentSkills,
         canPinPosts: data.canPinPosts,
       });
     } catch {
@@ -84,6 +88,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isFounder: false,
         canEditProfile: false,
         canEditFundraising: false,
+        canManagePlatformAgent: false,
+        canEnablePlatformAgentSkills: false,
         canPinPosts: false,
       });
     }
@@ -133,6 +139,9 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canVerify = isConnected && !!holder?.isBeneficiary && !community.verified;
   const canManageTeamAccess =
     isConnected && !!holder?.isBeneficiary && !!community.verified;
+  const canManagePlatformAgent = isConnected && !!holder?.canManagePlatformAgent;
+  const canEnablePlatformAgentSkills =
+    isConnected && !!holder?.canEnablePlatformAgentSkills;
   const canEditFundraising = isConnected && !!holder?.canEditFundraising;
 
   return (
@@ -145,6 +154,9 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canManage={canEditProfile}
         canEditFundraising={canEditFundraising}
         canManageTeamAccess={canManageTeamAccess}
+        canManagePlatformAgent={canManagePlatformAgent}
+        canEnablePlatformAgentSkills={canEnablePlatformAgentSkills}
+        isDeployer={!!holder?.isDeployer}
         onUpdated={load}
       />
 

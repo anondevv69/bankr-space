@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommunities } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import { openCampaigns } from '@/lib/fundraising';
+import { completedCampaigns, openCampaigns } from '@/lib/fundraising';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
 import { communityUrl } from '@/lib/site-url';
 
@@ -29,11 +29,13 @@ export async function GET(req: Request) {
       .map((c) => {
         const normalized = mergeCommunityDefaults(c);
         const open = openCampaigns(normalized.fundraising);
+        const funded = completedCampaigns(normalized.fundraising);
+        const canExecuteSkills = !!normalized.platformAgentSkills;
         return {
           tokenAddress: normalized.tokenAddress,
           symbol: normalized.symbol,
           communityLink: communityUrl(normalized.tokenAddress),
-          platformAgentSkills: !!normalized.platformAgentSkills,
+          platformAgentSkills: canExecuteSkills,
           feeRecipientWallet: normalized.ownerWallet,
           openFundraisers: open.map((campaign) => ({
             id: campaign.id,
@@ -44,6 +46,15 @@ export async function GET(req: Request) {
               0,
               Math.round((campaign.goalUsd - campaign.raisedUsd) * 100) / 100
             ),
+          })),
+          /** x402-matched campaigns — agent may execute skills when platformAgentSkills is on. */
+          fundedCampaigns: funded.map((campaign) => ({
+            id: campaign.id,
+            label: campaign.label,
+            raisedUsd: campaign.raisedUsd,
+            goalUsd: campaign.goalUsd,
+            matched: true,
+            readyForSkillExecution: canExecuteSkills,
           })),
         };
       });

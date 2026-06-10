@@ -70,6 +70,10 @@ export type SpacePermissions = {
   trustedDelegateWallets: string[];
   canEditProfile: boolean;
   canEditFundraising: boolean;
+  /** Fee recipient (verified) or deployer — enable Bankr Space Agent (no USDC to deployer) */
+  canManagePlatformAgent: boolean;
+  /** Fee recipient only — skill-linked execution after x402 match */
+  canEnablePlatformAgentSkills: boolean;
   canPinPosts: boolean;
   holds: boolean;
   balance: number;
@@ -114,6 +118,9 @@ export async function resolveSpacePermissions(
 
   const canEditProfile = hasSocialAccess;
   const canEditFundraising = isBeneficiary;
+  const canManagePlatformAgent =
+    (verified && isBeneficiary) || isDeployer;
+  const canEnablePlatformAgentSkills = verified && isBeneficiary;
   const canPinPosts = verified && hasSocialAccess;
   const canPost = holdResult.holds || hasSocialAccess;
   const canReact = canPost;
@@ -132,6 +139,8 @@ export async function resolveSpacePermissions(
     trustedDelegateWallets: trustedDelegateWallets(trustedDelegates),
     canEditProfile,
     canEditFundraising,
+    canManagePlatformAgent,
+    canEnablePlatformAgentSkills,
     canPinPosts,
     holds: holdResult.holds,
     balance: holdResult.balance,

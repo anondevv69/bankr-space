@@ -116,7 +116,9 @@ POST /api/communities/{tokenAddress}/fundraising/x402   ← browser proxy (walle
 
 **Skill-linked fundraisers:** Raise USDC on a space, then run [Bankr Skills](https://skills.bankr.bot/) (e.g. [QRCoin](https://skills.bankr.bot/skills/qrcoin), [0xWork](https://skills.bankr.bot/skills/0xwork)) from the fee recipient's agent — see skill **`SKILL-LINKED-FUNDRAISERS.md`**.
 
-**Platform agent:** Fee recipients without their own agent can opt in to the Bankr Space Agent (`usePlatformAgent`) — `GET /api/agent/platform`. USDC always stays with fee recipient — see **`PLATFORM-AGENT.md`**.
+**Platform agent:** Deployer **or** fee recipient opts in (`usePlatformAgent`); fee recipient only for `platformAgentSkills`. Cron worker polls `GET /api/agent/platform-spaces` to run matched fundraisers. USDC always settles to fee recipient — see **`PLATFORM-AGENT.md`**.
+
+**Platform worker host (recommended):** [Aeon](https://github.com/aaronjmars/aeon) — install pack `anondevv69/bankr-community` path `aeon-skill-pack`; skill `bankr-space-worker` on `*/15` cron. Secrets: `CRON_SECRET`, `PLATFORM_AGENT_WALLET` (match Vercel). Optional Base MCP for on-chain skills. Guide: `aeon-skill-pack/README.md`.
 
 **Post tips:** Holders can tip post authors with the **community token** on Base from the space UI (no agent HTTP API).
 
@@ -167,9 +169,20 @@ Body: { "tokenAddress": "0x…", "reaction": "👍" | "❤️" | "🔥" }
 
 ### Cron (platform)
 
+**Work queue (Aeon / worker):**
+
+```http
+GET /api/agent/platform-spaces
+Authorization: Bearer {CRON_SECRET}
+```
+
+Returns opted-in verified spaces, open fundraisers, and funded campaigns ready for skill execution.
+
+**Token sync (Vercel cron):**
+
 ```http
 POST /api/cron/sync-tokens
-Header: Authorization: Bearer {CRON_SECRET}
+Authorization: Bearer {CRON_SECRET}
 ```
 
 Syncs token launches from `https://api.bankr.bot/token-launches` (hourly on Vercel cron).
