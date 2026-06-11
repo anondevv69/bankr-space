@@ -21,11 +21,12 @@ import { AuthorBlock } from './AuthorBlock';
 import { PostContent } from './PostContent';
 import { PostSourceBadge } from './PostSourceBadge';
 import { CommunityJobsPanel } from '@/components/CommunityJobsPanel';
+import { TokenBountiesPanel } from '@/components/TokenBountiesPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-type FeedTab = PostFilter | 'oxjobs';
+type FeedTab = PostFilter | 'oxjobs' | 'bounties';
 
 const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'all', label: 'All Posts', icon: '' },
@@ -33,6 +34,8 @@ const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'pinned', label: 'Pinned', icon: '📌' },
   { id: 'community', label: 'Community', icon: '👥' },
 ];
+
+const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' };
 
 const JOBS_TAB = { id: 'oxjobs' as const, label: 'Jobs', icon: '💼' };
 
@@ -458,6 +461,7 @@ export function PostFeed({
   const [filter, setFilter] = useState<FeedTab>('all');
   const [hasJobs, setHasJobs] = useState(false);
   const isOxJobs = filter === 'oxjobs';
+  const isBounties = filter === 'bounties';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -470,14 +474,10 @@ export function PostFeed({
     let cancelled = false;
     (async () => {
       try {
-        const [oxRes, poidhRes] = await Promise.all([
-          fetch(`/api/communities/${tokenAddress}/oxwork`),
-          fetch(`/api/communities/${tokenAddress}/poidh`),
-        ]);
+        const oxRes = await fetch(`/api/communities/${tokenAddress}/oxwork`);
         const oxData = oxRes.ok ? await oxRes.json() : { tasks: [] };
-        const poidhData = poidhRes.ok ? await poidhRes.json() : { bounties: [] };
         if (!cancelled) {
-          setHasJobs((oxData.tasks?.length ?? 0) > 0 || (poidhData.bounties?.length ?? 0) > 0);
+          setHasJobs((oxData.tasks?.length ?? 0) > 0);
         }
       } catch {
         if (!cancelled) setHasJobs(false);
@@ -493,16 +493,16 @@ export function PostFeed({
   }, [hasJobs, filter]);
 
   const visibleFilters = useMemo(
-    () => (hasJobs ? [...POST_FILTERS, JOBS_TAB] : POST_FILTERS),
+    () => [...POST_FILTERS, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
     [hasJobs]
   );
 
   const visiblePosts = useMemo(() => {
-    if (isOxJobs) return [];
+    if (isOxJobs || isBounties) return [];
     const postFilter = filter as PostFilter;
     const filtered = filterPosts(posts, postFilter, pins, beneficiaryWallet, ownerWallet);
     return sortFilteredPosts(filtered, postFilter, sort, pins);
-  }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet, isOxJobs]);
+  }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet, isOxJobs, isBounties]);
 
   async function togglePin(postId: string) {
     if (!address || !canManage) return;
@@ -562,7 +562,7 @@ export function PostFeed({
             </button>
           ))}
         </div>
-        {!isOxJobs ? (
+        {!isOxJobs && !isBounties ? (
           <label className="inline-flex items-center gap-2 text-sm text-muted">
             <span className="hidden sm:inline">Sort</span>
             <select
@@ -577,7 +577,13 @@ export function PostFeed({
         ) : null}
       </div>
 
-      {isOxJobs ? (
+      {isBounties ? (
+        <TokenBountiesPanel
+          tokenAddress={tokenAddress}
+          symbol={tokenSymbol}
+          canCreate={canInteract}
+        />
+      ) : isOxJobs ? (
         <CommunityJobsPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
       ) : !visiblePosts.length ? (
         <p className="text-center text-muted py-12 border border-dashed border-border rounded-xl bg-surface">

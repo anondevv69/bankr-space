@@ -5,16 +5,16 @@ export const POIDH_OPEN_BOUNTY_GUIDE_URL =
 
 export const POIDH_OPEN_BOUNTY_STEPS = [
   {
-    title: 'Community seeds the bounty',
-    body: 'Holders fund the task here in USDC ($1 per click). When the goal is met, the Bankr agent creates an open bounty on poidh.xyz with ETH from the platform wallet.',
+    title: 'Create a bounty in the Bounties tab',
+    body: 'Any token holder describes the task (Dex profile, shoutout, listing, etc.). The agent opens it on poidh.xyz as an open bounty.',
   },
   {
-    title: 'Anyone can add funds (optional)',
-    body: 'On the bounty page, use Add funds to grow the reward pool in ETH. Your share of the pool = your voting power if a winner is proposed.',
+    title: 'Add funds in ETH',
+    body: 'On the bounty page, use Add funds to grow the reward pool. Your share of the pool = your voting power when a winner is proposed.',
   },
   {
-    title: 'Do the work & submit proof',
-    body: 'Connect wallet on poidh.xyz, complete the task, and submit a photo or link as proof. No CLI required.',
+    title: 'Do the work & post proof',
+    body: 'Complete the task, post proof in the bankr.space community, then submit your community post URL on poidh.xyz.',
   },
   {
     title: 'Creator proposes winner → 48h vote',
@@ -23,4 +23,4 @@ export const POIDH_OPEN_BOUNTY_STEPS = [
 ] as const;
 
 export const POIDH_COMMUNITY_TASK_INTRO =
-  'Open bounties on POIDH are crowdfunded outcome markets: pool ETH on-chain, verify proof together, pay automatically. Better for human tasks (photos, tweets, IRL) than agent-only marketplaces.';
+  'Open bounties on POIDH are crowdfunded outcome markets: create a task in the Bounties tab, pool ETH on-chain, verify proof together, pay automatically.';

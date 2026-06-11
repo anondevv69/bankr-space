@@ -7,7 +7,7 @@ import { payAgentPoolFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { AgentPoolSkillId } from '@/lib/types';
-import { PoidhOpenBountyGuide } from '@/components/PoidhOpenBountyGuide';
+import { isActiveAgentPoolSkill } from '@/lib/agent-pool-legacy-poidh';
 
 type AgentPoolView = {
   skillId: AgentPoolSkillId;
@@ -50,7 +50,9 @@ export function AgentPoolWidget({
       const res = await fetch(`/api/communities/${tokenAddress}/agent-pool`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
-      const open = (data.campaigns || []).filter((c: AgentPoolView) => !c.funded);
+      const open = (data.campaigns || []).filter(
+        (c: AgentPoolView) => !c.funded && isActiveAgentPoolSkill(c.skillId)
+      );
       setCampaigns(open);
       setX402BaseUrl(data.x402BaseUrl || null);
       if (open[0]?.skillId) {
@@ -164,8 +166,8 @@ export function AgentPoolWidget({
           <div className="text-sm font-semibold">Fund this task</div>
           <p className="text-xs text-muted mt-1">
             {layout === 'sidebar'
-              ? `$1 USDC per click toward the goal below.`
-              : `Holders chip in so the Bankr Space Agent can run tasks for $${symbol} — QRCoin listings, 0xWork bounties, and more.`}
+              ? `$1 USDC per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
+              : `Holders chip in so the Bankr Space Agent can run 0xWork or QRCoin tasks for $${symbol}.`}
           </p>
         </div>
 
@@ -182,7 +184,7 @@ export function AgentPoolWidget({
                     : 'text-muted hover:text-text'
                 }`}
               >
-                {c.skillId === 'poidh' ? 'POIDH' : c.skillId === 'qrcoin' ? 'QRCoin' : '0xWork'}
+                {c.skillId === 'qrcoin' ? 'QRCoin' : '0xWork'}
               </button>
             ))}
           </div>
@@ -202,17 +204,9 @@ export function AgentPoolWidget({
             />
           </div>
           <p className="text-[11px] text-muted mt-1">
-            ${active.remainingUsd.toLocaleString()} remaining
-            {active.skillId === 'poidh'
-              ? ' · USDC seeds the POIDH open bounty (ETH on poidh.xyz)'
-              : ' · agent executes when goal is met'}
+            ${active.remainingUsd.toLocaleString()} remaining · agent executes when goal is met
           </p>
-          {active.skillId === 'poidh' ? (
-            <div className="mt-2">
-              <PoidhOpenBountyGuide compact />
-            </div>
-          ) : null}
-          {(active.skillId === '0xwork' || active.skillId === 'poidh') && active.workBrief?.trim() ? (
+          {active.skillId === '0xwork' && active.workBrief?.trim() ? (
             <div className="mt-2 p-2 rounded-md border border-border bg-bg/50">
               <div className="text-[10px] uppercase tracking-wide text-muted mb-1">
                 Planned work

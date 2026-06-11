@@ -1,6 +1,7 @@
 import type { Community, PinnedPost, Post } from './types';
 import { normalizeFundraising } from './fundraising';
 import { normalizeAgentPool } from './agent-pool';
+import { normalizePoidhBounties } from './poidh-community-bounties';
 
 export function normalizePinnedPosts(community: Community): PinnedPost[] {
   if (community.pinnedPosts?.length) {
@@ -64,6 +65,7 @@ export function mergeCommunityDefaults(community: Community): Community {
     profileSyncMeta: community.profileSyncMeta || {},
     fundraising: normalizeFundraising(community.fundraising),
     agentPool: normalizeAgentPool(community.agentPool),
+    poidhBounties: normalizePoidhBounties(community.poidhBounties),
     allowDeployerEdit: community.allowDeployerEdit ?? false,
     trustedDelegates: community.trustedDelegates ?? [],
     feeRecipientAgent: community.feeRecipientAgent ?? null,
