@@ -81,6 +81,70 @@ export function pendingPoidhBounties(state: PoidhBountyState | undefined | null)
   );
 }
 
+export function normalizePoidhBountyTitle(title: string): string {
+  return title.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** Collapse duplicate pending rows (same title) — keeps earliest request. Not agent memory; KV cleanup. */
+export function dedupePendingPoidhBounties(state: PoidhBountyState): {
+  state: PoidhBountyState;
+  removed: number;
+} {
+  const onChain = state.bounties.filter((b) => b.poidhBountyId != null);
+  const completed = state.bounties.filter(
+    (b) => b.poidhBountyId == null && b.status === 'completed'
+  );
+  const pending = state.bounties.filter(
+    (b) => b.poidhBountyId == null && b.status !== 'completed'
+  );
+
+  const byTitle = new Map<string, PoidhCommunityBounty>();
+  let removed = 0;
+  for (const b of pending) {
+    const key = normalizePoidhBountyTitle(b.title);
+    const existing = byTitle.get(key);
+    if (!existing) {
+      byTitle.set(key, b);
+      continue;
+    }
+    if (b.createdAt < existing.createdAt) {
+      byTitle.set(key, b);
+    }
+    removed += 1;
+  }
+
+  if (removed === 0) {
+    return { state, removed: 0 };
+  }
+
+  const bounties = [...onChain, ...byTitle.values(), ...completed].sort(
+    (a, b) => b.createdAt - a.createdAt
+  );
+
+  return {
+    state: {
+      ...state,
+      bounties,
+      lastSpinUpError: removed > 0 ? null : state.lastSpinUpError,
+    },
+    removed,
+  };
+}
+
+export function hasPendingPoidhTitle(
+  state: PoidhBountyState | undefined | null,
+  title: string
+): boolean {
+  const key = normalizePoidhBountyTitle(title);
+  return pendingPoidhBounties(state).some(
+    (b) => normalizePoidhBountyTitle(b.title) === key
+  );
+}
+
+export function spaceBountiesTabUrl(tokenAddress: string): string {
+  return `https://www.bankr.space/community/${tokenAddress.toLowerCase()}#bounties`;
+}
+
 export function bountyPublicUrl(bounty: PoidhCommunityBounty): string | null {
   if (bounty.poidhBountyId == null) return null;
   return poidhBountyUrl(bounty.poidhBountyId);

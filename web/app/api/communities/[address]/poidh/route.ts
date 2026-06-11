@@ -7,6 +7,8 @@ import {
   bountyDescriptionForDisplay,
   POIDH_BOUNTY_GUIDE_URL,
   pendingPoidhBounties,
+  dedupePendingPoidhBounties,
+  spaceBountiesTabUrl,
 } from '@/lib/poidh-community-bounties';
 import {
   poidhSpinUpSummary,
@@ -45,6 +47,22 @@ export async function GET(req: Request, { params }: RouteParams) {
     }
 
     let merged = mergeCommunityDefaults(community);
+    const deduped = dedupePendingPoidhBounties(merged.poidhBounties!);
+    if (deduped.removed > 0) {
+      const communities = await getCommunities();
+      const idx = communities.findIndex(
+        (c) => c.tokenAddress.toLowerCase() === tokenAddress
+      );
+      if (idx !== -1) {
+        communities[idx] = mergeCommunityDefaults({
+          ...communities[idx],
+          poidhBounties: deduped.state,
+        });
+        await setCommunities(communities);
+        merged = mergeCommunityDefaults(communities[idx]);
+      }
+    }
+
     const hasPending = pendingPoidhBounties(merged.poidhBounties).length > 0;
 
     if (trySpinUp && hasPending) {
@@ -88,6 +106,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       symbol: merged.symbol,
       enabled: state?.enabled !== false,
       spinUp,
+      bountiesTabUrl: spaceBountiesTabUrl(tokenAddress),
       links: {
         poidh: 'https://poidh.xyz/base',
         openBountyGuide: POIDH_BOUNTY_GUIDE_URL,

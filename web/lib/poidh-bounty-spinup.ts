@@ -1,6 +1,6 @@
 import { getCommunities, getCommunity, setCommunities } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import { pendingPoidhBounties } from '@/lib/poidh-community-bounties';
+import { pendingPoidhBounties, dedupePendingPoidhBounties } from '@/lib/poidh-community-bounties';
 import { fetchPoidhBountiesForSpace } from '@/lib/poidh-api';
 import { createPlatformAgentPost } from '@/lib/agent-pool-feed';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
@@ -71,7 +71,7 @@ async function linkFromOnChain(community: Community): Promise<number> {
     issuerWallets: issuers,
     symbol: community.symbol,
     tokenAddress: community.tokenAddress,
-    scanLimit: 100,
+    scanLimit: 24,
   });
 
   let linked = 0;
@@ -136,6 +136,13 @@ async function spinUpNextPoidhBounty(
   options?: { force?: boolean }
 ): Promise<{ status: string; message?: string; linked?: number }> {
   let mergedCommunity = mergeCommunityDefaults(community);
+  const deduped = dedupePendingPoidhBounties(mergedCommunity.poidhBounties!);
+  if (deduped.removed > 0) {
+    await savePoidhState(mergedCommunity.tokenAddress, deduped.state);
+    const refreshed = await getCommunity(mergedCommunity.tokenAddress);
+    if (refreshed) mergedCommunity = mergeCommunityDefaults(refreshed);
+  }
+
   const state = mergedCommunity.poidhBounties;
   if (!state?.enabled) {
     return { status: 'skipped', message: 'poidh bounties disabled' };

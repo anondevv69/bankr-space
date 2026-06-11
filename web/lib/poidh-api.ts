@@ -1,6 +1,6 @@
 import { createPublicClient, http, type Address } from 'viem';
 import { base } from 'viem/chains';
-import { poidhRead } from './poidh-contract';
+import { poidhRead, readBountyCounterCached } from './poidh-contract';
 
 /** PoidhV3 on Base mainnet — https://docs.poidh.xyz/deployment.html */
 export const POIDH_V3_BASE = '0x5555Fa783936C260f77385b4E153B9725feF1719' as Address;
@@ -131,19 +131,11 @@ export async function fetchPoidhBountiesForSpace(options: {
   );
   const primaryIssuer = [...issuers][0] || '';
   const spaceUrl = `https://www.bankr.space/community/${options.tokenAddress.toLowerCase()}`;
-  const scanLimit = Math.min(Math.max(options.scanLimit ?? 80, 10), 200);
+  const scanLimit = Math.min(Math.max(options.scanLimit ?? 24, 8), 60);
 
   let counter = 0;
   try {
-    counter = Number(
-      await poidhRead(() =>
-        publicClient.readContract({
-          address: POIDH_V3_BASE,
-          abi: poidhAbi,
-          functionName: 'bountyCounter',
-        })
-      )
-    );
+    counter = await readBountyCounterCached();
   } catch {
     return { bounties: [], total: 0, issuerWallet: primaryIssuer, symbol: options.symbol, spaceUrl };
   }
@@ -159,7 +151,10 @@ export async function fetchPoidhBountiesForSpace(options: {
       continue;
     }
     matched.push(bounty);
-    if (matched.length >= 25) break;
+    if (matched.length >= 12) break;
+    if ((counter - id) % 4 === 3) {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    }
   }
 
   matched.sort((a, b) => b.createdAt - a.createdAt);

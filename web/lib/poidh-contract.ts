@@ -1,9 +1,12 @@
 import {
   createPublicClient,
+  decodeEventLog,
   formatEther,
   http,
   parseEther,
   type Address,
+  type Hash,
+  type TransactionReceipt,
   type WalletClient,
 } from 'viem';
 import { base } from 'wagmi/chains';
@@ -40,6 +43,21 @@ export const poidhV3Abi = [
     outputs: [{ type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'id', type: 'uint256' },
+      { indexed: true, name: 'issuer', type: 'address' },
+      { indexed: false, name: 'title', type: 'string' },
+      { indexed: false, name: 'description', type: 'string' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: false, name: 'createdAt', type: 'uint256' },
+      { indexed: false, name: 'isOpenBounty', type: 'bool' },
+      { indexed: false, name: 'round', type: 'uint256' },
+    ],
+    name: 'BountyCreated',
+    type: 'event',
   },
   {
     inputs: [
@@ -240,6 +258,69 @@ export type PoidhBountyDetail = {
 };
 
 const ZERO = '0x0000000000000000000000000000000000000000';
+
+const BOUNTY_CREATED_TOPIC =
+  '0xd265c5d6a9224c4853317e9e3262b0605b45f0e87c8bfd17d020e54a87c439af' as Hash;
+
+let bountyCounterCache: { value: number; at: number } | null = null;
+const BOUNTY_COUNTER_CACHE_MS = 45_000;
+
+/** Short-lived cache — avoids hammering bountyCounter during spin-up + linking. */
+export async function readBountyCounterCached(force = false): Promise<number> {
+  const now = Date.now();
+  if (
+    !force &&
+    bountyCounterCache &&
+    now - bountyCounterCache.at < BOUNTY_COUNTER_CACHE_MS
+  ) {
+    return bountyCounterCache.value;
+  }
+  const value = Number(
+    await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'bountyCounter',
+      })
+    )
+  );
+  bountyCounterCache = { value, at: now };
+  return value;
+}
+
+export function invalidateBountyCounterCache(): void {
+  bountyCounterCache = null;
+}
+
+/** Resolve new bounty id from tx receipt logs — no extra bountyCounter eth_call. */
+export function parseBountyIdFromCreateReceipt(
+  receipt: TransactionReceipt,
+  issuer: Address
+): number | null {
+  const issuerLower = issuer.toLowerCase();
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== POIDH_V3_BASE.toLowerCase()) continue;
+    if (log.topics[0]?.toLowerCase() !== BOUNTY_CREATED_TOPIC.toLowerCase()) continue;
+    try {
+      const decoded = decodeEventLog({
+        abi: poidhV3Abi,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (decoded.eventName !== 'BountyCreated') continue;
+      const args = decoded.args as {
+        id?: bigint;
+        issuer?: Address;
+      };
+      if (args.issuer?.toLowerCase() !== issuerLower) continue;
+      const id = Number(args.id);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 export async function poidhRead<T>(fn: () => Promise<T>, retries = 5): Promise<T> {
   let lastErr: unknown;

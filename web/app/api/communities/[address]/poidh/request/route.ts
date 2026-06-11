@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { getCommunities, setCommunities } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import { resolveSpacePermissions } from '@/lib/community-owner';
-import { createCommunityPoidhBounty } from '@/lib/poidh-community-bounties';
+import {
+  createCommunityPoidhBounty,
+  dedupePendingPoidhBounties,
+  hasPendingPoidhTitle,
+} from '@/lib/poidh-community-bounties';
 import { spinUpPoidhBountiesForCommunity } from '@/lib/poidh-bounty-spinup';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -54,7 +58,18 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const current = mergeCommunityDefaults(communities[index]);
-    const state = current.poidhBounties!;
+    const deduped = dedupePendingPoidhBounties(current.poidhBounties!);
+    let state = deduped.state;
+
+    if (hasPendingPoidhTitle(state, title)) {
+      return NextResponse.json(
+        {
+          error: `A bounty titled "${title}" is already opening on-chain — wait for it to go live or refresh.`,
+        },
+        { status: 409 }
+      );
+    }
+
     const bounty = createCommunityPoidhBounty({
       title,
       description,
@@ -69,6 +84,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         ...state,
         bounties: [...state.bounties, bounty],
         spinUpAt: Date.now(),
+        lastSpinUpError: deduped.removed > 0 ? null : state.lastSpinUpError,
       },
     });
     communities[index] = saved;

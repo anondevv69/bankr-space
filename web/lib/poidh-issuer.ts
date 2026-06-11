@@ -9,10 +9,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'wagmi/chains';
 import { normalizeAddr } from './utils';
 import {
+  invalidateBountyCounterCache,
+  parseBountyIdFromCreateReceipt,
   POIDH_V3_BASE,
   poidhPublicClient,
   poidhRead,
   poidhV3Abi,
+  readBountyCounterCached,
 } from './poidh-contract';
 
 const DEFAULT_SEED_ETH = '0.001';
@@ -110,7 +113,12 @@ async function issuerWriteContract(options: {
   args: readonly [bigint, bigint];
 }): Promise<`0x${string}`>;
 async function issuerWriteContract(options: {
-  functionName: 'createOpenBounty' | 'submitClaimForVote' | 'acceptClaim';
+  functionName: 'joinOpenBounty';
+  args: readonly [bigint];
+  value: bigint;
+}): Promise<`0x${string}`>;
+async function issuerWriteContract(options: {
+  functionName: 'createOpenBounty' | 'submitClaimForVote' | 'acceptClaim' | 'joinOpenBounty';
   args: readonly unknown[];
   value?: bigint;
 }): Promise<`0x${string}`> {
@@ -209,17 +217,15 @@ async function resolveBountyIdAfterCreate(
     throw new Error('POIDH createOpenBounty transaction reverted on-chain');
   }
 
-  const counter = Number(
-    await poidhRead(() =>
-      poidhPublicClient.readContract({
-        address: POIDH_V3_BASE,
-        abi: poidhV3Abi,
-        functionName: 'bountyCounter',
-      })
-    )
-  );
+  const fromLog = parseBountyIdFromCreateReceipt(receipt, issuer);
+  if (fromLog != null) {
+    invalidateBountyCounterCache();
+    return fromLog;
+  }
 
-  for (let id = counter - 1; id >= Math.max(1, counter - 5); id -= 1) {
+  const counter = await readBountyCounterCached(true);
+
+  for (let id = counter - 1; id >= Math.max(1, counter - 3); id -= 1) {
     const row = await readBountyRow(id);
     if (!row) continue;
     if (String(row[1]).toLowerCase() === issuer.toLowerCase()) {
@@ -250,7 +256,33 @@ export async function poidhIssuerCreateOpenBounty(options: {
   });
 
   const bountyId = await resolveBountyIdAfterCreate(hash, issuer);
+  invalidateBountyCounterCache();
   return { bountyId, txHash: hash, issuer };
+}
+
+const MAX_ISSUER_SEED_ETH = 0.1;
+
+export async function poidhIssuerJoinBounty(options: {
+  bountyId: number;
+  ethAmount: string;
+}): Promise<{ txHash: `0x${string}` }> {
+  const eth = Number(options.ethAmount);
+  if (!Number.isFinite(eth) || eth <= 0) {
+    throw new Error('ethAmount must be a positive number');
+  }
+  if (eth > MAX_ISSUER_SEED_ETH) {
+    throw new Error(`Issuer seed capped at ${MAX_ISSUER_SEED_ETH} ETH per request`);
+  }
+  const value = parseEther(String(eth));
+  const hash = await issuerWriteContract({
+    functionName: 'joinOpenBounty',
+    args: [BigInt(options.bountyId)],
+    value,
+  });
+  await poidhRead(() =>
+    poidhPublicClient.waitForTransactionReceipt({ hash, confirmations: 1 })
+  );
+  return { txHash: hash };
 }
 
 export async function poidhIssuerSubmitClaimForVote(options: {
