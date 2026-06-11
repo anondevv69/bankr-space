@@ -17,8 +17,8 @@ export const POIDH_OPEN_BOUNTY_STEPS = [
     body: 'Complete the task, then paste a proof link on the bounty card — tweet URL, screenshot/image link, or your bankr.space community page if you posted there.',
   },
   {
-    title: 'Issuer proposes winner → 48h vote',
-    body: 'After you submit a claim, the issuer wallet proposes it for voting. Contributors vote yes/no for 48 hours (weighted by funds). If yes wins, the worker is paid from the pool automatically.',
+    title: 'Finalize claim',
+    body: 'After you submit a claim, the issuer wallet pays out. If multiple people funded the bounty, contributors vote yes/no for 48 hours (weighted by funds). If only the issuer funded it, the claim is accepted immediately — no vote.',
   },
 ] as const;
 

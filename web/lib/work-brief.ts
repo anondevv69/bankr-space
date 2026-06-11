@@ -141,8 +141,8 @@ export function buildPoidhAgentPrompt(options: {
     return [
       `Use the poidh-bounty skill (${skillUrl}) on Base chain.`,
       'Use createOpenBounty ONLY (not solo) — this is POIDH’s crowdfunded open bounty product.',
-      'Open bounties let others add ETH on poidh.xyz later; contributors vote yes/no for 48h when you propose a winner.',
-      'Only the bounty creator may submitClaimForVote / propose winner — workers submit claims, creator picks the best.',
+      'Open bounties let others add ETH on poidh.xyz later; use acceptClaim when only the issuer funded, submitClaimForVote when multiple contributors exist.',
+      'Only the bounty creator may acceptClaim / submitClaimForVote — workers submit claims, creator picks the best.',
       'Post one open bounty per line below.',
       tasks,
       `Space: ${spaceUrl}`,

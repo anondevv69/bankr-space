@@ -46,7 +46,7 @@ GET https://bankr.space/api/communities/{tokenAddress}/poidh
 1. Holder creates bounty (API or Bounties tab UI)
 2. Anyone adds ETH → **Add funds** (voting power = share of pool)
 3. Worker completes task → **Submit claim** + proof URL
-4. Claim submitter clicks **Request vote** → 48h funder vote starts
+4. Claim submitter clicks **Accept & pay** (issuer-only pool) or **Request vote** (multiple funders) → 48h vote only when needed
 5. Funders **Vote yes/no** on bankr.space
 6. After deadline → **Resolve vote** → winner withdraws ETH
 

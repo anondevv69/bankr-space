@@ -120,15 +120,19 @@ export function buildPoidhProposeClaimPrompt(options: {
   bountyId: number;
   claimId: number;
   claimName: string;
+  needsContributorVote?: boolean;
 }): string {
   const skillUrl =
     'https://github.com/picsoritdidnthappen/poidh-app/blob/prod/SKILL.md';
+  const finalize = options.needsContributorVote
+    ? `Call submitClaimForVote(bountyId=${options.bountyId}, claimId=${options.claimId}). This starts a 48h contributor vote.`
+    : `Call acceptClaim(bountyId=${options.bountyId}, claimId=${options.claimId}). Only the issuer funded this bounty — no vote needed.`;
   return [
     `Use the poidh-bounty skill (${skillUrl}) on Base chain.`,
-    `Call submitClaimForVote(bountyId=${options.bountyId}, claimId=${options.claimId}).`,
+    finalize,
     'Only the bounty issuer wallet may call this — use the platform agent wallet.',
     `Bounty: "${options.claimName}" for $${options.symbol.replace(/^\$/, '')} (${options.tokenAddress}).`,
-    'This starts a 48h contributor vote. Return tx hash and confirmation.',
+    'Return tx hash and confirmation.',
   ].join('\n');
 }
 

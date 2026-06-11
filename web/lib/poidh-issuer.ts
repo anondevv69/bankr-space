@@ -106,7 +106,11 @@ async function issuerWriteContract(options: {
   args: readonly [bigint, bigint];
 }): Promise<`0x${string}`>;
 async function issuerWriteContract(options: {
-  functionName: 'createOpenBounty' | 'submitClaimForVote';
+  functionName: 'acceptClaim';
+  args: readonly [bigint, bigint];
+}): Promise<`0x${string}`>;
+async function issuerWriteContract(options: {
+  functionName: 'createOpenBounty' | 'submitClaimForVote' | 'acceptClaim';
   args: readonly unknown[];
   value?: bigint;
 }): Promise<`0x${string}`> {
@@ -126,6 +130,16 @@ async function issuerWriteContract(options: {
             functionName: 'createOpenBounty',
             args: options.args as [string, string],
             value: options.value!,
+            nonce,
+          });
+        }
+        if (options.functionName === 'acceptClaim') {
+          return await wallet.writeContract({
+            chain: base,
+            address: POIDH_V3_BASE,
+            abi: poidhV3Abi,
+            functionName: 'acceptClaim',
+            args: options.args as [bigint, bigint],
             nonce,
           });
         }
@@ -245,6 +259,20 @@ export async function poidhIssuerSubmitClaimForVote(options: {
 }): Promise<{ txHash: `0x${string}` }> {
   const hash = await issuerWriteContract({
     functionName: 'submitClaimForVote',
+    args: [BigInt(options.bountyId), BigInt(options.claimId)],
+  });
+  await poidhRead(() =>
+    poidhPublicClient.waitForTransactionReceipt({ hash, confirmations: 1 })
+  );
+  return { txHash: hash };
+}
+
+export async function poidhIssuerAcceptClaim(options: {
+  bountyId: number;
+  claimId: number;
+}): Promise<{ txHash: `0x${string}` }> {
+  const hash = await issuerWriteContract({
+    functionName: 'acceptClaim',
     args: [BigInt(options.bountyId), BigInt(options.claimId)],
   });
   await poidhRead(() =>

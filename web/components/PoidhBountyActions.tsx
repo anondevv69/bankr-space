@@ -60,6 +60,7 @@ function parseDetailFromApi(raw: Record<string, unknown>): PoidhBountyDetail {
       : [],
     minContributionWei: BigInt(String(raw.minContributionWei)),
     minContributionEth: String(raw.minContributionEth),
+    needsContributorVote: Boolean(raw.needsContributorVote),
   };
 }
 
@@ -246,13 +247,19 @@ export function PoidhBountyActions({
     setClaimUri('');
   }
 
-  async function requestVote(claimId: number) {
+  async function finalizeClaim(claimId: number) {
     if (!address) {
       connectWallet();
       return;
     }
-    setBusy('Request vote');
-    setHint('Starting 48h contributor vote…');
+    const needsVote = detail?.needsContributorVote ?? false;
+    const busyLabel = needsVote ? 'Request vote' : 'Accept claim';
+    setBusy(busyLabel);
+    setHint(
+      needsVote
+        ? 'Starting 48h contributor vote…'
+        : 'Accepting claim and paying out…'
+    );
     try {
       const data = await apiFetch(`/api/communities/${tokenAddress}/poidh/propose`, {
         method: 'POST',
@@ -260,11 +267,20 @@ export function PoidhBountyActions({
         client: isEmbedded ? 'bankr-app' : 'web',
         body: JSON.stringify({ bountyId: poidhBountyId, claimId }),
       });
-      setHint(data.message || 'Vote started — refresh to see voting status.');
+      setHint(
+        data.message ||
+          (needsVote ? 'Vote started — refresh to see voting status.' : 'Claim accepted — refresh to withdraw if needed.')
+      );
       window.setTimeout(() => void load(), 15_000);
       onAction?.();
     } catch (err) {
-      setHint(err instanceof Error ? err.message : 'Could not request vote');
+      setHint(
+        err instanceof Error
+          ? err.message
+          : needsVote
+            ? 'Could not request vote'
+            : 'Could not accept claim'
+      );
     } finally {
       setBusy(null);
     }
@@ -317,6 +333,7 @@ export function PoidhBountyActions({
     claims: [],
     minContributionWei: 10000000000000n,
     minContributionEth: '0.00001',
+    needsContributorVote: false,
   };
 
   const display = detail ?? fallbackDetail;
@@ -493,11 +510,14 @@ export function PoidhBountyActions({
             {display.claims.map((claim) => {
               const isVoting = display.votingClaimId === claim.id && display.voteActive;
               const isMine = claim.issuer === address?.toLowerCase();
-              const canRequestVote =
+              const canFinalize =
                 display.active &&
                 !display.voteActive &&
                 display.votingClaimId === 0 &&
                 isMine;
+              const needsVote = display.needsContributorVote;
+              const finalizeLabel = needsVote ? 'Request vote on this claim' : 'Accept & pay';
+              const finalizeBusy = needsVote ? 'Request vote' : 'Accept claim';
 
               return (
                 <li
@@ -515,14 +535,14 @@ export function PoidhBountyActions({
                   {claim.description ? (
                     <p className="text-muted whitespace-pre-wrap">{claim.description}</p>
                   ) : null}
-                  {canRequestVote ? (
+                  {canFinalize ? (
                     <button
                       type="button"
                       disabled={!!busy}
-                      onClick={() => void requestVote(claim.id)}
+                      onClick={() => void finalizeClaim(claim.id)}
                       className="mt-1 px-2.5 py-1 text-[10px] font-medium bg-accent text-white rounded disabled:opacity-50"
                     >
-                      {busy === 'Request vote' ? 'Requesting…' : 'Request vote on this claim'}
+                      {busy === finalizeBusy ? 'Confirming…' : finalizeLabel}
                     </button>
                   ) : null}
                 </li>
@@ -530,7 +550,9 @@ export function PoidhBountyActions({
             })}
           </ul>
           <p className="text-[10px] text-muted">
-            Claim submitter clicks Request vote to start 48h funder voting.
+            {display.needsContributorVote
+              ? 'Multiple funders — claim submitter requests a 48h vote.'
+              : 'Issuer-only pool — claim submitter accepts directly (no vote).'}
           </p>
         </div>
       ) : null}
