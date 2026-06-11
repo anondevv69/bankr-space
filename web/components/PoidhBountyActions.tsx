@@ -17,6 +17,7 @@ import {
   poidhWithdraw,
   type PoidhBountyDetail,
 } from '@/lib/poidh-contract';
+import { isValidProofUrl } from '@/lib/poidh-open-bounty';
 
 function parseDetailFromApi(raw: Record<string, unknown>): PoidhBountyDetail {
   return {
@@ -82,12 +83,14 @@ export function PoidhBountyActions({
   symbol,
   poidhBountyId,
   poolAmountWei,
+  poidhUrl,
   onAction,
 }: {
   tokenAddress: string;
   symbol: string;
   poidhBountyId: number;
   poolAmountWei?: string | null;
+  poidhUrl?: string | null;
   onAction?: () => void;
 }) {
   const { address, isEmbedded, connectWallet } = useAppWallet();
@@ -193,8 +196,8 @@ export function PoidhBountyActions({
       setHint('Claim name, description, and proof URL required.');
       return;
     }
-    if (!uri.includes('bankr.space/community/')) {
-      setHint('Proof URL must be a bankr.space community post link.');
+    if (!isValidProofUrl(uri)) {
+      setHint('Proof must be a full URL (https://…) — tweet, image link, etc.');
       return;
     }
     const wallet = createBrowserPaymentWalletClient(acct);
@@ -322,6 +325,19 @@ export function PoidhBountyActions({
             <span>Paid out</span>
           </>
         )}
+        {poidhUrl ? (
+          <>
+            <span>·</span>
+            <a
+              href={poidhUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-hover hover:underline"
+            >
+              poidh.xyz ↗
+            </a>
+          </>
+        ) : null}
       </div>
 
       {display.voteActive ? (
@@ -405,11 +421,11 @@ export function PoidhBountyActions({
           <div className="space-y-2">
             <div className="text-xs font-medium">Submit claim</div>
             <p className="text-[11px] text-muted leading-relaxed">
-              1. Do the task · 2. Post proof in the{' '}
+              1. Do the task · 2. Paste a proof link below (tweet, screenshot URL, etc.) · 3. Optional:{' '}
               <a href={communityBase} className="text-accent-hover hover:underline">
-                ${symbol} community
+                post in ${symbol} community
               </a>{' '}
-              · 3. Paste your post URL below
+              for discussion
             </p>
             <input
               className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-sm"
@@ -428,7 +444,7 @@ export function PoidhBountyActions({
             />
             <input
               className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-sm"
-              placeholder={`${communityBase} — your post URL`}
+              placeholder="https://x.com/… or https://… (screenshot/image link)"
               value={claimUri}
               disabled={!!busy}
               onChange={(e) => setClaimUri(e.target.value)}
