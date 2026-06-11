@@ -9,16 +9,57 @@ import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import { createBrowserPaymentWalletClient } from '@/lib/x402-signer';
 import { apiFetch } from '@/lib/wagmi';
 import {
-  fetchPoidhBountyDetail,
   participantStake,
   poidhCreateClaim,
   poidhJoinBounty,
   poidhResolveVote,
   poidhVoteClaim,
   poidhWithdraw,
-  readPendingWithdrawal,
   type PoidhBountyDetail,
 } from '@/lib/poidh-contract';
+
+function parseDetailFromApi(raw: Record<string, unknown>): PoidhBountyDetail {
+  return {
+    id: Number(raw.id),
+    issuer: String(raw.issuer),
+    name: String(raw.name || ''),
+    description: String(raw.description || ''),
+    amountWei: BigInt(String(raw.amountWei)),
+    amountEth: String(raw.amountEth),
+    active: Boolean(raw.active),
+    votingClaimId: Number(raw.votingClaimId),
+    voteYes: BigInt(String(raw.voteYes)),
+    voteNo: BigInt(String(raw.voteNo)),
+    voteDeadline: Number(raw.voteDeadline),
+    voteActive: Boolean(raw.voteActive),
+    voteEnded: Boolean(raw.voteEnded),
+    participants: Array.isArray(raw.participants)
+      ? raw.participants.map((p) => {
+          const row = p as Record<string, unknown>;
+          return {
+            address: String(row.address),
+            amountWei: BigInt(String(row.amountWei)),
+            amountEth: String(row.amountEth),
+          };
+        })
+      : [],
+    claims: Array.isArray(raw.claims)
+      ? raw.claims.map((c) => {
+          const row = c as Record<string, unknown>;
+          return {
+            id: Number(row.id),
+            issuer: String(row.issuer),
+            name: String(row.name || ''),
+            description: String(row.description || ''),
+            createdAt: Number(row.createdAt),
+            accepted: Boolean(row.accepted),
+          };
+        })
+      : [],
+    minContributionWei: BigInt(String(raw.minContributionWei)),
+    minContributionEth: String(raw.minContributionEth),
+  };
+}
 
 function formatEthDisplay(eth: string): string {
   const n = Number(eth);
@@ -65,11 +106,15 @@ export function PoidhBountyActions({
 
   const load = useCallback(async () => {
     try {
-      const d = await fetchPoidhBountyDetail(poidhBountyId);
-      setDetail(d);
-      if (address) {
-        const pending = await readPendingWithdrawal(address as Address);
-        setPendingWithdraw(pending > 0n ? formatEthDisplay(String(Number(pending) / 1e18)) : null);
+      const qs = address ? `?wallet=${encodeURIComponent(address)}` : '';
+      const res = await fetch(
+        `/api/communities/${tokenAddress}/poidh/${poidhBountyId}${qs}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load bounty');
+      setDetail(parseDetailFromApi(data.detail as Record<string, unknown>));
+      if (data.pendingWithdrawWei) {
+        setPendingWithdraw(formatEthDisplay(String(Number(data.pendingWithdrawWei) / 1e18)));
       } else {
         setPendingWithdraw(null);
       }
@@ -78,7 +123,7 @@ export function PoidhBountyActions({
     } finally {
       setLoading(false);
     }
-  }, [poidhBountyId, address]);
+  }, [poidhBountyId, address, tokenAddress]);
 
   useEffect(() => {
     void load();
@@ -215,7 +260,7 @@ export function PoidhBountyActions({
   if (!detail) {
     return (
       <p className="text-[11px] text-muted">
-        On-chain bounty not found yet — it may still be opening.
+        Could not load bounty details — refresh the page. On-chain id #{poidhBountyId}.
       </p>
     );
   }
