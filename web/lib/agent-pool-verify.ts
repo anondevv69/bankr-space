@@ -4,8 +4,13 @@ import {
   isAgentPoolCampaignFunded,
   readStoredAgentPool,
 } from '@/lib/agent-pool';
+import { createPlatformAgentPost } from '@/lib/agent-pool-feed';
+import { markAgentPoolExecuted } from '@/lib/mark-pool-executed';
 import { fetchOxWorkTasksForSpace, type OxWorkTask } from '@/lib/oxwork-api';
+import { oxWorkTaskUrl } from '@/lib/oxwork-api';
+import { fetchPoidhBountiesForSpace, poidhBountyUrl, type PoidhBounty } from '@/lib/poidh-api';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
+import { communityUrl } from '@/lib/site-url';
 import type { AgentPoolCampaign, Community } from '@/lib/types';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -15,6 +20,7 @@ export type AgentPoolVerifyResult = {
   tasksLinked: number;
   statusesUpdated: number;
   fundedAtBackfilled: number;
+  finalized: number;
 };
 
 function taskCreatedMs(task: OxWorkTask): number {
@@ -56,6 +62,50 @@ export function pickOxWorkTaskForCampaign(
   return candidates[0] ?? null;
 }
 
+export function pickPoidhBountyForCampaign(
+  bounties: PoidhBounty[],
+  campaign: AgentPoolCampaign,
+  symbol: string,
+  tokenAddress: string
+): PoidhBounty | null {
+  if (campaign.skillId !== 'poidh' || !isAgentPoolCampaignFunded(campaign)) return null;
+
+  const sinceSec =
+    (campaign.fundedAt ?? campaign.proposedAt ?? 0) > 1e12
+      ? Math.floor((campaign.fundedAt ?? campaign.proposedAt ?? 0) / 1000)
+      : Math.floor((campaign.fundedAt ?? campaign.proposedAt ?? 0) / 1000);
+  const sym = symbol.toLowerCase().replace(/^\$/, '');
+  const token = tokenAddress.toLowerCase();
+
+  const candidates = bounties
+    .filter((bounty) => {
+      const hay = `${bounty.name} ${bounty.description}`.toLowerCase();
+      const matchesSpace =
+        hay.includes(sym) ||
+        hay.includes(token) ||
+        hay.includes(`$${sym}`) ||
+        hay.includes(`bankr.space/community/${token}`);
+      if (!matchesSpace) return false;
+      if (sinceSec > 0 && bounty.createdAt < sinceSec - 120) return false;
+      return bounty.active;
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  return candidates[0] ?? null;
+}
+
+function patchCampaignFromPoidhBounty(
+  campaign: AgentPoolCampaign,
+  bounty: PoidhBounty
+): AgentPoolCampaign {
+  if (campaign.poidhBountyId === bounty.id) return campaign;
+  return {
+    ...campaign,
+    poidhBountyId: bounty.id,
+    jobLinkedAt: campaign.jobLinkedAt ?? Date.now(),
+  };
+}
+
 function patchCampaignFromTask(
   campaign: AgentPoolCampaign,
   task: OxWorkTask
@@ -75,10 +125,16 @@ function patchCampaignFromTask(
 export async function verifyAgentPoolForCommunity(
   community: Community,
   options?: { persist?: boolean }
-): Promise<{ community: Community; linked: number; statusUpdates: number; fundedAtBackfilled: number }> {
+): Promise<{
+  community: Community;
+  linked: number;
+  statusUpdates: number;
+  fundedAtBackfilled: number;
+  finalized: number;
+}> {
   const merged = mergeCommunityDefaults(community);
   if (!merged.usePlatformAgent || !merged.verified) {
-    return { community: merged, linked: 0, statusUpdates: 0, fundedAtBackfilled: 0 };
+    return { community: merged, linked: 0, statusUpdates: 0, fundedAtBackfilled: 0, finalized: 0 };
   }
 
   const pool = readStoredAgentPool(merged.agentPool);
@@ -88,6 +144,7 @@ export async function verifyAgentPoolForCommunity(
   );
 
   let oxTasks: OxWorkTask[] = [];
+  let poidhBounties: PoidhBounty[] = [];
   const needsOxWork = pool.campaigns.some(
     (c) =>
       c.skillId === '0xwork' &&
@@ -104,6 +161,23 @@ export async function verifyAgentPoolForCommunity(
       includeAllStatuses: true,
     });
     oxTasks = fetched.tasks;
+  }
+
+  const needsPoidh = pool.campaigns.some(
+    (c) =>
+      c.skillId === 'poidh' &&
+      c.enabled &&
+      isAgentPoolCampaignFunded(c) &&
+      (!c.poidhBountyId || !c.executedAt)
+  );
+
+  if (needsPoidh && posters.length) {
+    const fetched = await fetchPoidhBountiesForSpace({
+      issuerWallets: posters,
+      symbol: merged.symbol,
+      tokenAddress: merged.tokenAddress,
+    });
+    poidhBounties = fetched.bounties;
   }
 
   let linked = 0;
@@ -133,6 +207,17 @@ export async function verifyAgentPoolForCommunity(
         next = patchCampaignFromTask(next, task);
         linked += 1;
       }
+    } else if (next.skillId === 'poidh' && isAgentPoolCampaignFunded(next) && !next.poidhBountyId) {
+      const bounty = pickPoidhBountyForCampaign(
+        poidhBounties,
+        next,
+        merged.symbol,
+        merged.tokenAddress
+      );
+      if (bounty) {
+        next = patchCampaignFromPoidhBounty(next, bounty);
+        linked += 1;
+      }
     } else if (next.oxworkTaskId != null && next.skillId === '0xwork') {
       const task = oxTasks.find((t) => t.id === next.oxworkTaskId);
       if (task && task.status !== next.oxworkTaskStatus) {
@@ -150,7 +235,7 @@ export async function verifyAgentPoolForCommunity(
     fundedAtBackfilled > 0 ||
     JSON.stringify(campaigns) !== JSON.stringify(pool.campaigns);
 
-  const updated = mergeCommunityDefaults({
+  let updated = mergeCommunityDefaults({
     ...merged,
     agentPool: { ...pool, campaigns },
   });
@@ -166,7 +251,68 @@ export async function verifyAgentPoolForCommunity(
     }
   }
 
-  return { community: updated, linked, statusUpdates, fundedAtBackfilled };
+  let finalized = 0;
+  const afterPool = readStoredAgentPool(updated.agentPool);
+  for (const campaign of afterPool.campaigns) {
+    if (!isAgentPoolCampaignFunded(campaign) || campaign.executedAt) continue;
+
+    if (campaign.skillId === '0xwork' && campaign.oxworkTaskId != null) {
+      const taskUrl = oxWorkTaskUrl(campaign.oxworkTaskId);
+      const note = `0xWork task posted — ${taskUrl}`;
+      await createPlatformAgentPost(
+        updated.tokenAddress,
+        [
+          `$${updated.symbol} — community agent pool: ${campaign.label}`,
+          `Raised $${campaign.raisedUsd} / $${campaign.goalUsd} USDC — 0xJob live.`,
+          `0xJob: ${taskUrl}`,
+          communityUrl(updated.tokenAddress),
+        ].join('\n')
+      ).catch(() => undefined);
+
+      await markAgentPoolExecuted({
+        tokenAddress: updated.tokenAddress,
+        skillId: '0xwork',
+        executionNote: note,
+        oxworkTaskId: campaign.oxworkTaskId,
+      });
+      finalized += 1;
+      continue;
+    }
+
+    if (campaign.skillId === 'poidh' && campaign.poidhBountyId != null) {
+      const bountyUrl = poidhBountyUrl(campaign.poidhBountyId);
+      const note = `POIDH bounty posted — ${bountyUrl}`;
+      await createPlatformAgentPost(
+        updated.tokenAddress,
+        [
+          `$${updated.symbol} — community task: ${campaign.label}`,
+          `Raised $${campaign.raisedUsd} / $${campaign.goalUsd} USDC — POIDH bounty live.`,
+          `Claim on poidh.xyz — add funds, submit proof, vote 48h: ${bountyUrl}`,
+          communityUrl(updated.tokenAddress),
+        ].join('\n')
+      ).catch(() => undefined);
+
+      await markAgentPoolExecuted({
+        tokenAddress: updated.tokenAddress,
+        skillId: 'poidh',
+        executionNote: note,
+        poidhBountyId: campaign.poidhBountyId,
+      });
+      finalized += 1;
+    }
+  }
+
+  if (finalized > 0) {
+    const refreshed = await getCommunities();
+    const idx = refreshed.findIndex(
+      (c) => c.tokenAddress.toLowerCase() === normalizeAddr(updated.tokenAddress)
+    );
+    if (idx !== -1) {
+      updated = mergeCommunityDefaults(refreshed[idx]);
+    }
+  }
+
+  return { community: updated, linked, statusUpdates, fundedAtBackfilled, finalized };
 }
 
 export async function verifyAllAgentPools(): Promise<AgentPoolVerifyResult> {
@@ -176,6 +322,7 @@ export async function verifyAllAgentPools(): Promise<AgentPoolVerifyResult> {
   let tasksLinked = 0;
   let statusesUpdated = 0;
   let fundedAtBackfilled = 0;
+  let finalized = 0;
 
   for (const raw of communities) {
     const merged = mergeCommunityDefaults(raw);
@@ -194,6 +341,7 @@ export async function verifyAllAgentPools(): Promise<AgentPoolVerifyResult> {
     tasksLinked += result.linked;
     statusesUpdated += result.statusUpdates;
     fundedAtBackfilled += result.fundedAtBackfilled;
+    finalized += result.finalized ?? 0;
   }
 
   return {
@@ -202,5 +350,6 @@ export async function verifyAllAgentPools(): Promise<AgentPoolVerifyResult> {
     tasksLinked,
     statusesUpdated,
     fundedAtBackfilled,
+    finalized,
   };
 }

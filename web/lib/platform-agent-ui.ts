@@ -3,7 +3,7 @@
 export const PLATFORM_AGENT_DOES = [
   'Post fundraiser & community-pool milestone updates (max once per goal per day)',
   'Pin important agent posts',
-  'Lane B: run QRCoin / 0xWork after community pool is funded (x402 → agent wallet)',
+  'Lane B: run POIDH / QRCoin / 0xWork after community pool is funded (x402 → agent wallet)',
   'Lane A: run skills after beneficiary fundraiser matched (fee recipient authorizes)',
   'Post skill results on the feed and 0xJobs tab',
 ] as const;
@@ -26,4 +26,4 @@ export const COMMUNITY_AGENT_LANE_NOTE =
   'The Bankr Space Agent works for holders — bagwork, QRCoin, milestones. Fee recipient fundraisers are for their own token programs.';
 
 export const WORK_BRIEF_NOTE =
-  'One task per line. Use description — $bounty — Category (Social, Creative, or Writing). $SYMBOL and the space URL are filled in automatically. Leave blank for default bagwork tasks.';
+  'One task per line: description — $amount (optional category for 0xWork). $SYMBOL and the space URL are filled in automatically.';

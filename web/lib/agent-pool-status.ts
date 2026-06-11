@@ -1,6 +1,7 @@
 import type { AgentPoolCampaign } from './types';
 import { isAgentPoolCampaignFunded } from './agent-pool';
 import { oxWorkTaskUrl } from './oxwork-api';
+import { poidhBountyUrl } from './poidh-api';
 
 /** Funded but no job / execution after this long → stuck. */
 export const AGENT_POOL_STUCK_MS = 30 * 60 * 1000;
@@ -31,12 +32,16 @@ export function agentPoolExecutionPhase(
   if (campaign.executedAt) return 'executed';
   if (!isAgentPoolCampaignFunded(campaign)) return 'open';
 
-  if (campaign.bankrAgentJobId?.trim()) {
-    return 'pending_job';
+  if (campaign.oxworkTaskId != null && campaign.skillId === '0xwork' && !campaign.executedAt) {
+    return 'job_linked';
   }
 
-  if (campaign.oxworkTaskId != null && campaign.skillId === '0xwork') {
+  if (campaign.poidhBountyId != null && campaign.skillId === 'poidh' && !campaign.executedAt) {
     return 'job_linked';
+  }
+
+  if (campaign.bankrAgentJobId?.trim()) {
+    return 'pending_job';
   }
 
   const since = agentPoolFundedSince(campaign);
@@ -47,18 +52,22 @@ export function agentPoolExecutionPhase(
   return 'funded';
 }
 
-export function agentPoolStatusLabel(phase: AgentPoolExecutionPhase): string {
+export function agentPoolStatusLabel(
+  phase: AgentPoolExecutionPhase,
+  campaign?: AgentPoolCampaign
+): string {
+  const isPoidh = campaign?.skillId === 'poidh';
   switch (phase) {
     case 'open':
       return 'Open — accepting contributions';
     case 'funded':
-      return 'Funded — awaiting agent job';
+      return 'Funded — awaiting agent';
     case 'pending_job':
-      return 'Agent working — posting 0xJob';
+      return isPoidh ? 'Agent working — posting POIDH bounty' : 'Agent working — posting job';
     case 'stuck':
-      return 'Funded — agent delayed (check worker)';
+      return 'Funded — agent delayed (check back soon)';
     case 'job_linked':
-      return '0xJob posted — open on 0xWork';
+      return isPoidh ? 'POIDH bounty live — claim on poidh.xyz' : 'Job posted — open for workers';
     case 'executed':
       return 'Executed by agent';
     default:
@@ -87,10 +96,16 @@ export function agentPoolOxWorkUrl(campaign: AgentPoolCampaign): string | null {
   return oxWorkTaskUrl(campaign.oxworkTaskId);
 }
 
+export function agentPoolPoidhUrl(campaign: AgentPoolCampaign): string | null {
+  if (campaign.poidhBountyId == null) return null;
+  return poidhBountyUrl(campaign.poidhBountyId);
+}
+
 export type AgentPoolCampaignStatusView = AgentPoolCampaign & {
   phase: AgentPoolExecutionPhase;
   statusLabel: string;
   oxworkUrl: string | null;
+  poidhUrl: string | null;
   fundedSince: number | null;
   waitingMs: number | null;
 };
@@ -104,8 +119,9 @@ export function enrichAgentPoolCampaignStatus(
   return {
     ...campaign,
     phase,
-    statusLabel: agentPoolStatusLabel(phase),
+    statusLabel: agentPoolStatusLabel(phase, campaign),
     oxworkUrl: agentPoolOxWorkUrl(campaign),
+    poidhUrl: agentPoolPoidhUrl(campaign),
     fundedSince,
     waitingMs: fundedSince != null && !campaign.executedAt ? now - fundedSince : null,
   };

@@ -141,7 +141,7 @@ export function applyAgentPoolAdminSave(
       enabled,
       goalUsd: Number.isFinite(goalUsd) && goalUsd >= 1 ? goalUsd : was.goalUsd,
       raisedUsd,
-      workBrief: inc.skillId === '0xwork' ? inc.workBrief : was.workBrief,
+      workBrief: inc.skillId === '0xwork' || inc.skillId === 'poidh' ? inc.workBrief : was.workBrief,
     });
   }
 

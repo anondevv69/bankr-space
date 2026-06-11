@@ -1,11 +1,17 @@
 import type { AgentPoolCampaign, AgentPoolSkillId, AgentPoolState } from './types';
 
-export const AGENT_POOL_SKILL_IDS: AgentPoolSkillId[] = ['qrcoin', '0xwork'];
+export const AGENT_POOL_SKILL_IDS: AgentPoolSkillId[] = ['poidh', '0xwork', 'qrcoin'];
 
 export const AGENT_POOL_SKILL_META: Record<
   AgentPoolSkillId,
   { label: string; defaultGoalUsd: number; description: string }
 > = {
+  poidh: {
+    label: 'POIDH — open bounty (human tasks)',
+    defaultGoalUsd: 5,
+    description:
+      'Open bounty on poidh.xyz — crowd fund in ETH, verify proof together, auto-pay winner. USDC here seeds the on-chain pool.',
+  },
   qrcoin: {
     label: 'QRCoin — QR listing for this space',
     defaultGoalUsd: 50,
@@ -20,10 +26,14 @@ export const AGENT_POOL_SKILL_META: Record<
 
 export const WORK_BRIEF_MAX_LENGTH = 4000;
 
-/** Example lines for Edit profile → 0xWork work brief (one task per line). */
+/** Example lines for work brief (one human task per line). */
 export const WORK_BRIEF_PLACEHOLDER = `Share $SYMBOL on X with screenshot — $5 — Social
-Create 1500x500 banner for $SYMBOL — $25 — Creative
-Quote-tweet the space link with 2 sentences — $8 — Social`;
+Take a photo at the space banner URL — $10 — Photo
+Quote-tweet the community link with 2 sentences — $8 — Social`;
+
+export const POIDH_WORK_BRIEF_PLACEHOLDER = `Share $SYMBOL on X with screenshot — $5
+Take a photo holding $SYMBOL merch — $10
+Visit bankr.space/community and screenshot the feed — $8`;
 
 export function normalizeWorkBrief(value: unknown): string | null {
   if (value == null) return null;
@@ -44,6 +54,7 @@ export const DEFAULT_AGENT_POOL_CAMPAIGNS: AgentPoolCampaign[] = AGENT_POOL_SKIL
     executionTxHash: null,
     oxworkTaskId: null,
     oxworkTaskStatus: null,
+    poidhBountyId: null,
     jobLinkedAt: null,
     bankrAgentJobId: null,
     workBrief: null,
@@ -106,6 +117,10 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
           (item as AgentPoolCampaign).oxworkTaskStatus != null
             ? String((item as AgentPoolCampaign).oxworkTaskStatus).slice(0, 40)
             : null,
+        poidhBountyId:
+          (item as AgentPoolCampaign).poidhBountyId != null
+            ? Number((item as AgentPoolCampaign).poidhBountyId)
+            : null,
         jobLinkedAt:
           (item as AgentPoolCampaign).jobLinkedAt != null
             ? Number((item as AgentPoolCampaign).jobLinkedAt)
@@ -115,7 +130,7 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
             ? String((item as AgentPoolCampaign).bankrAgentJobId).slice(0, 80)
             : null,
         workBrief:
-          skillId === '0xwork'
+          skillId === '0xwork' || skillId === 'poidh'
             ? normalizeWorkBrief((item as AgentPoolCampaign).workBrief)
             : null,
         communityLed: Boolean((item as AgentPoolCampaign).communityLed),
@@ -252,7 +267,7 @@ export function applyCommunityAgentProposal(
         goalUsd: clampGoal(input.goalUsd),
         label: String(input.label || c.label).slice(0, 120),
         workBrief:
-          input.skillId === '0xwork'
+          input.skillId === '0xwork' || input.skillId === 'poidh'
             ? normalizeWorkBrief(input.workBrief ?? c.workBrief)
             : null,
         communityLed: true,

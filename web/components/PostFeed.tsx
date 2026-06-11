@@ -20,7 +20,7 @@ import { formatTime } from '@/lib/utils';
 import { AuthorBlock } from './AuthorBlock';
 import { PostContent } from './PostContent';
 import { PostSourceBadge } from './PostSourceBadge';
-import { OxWorkJobsPanel } from '@/components/OxWorkJobsPanel';
+import { CommunityJobsPanel } from '@/components/CommunityJobsPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
@@ -34,7 +34,7 @@ const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'community', label: 'Community', icon: '👥' },
 ];
 
-const OXJOBS_TAB = { id: 'oxjobs' as const, label: '0xJobs', icon: '💼' };
+const JOBS_TAB = { id: 'oxjobs' as const, label: 'Jobs', icon: '💼' };
 
 function ReplyForm({
   tokenAddress,
@@ -456,7 +456,7 @@ export function PostFeed({
 }) {
   const { address } = useAppWallet();
   const [filter, setFilter] = useState<FeedTab>('all');
-  const [hasOxJobs, setHasOxJobs] = useState(false);
+  const [hasJobs, setHasJobs] = useState(false);
   const isOxJobs = filter === 'oxjobs';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -470,13 +470,17 @@ export function PostFeed({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/communities/${tokenAddress}/oxwork`);
-        const data = await res.json();
-        if (!cancelled && res.ok) {
-          setHasOxJobs((data.tasks?.length ?? 0) > 0);
+        const [oxRes, poidhRes] = await Promise.all([
+          fetch(`/api/communities/${tokenAddress}/oxwork`),
+          fetch(`/api/communities/${tokenAddress}/poidh`),
+        ]);
+        const oxData = oxRes.ok ? await oxRes.json() : { tasks: [] };
+        const poidhData = poidhRes.ok ? await poidhRes.json() : { bounties: [] };
+        if (!cancelled) {
+          setHasJobs((oxData.tasks?.length ?? 0) > 0 || (poidhData.bounties?.length ?? 0) > 0);
         }
       } catch {
-        if (!cancelled) setHasOxJobs(false);
+        if (!cancelled) setHasJobs(false);
       }
     })();
     return () => {
@@ -485,12 +489,12 @@ export function PostFeed({
   }, [tokenAddress]);
 
   useEffect(() => {
-    if (!hasOxJobs && filter === 'oxjobs') setFilter('all');
-  }, [hasOxJobs, filter]);
+    if (!hasJobs && filter === 'oxjobs') setFilter('all');
+  }, [hasJobs, filter]);
 
   const visibleFilters = useMemo(
-    () => (hasOxJobs ? [...POST_FILTERS, OXJOBS_TAB] : POST_FILTERS),
-    [hasOxJobs]
+    () => (hasJobs ? [...POST_FILTERS, JOBS_TAB] : POST_FILTERS),
+    [hasJobs]
   );
 
   const visiblePosts = useMemo(() => {
@@ -574,7 +578,7 @@ export function PostFeed({
       </div>
 
       {isOxJobs ? (
-        <OxWorkJobsPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
+        <CommunityJobsPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
       ) : !visiblePosts.length ? (
         <p className="text-center text-muted py-12 border border-dashed border-border rounded-xl bg-surface">
           {posts.length === 0

@@ -8,17 +8,19 @@ import {
 } from '@/lib/bankr-agent-client';
 import { createPlatformAgentPost } from '@/lib/agent-pool-feed';
 import { markAgentPoolExecuted } from '@/lib/mark-pool-executed';
-import { verifyAgentPoolForCommunity } from '@/lib/agent-pool-verify';
-import { pickOxWorkTaskForCampaign } from '@/lib/agent-pool-verify';
-import { fetchOxWorkTasksForSpace, oxWorkTaskUrl } from '@/lib/oxwork-api';
-import { getPlatformAgentWallet } from '@/lib/platform-agent';
-import { communityUrl } from '@/lib/site-url';
 import {
   buildOxWorkAgentPrompt,
+  buildPoidhAgentPrompt,
   buildQrcoinAgentPrompt,
   extractOxWorkTaskId,
+  extractPoidhBountyId,
   extractTxHash,
 } from '@/lib/work-brief';
+import { pickPoidhBountyForCampaign, pickOxWorkTaskForCampaign, verifyAgentPoolForCommunity } from '@/lib/agent-pool-verify';
+import { fetchOxWorkTasksForSpace, oxWorkTaskUrl } from '@/lib/oxwork-api';
+import { fetchPoidhBountiesForSpace, poidhBountyUrl } from '@/lib/poidh-api';
+import { getPlatformAgentWallet } from '@/lib/platform-agent';
+import { communityUrl } from '@/lib/site-url';
 import type { AgentPoolCampaign, Community } from '@/lib/types';
 import type { AgentPoolSkillId } from '@/lib/types';
 
@@ -29,6 +31,7 @@ export type AgentPoolExecuteItemResult = {
   status: 'executed' | 'skipped' | 'failed' | 'pending_api_key' | 'pending_job';
   message?: string;
   oxworkTaskId?: number | null;
+  poidhBountyId?: number | null;
   bankrAgentJobId?: string | null;
 };
 
@@ -121,6 +124,33 @@ async function resolveOxWorkTaskId(
   return task?.id ?? null;
 }
 
+async function resolvePoidhBountyId(
+  community: Community,
+  campaign: AgentPoolCampaign
+): Promise<number | null> {
+  if (campaign.poidhBountyId != null) return campaign.poidhBountyId;
+
+  const platformWallet = getPlatformAgentWallet();
+  const issuers = [platformWallet, community.ownerWallet].filter(
+    (w): w is string => !!w?.startsWith('0x')
+  );
+  if (!issuers.length) return null;
+
+  const fetched = await fetchPoidhBountiesForSpace({
+    issuerWallets: issuers,
+    symbol: community.symbol,
+    tokenAddress: community.tokenAddress,
+  });
+
+  const bounty = pickPoidhBountyForCampaign(
+    fetched.bounties,
+    campaign,
+    community.symbol,
+    community.tokenAddress
+  );
+  return bounty?.id ?? null;
+}
+
 async function executeCampaign(
   community: Community,
   campaign: AgentPoolCampaign
@@ -150,6 +180,7 @@ async function executeCampaign(
   try {
     let resultText = '';
     let oxworkTaskId: number | null = campaign.oxworkTaskId ?? null;
+    let poidhBountyId: number | null = campaign.poidhBountyId ?? null;
 
     if (campaign.skillId === '0xwork') {
       oxworkTaskId = await resolveOxWorkTaskId(community, campaign);
@@ -191,6 +222,46 @@ async function executeCampaign(
           }
         }
       }
+    } else if (campaign.skillId === 'poidh') {
+      poidhBountyId = await resolvePoidhBountyId(community, campaign);
+      if (poidhBountyId == null) {
+        const prompt = buildPoidhAgentPrompt({
+          symbol: community.symbol,
+          tokenAddress: community.tokenAddress,
+          workBrief: campaign.workBrief ?? null,
+          goalUsd: campaign.goalUsd,
+        });
+        try {
+          resultText = await runBankrAgentWithResume(
+            community.tokenAddress,
+            campaign.skillId,
+            campaign,
+            prompt
+          );
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.startsWith('PENDING_JOB:')) {
+            const jobId = message.slice('PENDING_JOB:'.length);
+            return {
+              ...base,
+              status: 'pending_job',
+              message: `Bankr agent still running (${jobId}) — cron will retry`,
+              bankrAgentJobId: jobId,
+            };
+          }
+          throw err;
+        }
+        poidhBountyId = extractPoidhBountyId(resultText);
+        if (poidhBountyId == null) {
+          const verified = await verifyAgentPoolForCommunity(community, { persist: true });
+          const pool = readStoredAgentPool(verified.community.agentPool);
+          const updated = pool.campaigns.find((c) => c.skillId === 'poidh');
+          poidhBountyId = updated?.poidhBountyId ?? null;
+          if (poidhBountyId == null) {
+            poidhBountyId = await resolvePoidhBountyId(verified.community, campaign);
+          }
+        }
+      }
     } else if (campaign.skillId === 'qrcoin') {
       const prompt = buildQrcoinAgentPrompt({
         symbol: community.symbol,
@@ -220,15 +291,19 @@ async function executeCampaign(
 
     const txHash = extractTxHash(resultText);
     const taskUrl = oxworkTaskId != null ? oxWorkTaskUrl(oxworkTaskId) : null;
+    const bountyUrl = poidhBountyId != null ? poidhBountyUrl(poidhBountyId) : null;
     const note =
       campaign.skillId === '0xwork' && taskUrl
         ? `0xWork task posted — ${taskUrl}`
-        : resultText.slice(0, 400) || `${campaign.skillId} executed`;
+        : campaign.skillId === 'poidh' && bountyUrl
+          ? `POIDH bounty posted — ${bountyUrl}`
+          : resultText.slice(0, 400) || `${campaign.skillId} executed`;
 
     const feedLines = [
-      `$${community.symbol} — community agent pool: ${campaign.label}`,
+      `$${community.symbol} — community task: ${campaign.label}`,
       `Raised $${campaign.raisedUsd} / $${campaign.goalUsd} USDC — skill executed.`,
       taskUrl ? `0xJob: ${taskUrl}` : null,
+      bountyUrl ? `POIDH: ${bountyUrl}` : null,
       communityUrl(community.tokenAddress),
     ]
       .filter(Boolean)
@@ -241,6 +316,7 @@ async function executeCampaign(
       executionNote: note,
       executionTxHash: txHash,
       oxworkTaskId,
+      poidhBountyId,
     });
 
     return {
@@ -248,6 +324,7 @@ async function executeCampaign(
       status: 'executed',
       message: note,
       oxworkTaskId,
+      poidhBountyId,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Execution failed';

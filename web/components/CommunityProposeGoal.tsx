@@ -5,10 +5,12 @@ import { useAppWallet } from '@/hooks/useAppWallet';
 import {
   AGENT_POOL_SKILL_META,
   AGENT_POOL_SKILL_IDS,
+  POIDH_WORK_BRIEF_PLACEHOLDER,
   WORK_BRIEF_MAX_LENGTH,
   WORK_BRIEF_PLACEHOLDER,
 } from '@/lib/agent-pool';
 import { WORK_BRIEF_NOTE } from '@/lib/platform-agent-ui';
+import { PoidhOpenBountyGuide } from '@/components/PoidhOpenBountyGuide';
 import type { AgentPoolSkillId } from '@/lib/types';
 import { apiFetch } from '@/lib/wagmi';
 
@@ -22,9 +24,9 @@ export function CommunityProposeGoal({
   onProposed: () => void;
 }) {
   const { address, isEmbedded, connectWallet } = useAppWallet();
-  const [skillId, setSkillId] = useState<AgentPoolSkillId>('0xwork');
+  const [skillId, setSkillId] = useState<AgentPoolSkillId>('poidh');
   const [goalUsd, setGoalUsd] = useState('50');
-  const [workBrief, setWorkBrief] = useState(`Share $${symbol} on X with screenshot — $5 — Social`);
+  const [workBrief, setWorkBrief] = useState(`Share $${symbol} on X with screenshot — $5`);
   const [submitting, setSubmitting] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function CommunityProposeGoal({
         body: JSON.stringify({
           skillId,
           goalUsd: goal,
-          workBrief: skillId === '0xwork' ? workBrief : undefined,
+          workBrief: skillId === '0xwork' || skillId === 'poidh' ? workBrief : undefined,
           label: AGENT_POOL_SKILL_META[skillId].label,
         }),
       });
@@ -81,7 +83,7 @@ export function CommunityProposeGoal({
                 : 'text-muted hover:text-text'
             }`}
           >
-            {id === 'qrcoin' ? 'QRCoin' : '0xWork'}
+            {id === 'poidh' ? 'POIDH' : id === 'qrcoin' ? 'QRCoin' : '0xWork'}
           </button>
         ))}
       </div>
@@ -97,14 +99,21 @@ export function CommunityProposeGoal({
         />
       </div>
 
-      {skillId === '0xwork' ? (
+      {skillId === 'poidh' ? <PoidhOpenBountyGuide compact /> : null}
+
+      {skillId === '0xwork' || skillId === 'poidh' ? (
         <div>
-          <label className="block text-xs text-muted mb-1">What should workers do?</label>
+          <label className="block text-xs text-muted mb-1">
+            {skillId === 'poidh' ? 'What should people do?' : 'What should workers do?'}
+          </label>
           <p className="text-[10px] text-muted mb-1.5">{WORK_BRIEF_NOTE}</p>
           <textarea
             rows={4}
             maxLength={WORK_BRIEF_MAX_LENGTH}
-            placeholder={WORK_BRIEF_PLACEHOLDER.replace(/\$SYMBOL/g, `$${symbol}`)}
+            placeholder={(skillId === 'poidh' ? POIDH_WORK_BRIEF_PLACEHOLDER : WORK_BRIEF_PLACEHOLDER).replace(
+              /\$SYMBOL/g,
+              `$${symbol}`
+            )}
             className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono leading-relaxed resize-y"
             value={workBrief}
             onChange={(e) => setWorkBrief(e.target.value.slice(0, WORK_BRIEF_MAX_LENGTH))}
