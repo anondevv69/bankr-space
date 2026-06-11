@@ -146,7 +146,6 @@ export async function poidhIssuerCreateOpenBounty(options: {
   }
 
   const hash = await wallet.writeContract({
-    account: issuer,
     chain: base,
     address: POIDH_V3_BASE,
     abi: poidhV3Abi,
@@ -164,9 +163,7 @@ export async function poidhIssuerSubmitClaimForVote(options: {
   claimId: number;
 }): Promise<{ txHash: `0x${string}` }> {
   const wallet = issuerWalletClient();
-  const account = wallet.account!.address;
   const hash = await wallet.writeContract({
-    account,
     chain: base,
     address: POIDH_V3_BASE,
     abi: poidhV3Abi,
