@@ -8,7 +8,7 @@ import {
   readStoredAgentPool,
 } from '@/lib/agent-pool';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
-import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
+import { buildFundraisingX402BaseUrl, buildAgentPoolX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
     const pool = readStoredAgentPool(merged.agentPool);
     const open = openAgentPoolCampaigns(pool);
     const platformWallet = getPlatformAgentWallet();
-    const x402BaseUrl = buildFundraisingX402BaseUrl(platformWallet);
+    const x402BaseUrl = buildAgentPoolX402BaseUrl(platformWallet);
 
     const campaigns = open.map((c) => ({
       ...c,

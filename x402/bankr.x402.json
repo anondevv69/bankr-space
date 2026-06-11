@@ -18,8 +18,8 @@
             },
             "campaign": {
               "type": "string",
-              "description": "Campaign id: dex-profile | dex-boost | custom",
-              "enum": ["dex-profile", "dex-boost", "custom"]
+              "description": "Campaign id: dex-profile | dex-boost | custom | agent-qrcoin | agent-0xwork",
+              "enum": ["dex-profile", "dex-boost", "custom", "agent-qrcoin", "agent-0xwork"]
             },
             "amount": {
               "type": "string",
