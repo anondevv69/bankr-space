@@ -41,7 +41,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    if (!['dex-profile', 'dex-boost', 'custom'].includes(campaignId)) {
+    if (!['dex-profile', 'dex-boost', 'custom', 'agent-qrcoin', 'agent-0xwork'].includes(campaignId)) {
       return jsonResponse({
         success: false,
         token,

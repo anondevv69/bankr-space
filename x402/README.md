@@ -83,6 +83,27 @@ curl -X POST "https://bankr.space/api/communities/0xTOKEN/fundraising/credit" \
 
 Beneficiary toggles in **Edit profile → Fundraising campaigns** (off by default; widget hidden until at least one campaign is enabled and saved).
 
+## Lane B — community agent pool
+
+Holders fund QRCoin / 0xWork via `POST …/agent-pool/x402`. Campaign ids: `agent-qrcoin`, `agent-0xwork`.
+
+**404 "Endpoint not found":** The proxy first tries `x402.bankr.bot/{PLATFORM_AGENT_WALLET}/fund`. If that path is not deployed, it **automatically retries** the shared `NEXT_PUBLIC_X402_FUND_URL` (same deploy as Lane A).
+
+Optional override:
+
+```bash
+NEXT_PUBLIC_X402_AGENT_POOL_FUND_URL=https://x402.bankr.bot/0xYourWallet/fund
+```
+
+For USDC to land in the platform agent wallet, deploy x402 logged in as that wallet (`bankr x402 deploy` from repo root) **or** set `NEXT_PUBLIC_X402_AGENT_POOL_FUND_URL` to a service whose pay-to is the platform agent.
+
+After changing `x402/fund/index.ts` or `bankr.x402.json`, redeploy:
+
+```bash
+cd "/path/to/community"
+bankr x402 deploy
+```
+
 ## @bankrbot (skill — future)
 
 ```text
