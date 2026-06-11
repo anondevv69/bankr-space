@@ -144,7 +144,7 @@ export function TokenBountiesPanel({
 
   return (
     <div className="space-y-5">
-      <div className="p-4 rounded-xl border border-border bg-surface space-y-2">
+      <div className="p-4 rounded-xl border border-border bg-surface space-y-1">
         <div className="text-sm font-semibold">Community bounties for ${symbol}</div>
         <p className="text-[11px] text-muted leading-relaxed">
           Create a task → Bankr agent opens it on{' '}
@@ -160,6 +160,7 @@ export function TokenBountiesPanel({
           <strong className="font-medium text-text">post proof here</strong> → submit on POIDH →
           contributors vote 48h to pay out.
         </p>
+        <PoidhOpenBountyGuide collapsible />
       </div>
 
       {canCreate !== false ? (
@@ -268,8 +269,6 @@ export function TokenBountiesPanel({
           No bounties yet — create the first one above.
         </p>
       )}
-
-      <PoidhOpenBountyGuide />
 
       {hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
