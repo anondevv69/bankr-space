@@ -92,14 +92,32 @@ export function buildPoidhSpinUpPrompt(options: {
   return [
     `Use the poidh-bounty skill (${skillUrl}) on Base chain.`,
     'Create POIDH open bounties ONLY (createOpenBounty, not solo). Min seed 0.001 ETH each.',
-    'Funding happens on POIDH — contributors use Add funds on poidh.xyz.',
+    'Funding happens on-chain — contributors use Add funds on bankr.space.',
     `Token $${options.symbol.replace(/^\$/, '')}: ${options.tokenAddress}`,
     '',
     'Create these bounties:',
     tasks,
     '',
-    'Return each template id, on-chain bounty id, poidh.xyz/base/bounty/ URL, and tx hash.',
+    'Return each template id, on-chain bounty id, and tx hash.',
     'Guide: https://words.poidh.xyz/poidh-open-bounties-guide',
+  ].join('\n');
+}
+
+export function buildPoidhProposeClaimPrompt(options: {
+  symbol: string;
+  tokenAddress: string;
+  bountyId: number;
+  claimId: number;
+  claimName: string;
+}): string {
+  const skillUrl =
+    'https://github.com/picsoritdidnthappen/poidh-app/blob/prod/SKILL.md';
+  return [
+    `Use the poidh-bounty skill (${skillUrl}) on Base chain.`,
+    `Call submitClaimForVote(bountyId=${options.bountyId}, claimId=${options.claimId}).`,
+    'Only the bounty issuer wallet may call this — use the platform agent wallet.',
+    `Bounty: "${options.claimName}" for $${options.symbol.replace(/^\$/, '')} (${options.tokenAddress}).`,
+    'This starts a 48h contributor vote. Return tx hash and confirmation.',
   ].join('\n');
 }
 

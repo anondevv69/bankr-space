@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import {
-  POIDH_OPEN_BOUNTY_GUIDE_URL,
   POIDH_OPEN_BOUNTY_STEPS,
 } from '@/lib/poidh-open-bounty';
 
@@ -19,24 +18,8 @@ export function PoidhOpenBountyGuide({
   if (compact) {
     return (
       <p className="text-[11px] text-muted leading-relaxed">
-        <strong className="font-medium text-text">Open bounty</strong> — pool ETH on{' '}
-        <a
-          href="https://poidh.xyz/base"
-          target="_blank"
-          rel="noreferrer"
-          className="text-accent-hover hover:underline"
-        >
-          poidh.xyz
-        </a>
-        , submit photo/link proof, contributors vote 48h, auto-pay.{' '}
-        <a
-          href={POIDH_OPEN_BOUNTY_GUIDE_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="text-accent-hover hover:underline"
-        >
-          How it works ↗
-        </a>
+        <strong className="font-medium text-text">Open bounty</strong> — pool ETH on-chain here,
+        submit community proof, contributors vote 48h, auto-pay.
       </p>
     );
   }
@@ -61,15 +44,8 @@ export function PoidhOpenBountyGuide({
         {open ? (
           <div className="mt-3 space-y-3">
             <p className="text-[11px] text-muted leading-relaxed">
-              Crowdfunded outcome markets on Base — no middleman holds the money.{' '}
-              <a
-                href={POIDH_OPEN_BOUNTY_GUIDE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-accent-hover hover:underline"
-              >
-                Full guide ↗
-              </a>
+              Crowdfunded outcome markets on Base — no middleman holds the money. Everything
+              happens right here on bankr.space.
             </p>
             <ol className="space-y-2.5">
               {POIDH_OPEN_BOUNTY_STEPS.map((step, i) => (
@@ -95,15 +71,7 @@ export function PoidhOpenBountyGuide({
       <div>
         <div className="text-sm font-semibold">How POIDH open bounties work</div>
         <p className="text-[11px] text-muted mt-1 leading-relaxed">
-          Crowdfunded outcome markets on Base — no middleman holds the money.{' '}
-          <a
-            href={POIDH_OPEN_BOUNTY_GUIDE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent-hover hover:underline"
-          >
-            Full guide ↗
-          </a>
+          Crowdfunded outcome markets on Base — fund, claim, and vote without leaving bankr.space.
         </p>
       </div>
       <ol className="space-y-2.5">

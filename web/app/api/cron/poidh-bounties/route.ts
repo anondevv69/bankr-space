@@ -4,7 +4,7 @@ import { spinUpAllPoidhBounties } from '@/lib/poidh-bounty-spinup';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/** Creates pending POIDH open bounties via Bankr agent (no x402). */
+/** Creates pending POIDH open bounties via issuer EOA (no x402). */
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
