@@ -18,6 +18,7 @@ import {
   type PoidhBountyDetail,
 } from '@/lib/poidh-contract';
 import { isValidProofUrl } from '@/lib/poidh-open-bounty';
+import { formatEthAmount, formatEthFromWei } from '@/lib/poidh-format';
 
 function parseDetailFromApi(raw: Record<string, unknown>): PoidhBountyDetail {
   return {
@@ -65,9 +66,7 @@ function parseDetailFromApi(raw: Record<string, unknown>): PoidhBountyDetail {
 function formatEthDisplay(eth: string): string {
   const n = Number(eth);
   if (!Number.isFinite(n)) return eth;
-  if (n < 0.0001) return n.toExponential(2);
-  if (n < 1) return n.toFixed(4);
-  return n.toFixed(3);
+  return formatEthAmount(n);
 }
 
 function voteTimeLeft(deadlineSec: number): string {
@@ -83,14 +82,18 @@ export function PoidhBountyActions({
   symbol,
   poidhBountyId,
   poolAmountWei,
-  poidhUrl,
+  onChainActive,
+  focusSection = 'all',
+  compact = false,
   onAction,
 }: {
   tokenAddress: string;
   symbol: string;
   poidhBountyId: number;
   poolAmountWei?: string | null;
-  poidhUrl?: string | null;
+  onChainActive?: boolean | null;
+  focusSection?: 'fund' | 'claim' | 'all';
+  compact?: boolean;
   onAction?: () => void;
 }) {
   const { address, isEmbedded, connectWallet } = useAppWallet();
@@ -272,9 +275,9 @@ export function PoidhBountyActions({
     description: '',
     amountWei: poolAmountWei ? BigInt(poolAmountWei) : 1000000000000000n,
     amountEth: poolAmountWei
-      ? formatEthDisplay(String(Number(poolAmountWei) / 1e18))
+      ? formatEthFromWei(poolAmountWei)?.replace(' ETH', '') ?? '0.001'
       : '0.001',
-    active: true,
+    active: onChainActive !== false,
     votingClaimId: 0,
     voteYes: 0n,
     voteNo: 0n,
@@ -290,9 +293,11 @@ export function PoidhBountyActions({
   const display = detail ?? fallbackDetail;
   const stake = participantStake(display, address);
   const canVote = display.voteActive && stake > 0n;
+  const showFund = focusSection === 'all' || focusSection === 'fund';
+  const showClaim = focusSection === 'all' || focusSection === 'claim';
 
   return (
-    <div className="space-y-4 border-t border-border pt-3">
+    <div className={`space-y-4 ${compact ? 'pt-1' : 'border-t border-border pt-3'}`}>
       {loadError ? (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
           <span>Live stats temporarily unavailable.</span>
@@ -308,37 +313,26 @@ export function PoidhBountyActions({
           </button>
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
-        <span>
-          Pool: <strong className="text-text">{formatEthDisplay(display.amountEth)} ETH</strong>
-        </span>
-        <span>·</span>
-        <span>{display.participants.length} funder{display.participants.length === 1 ? '' : 's'}</span>
-        {display.active ? (
-          <>
-            <span>·</span>
-            <span className="text-green-600 dark:text-green-400">Open</span>
-          </>
-        ) : (
-          <>
-            <span>·</span>
-            <span>Paid out</span>
-          </>
-        )}
-        {poidhUrl ? (
-          <>
-            <span>·</span>
-            <a
-              href={poidhUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent-hover hover:underline"
-            >
-              poidh.xyz ↗
-            </a>
-          </>
-        ) : null}
-      </div>
+      {!compact ? (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+          <span>
+            Pool: <strong className="text-text">{formatEthDisplay(display.amountEth)} ETH</strong>
+          </span>
+          <span>·</span>
+          <span>{display.participants.length} funder{display.participants.length === 1 ? '' : 's'}</span>
+          {display.active ? (
+            <>
+              <span>·</span>
+              <span className="text-green-600 dark:text-green-400">Open</span>
+            </>
+          ) : (
+            <>
+              <span>·</span>
+              <span>Paid out</span>
+            </>
+          )}
+        </div>
+      ) : null}
 
       {display.voteActive ? (
         <div className="p-3 rounded-lg border border-accent/30 bg-accent/5 space-y-2">
@@ -388,7 +382,7 @@ export function PoidhBountyActions({
         </div>
       ) : null}
 
-      {display.active ? (
+      {display.active && showFund ? (
         <>
           <div className="space-y-2">
             <div className="text-xs font-medium">Add funds</div>
@@ -417,7 +411,10 @@ export function PoidhBountyActions({
               </button>
             </div>
           </div>
+        </>
+      ) : null}
 
+      {display.active && showClaim ? (
           <div className="space-y-2">
             <div className="text-xs font-medium">Submit claim</div>
             <p className="text-[11px] text-muted leading-relaxed">
@@ -458,7 +455,6 @@ export function PoidhBountyActions({
               {busy === 'Submit claim' ? 'Confirming…' : address ? 'Submit claim' : 'Connect to claim'}
             </button>
           </div>
-        </>
       ) : null}
 
       {display.claims.length > 0 ? (

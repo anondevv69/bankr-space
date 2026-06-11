@@ -169,10 +169,10 @@ const PROOF_BLOCK_MARKER = '\n\nRequired when claiming:';
 
 /** User-facing description only — hides auto-appended claim instructions. */
 export function bountyDescriptionForDisplay(description: string): string {
-  const idx = description.indexOf(PROOF_BLOCK_MARKER);
-  if (idx >= 0) return description.slice(0, idx).trim();
   const tokenIdx = description.indexOf('\n\nToken: $');
   if (tokenIdx >= 0) return description.slice(0, tokenIdx).trim();
+  const idx = description.indexOf(PROOF_BLOCK_MARKER);
+  if (idx >= 0) return description.slice(0, idx).trim();
   return description.trim();
 }
 
