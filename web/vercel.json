@@ -6,6 +6,10 @@
     {
       "path": "/api/cron/sync-tokens",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/agent-pool-verify",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

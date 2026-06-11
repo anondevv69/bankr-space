@@ -38,8 +38,13 @@ export const DEFAULT_AGENT_POOL_CAMPAIGNS: AgentPoolCampaign[] = AGENT_POOL_SKIL
     goalUsd: AGENT_POOL_SKILL_META[skillId].defaultGoalUsd,
     raisedUsd: 0,
     enabled: false,
+    fundedAt: null,
     executedAt: null,
     executionNote: null,
+    executionTxHash: null,
+    oxworkTaskId: null,
+    oxworkTaskStatus: null,
+    jobLinkedAt: null,
     workBrief: null,
     communityLed: false,
     proposedBy: null,
@@ -76,6 +81,10 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
         goalUsd: clampGoal((item as AgentPoolCampaign).goalUsd ?? current.goalUsd),
         raisedUsd: clampRaised((item as AgentPoolCampaign).raisedUsd ?? 0),
         enabled: Boolean((item as AgentPoolCampaign).enabled),
+        fundedAt:
+          (item as AgentPoolCampaign).fundedAt != null
+            ? Number((item as AgentPoolCampaign).fundedAt)
+            : null,
         executedAt:
           (item as AgentPoolCampaign).executedAt != null
             ? Number((item as AgentPoolCampaign).executedAt)
@@ -83,6 +92,22 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
         executionNote:
           (item as AgentPoolCampaign).executionNote != null
             ? String((item as AgentPoolCampaign).executionNote).slice(0, 500)
+            : null,
+        executionTxHash:
+          (item as AgentPoolCampaign).executionTxHash != null
+            ? String((item as AgentPoolCampaign).executionTxHash).slice(0, 66)
+            : null,
+        oxworkTaskId:
+          (item as AgentPoolCampaign).oxworkTaskId != null
+            ? Number((item as AgentPoolCampaign).oxworkTaskId)
+            : null,
+        oxworkTaskStatus:
+          (item as AgentPoolCampaign).oxworkTaskStatus != null
+            ? String((item as AgentPoolCampaign).oxworkTaskStatus).slice(0, 40)
+            : null,
+        jobLinkedAt:
+          (item as AgentPoolCampaign).jobLinkedAt != null
+            ? Number((item as AgentPoolCampaign).jobLinkedAt)
             : null,
         workBrief:
           skillId === '0xwork'
@@ -174,12 +199,21 @@ export function creditAgentPoolUsd(
 ): AgentPoolState {
   const amount = clampRaised(amountUsd);
   if (amount <= 0) return state;
+  const now = Date.now();
   return {
     ...state,
     optedIn: true,
-    campaigns: state.campaigns.map((c) =>
-      c.skillId === skillId ? { ...c, raisedUsd: clampRaised(c.raisedUsd + amount) } : c
-    ),
+    campaigns: state.campaigns.map((c) => {
+      if (c.skillId !== skillId) return c;
+      const raisedUsd = clampRaised(c.raisedUsd + amount);
+      const wasFunded = isAgentPoolCampaignFunded(c);
+      const nowFunded = c.goalUsd > 0 && raisedUsd >= c.goalUsd;
+      return {
+        ...c,
+        raisedUsd,
+        fundedAt: !wasFunded && nowFunded ? now : c.fundedAt ?? null,
+      };
+    }),
   };
 }
 

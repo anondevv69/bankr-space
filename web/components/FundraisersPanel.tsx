@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import type { Community } from '@/lib/types';
 import {
   completedCampaigns,
@@ -12,39 +13,99 @@ import {
   hasAgentPoolHistory,
   hasPublicAgentPool,
 } from '@/lib/agent-pool';
+import type { AgentPoolCampaignStatusView } from '@/lib/agent-pool-status';
+import { agentPoolStatusClass } from '@/lib/agent-pool-status';
 import { FundraisingWidget } from '@/components/FundraisingWidget';
 import { AgentPoolWidget } from '@/components/AgentPoolWidget';
 import { CommunityProposeGoal } from '@/components/CommunityProposeGoal';
+
+function formatWaiting(ms: number | null): string | null {
+  if (ms == null || ms < 60_000) return null;
+  const mins = Math.round(ms / 60_000);
+  if (mins < 60) return `${mins}m waiting`;
+  const hours = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return rem > 0 ? `${hours}h ${rem}m waiting` : `${hours}h waiting`;
+}
+
+function AgentPoolHistoryCard({ campaign }: { campaign: AgentPoolCampaignStatusView }) {
+  const waiting = formatWaiting(campaign.waitingMs);
+
+  return (
+    <div className="p-3 rounded-lg border border-border bg-surface-2">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+        Community agent
+      </div>
+      <div className="text-sm font-medium mt-1 leading-snug">{campaign.label}</div>
+      <div className="text-xs text-muted mt-1 tabular-nums">
+        Raised ${campaign.raisedUsd.toLocaleString()} of ${campaign.goalUsd.toLocaleString()} USDC
+      </div>
+      <div className={`text-[11px] mt-2 font-medium ${agentPoolStatusClass(campaign.phase)}`}>
+        {campaign.statusLabel}
+        {waiting && campaign.phase !== 'executed' ? (
+          <span className="text-muted font-normal"> · {waiting}</span>
+        ) : null}
+      </div>
+      {campaign.workBrief?.trim() ? (
+        <p className="text-[11px] text-muted mt-1.5 line-clamp-3 whitespace-pre-wrap">
+          {campaign.workBrief}
+        </p>
+      ) : null}
+      {campaign.oxworkUrl ? (
+        <a
+          href={campaign.oxworkUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block text-[11px] text-accent-hover hover:underline mt-2 font-medium"
+        >
+          0xWork task #{campaign.oxworkTaskId}
+          {campaign.oxworkTaskStatus ? ` (${campaign.oxworkTaskStatus})` : ''} ↗
+        </a>
+      ) : null}
+      {campaign.executionNote?.trim() ? (
+        <p className="text-[11px] text-muted mt-1.5 line-clamp-2">{campaign.executionNote}</p>
+      ) : null}
+      {campaign.executionTxHash ? (
+        <a
+          href={`https://basescan.org/tx/${campaign.executionTxHash}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block text-[11px] text-accent-hover hover:underline mt-1"
+        >
+          Execution tx ↗
+        </a>
+      ) : null}
+      {campaign.phase === 'stuck' ? (
+        <p className="text-[11px] text-red-700 dark:text-red-300 mt-2 leading-snug">
+          USDC is funded but no 0xWork job is linked yet. Check the{' '}
+          <a href="/agent.md" className="text-accent-hover hover:underline">
+            Bankr Space Agent worker
+          </a>{' '}
+          on GitHub Actions.
+        </p>
+      ) : campaign.phase === 'funded' ? (
+        <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
+          Payment recorded. The platform agent worker should post this job to 0xWork — status
+          updates automatically when the task appears.
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function HistoryCard({
   lane,
   title,
   raisedUsd,
   goalUsd,
-  status,
   detail,
 }: {
   lane: string;
   title: string;
   raisedUsd: number;
   goalUsd: number;
-  status: 'completed' | 'funded' | 'executed';
   detail?: string | null;
 }) {
-  const statusLabel =
-    status === 'executed'
-      ? 'Executed by agent'
-      : status === 'funded'
-        ? 'Funded — awaiting agent'
-        : 'Goal completed';
-
-  const statusClass =
-    status === 'executed'
-      ? 'text-green-600 dark:text-green-400'
-      : status === 'funded'
-        ? 'text-amber-600 dark:text-amber-400'
-        : 'text-green-600 dark:text-green-400';
-
   return (
     <div className="p-3 rounded-lg border border-border bg-surface-2">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">{lane}</div>
@@ -52,7 +113,9 @@ function HistoryCard({
       <div className="text-xs text-muted mt-1 tabular-nums">
         Raised ${raisedUsd.toLocaleString()} of ${goalUsd.toLocaleString()} USDC
       </div>
-      <div className={`text-[11px] mt-2 font-medium ${statusClass}`}>{statusLabel}</div>
+      <div className="text-[11px] mt-2 font-medium text-green-600 dark:text-green-400">
+        Goal completed
+      </div>
       {detail?.trim() ? (
         <p className="text-[11px] text-muted mt-1.5 line-clamp-3 whitespace-pre-wrap">{detail}</p>
       ) : null}
@@ -71,10 +134,52 @@ export function FundraisersPanel({
   canProposeCommunityGoal?: boolean;
   onRefresh?: () => void;
 }) {
+  const [agentStatus, setAgentStatus] = useState<AgentPoolCampaignStatusView[]>([]);
+
+  const loadAgentStatus = useCallback(async () => {
+    if (!community.usePlatformAgent) {
+      setAgentStatus([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/communities/${community.tokenAddress}/agent-pool/status`);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.funded)) {
+        setAgentStatus(data.funded);
+      }
+    } catch {
+      setAgentStatus(
+        fundedAgentPoolCampaigns(community.agentPool).map((c) => ({
+          ...c,
+          phase: c.executedAt ? 'executed' : 'funded',
+          statusLabel: c.executedAt ? 'Executed by agent' : 'Funded — awaiting agent job',
+          oxworkUrl: null,
+          fundedSince: c.fundedAt ?? c.proposedAt ?? null,
+          waitingMs: null,
+        })) as AgentPoolCampaignStatusView[]
+      );
+    }
+  }, [community.tokenAddress, community.usePlatformAgent, community.agentPool]);
+
+  useEffect(() => {
+    void loadAgentStatus();
+  }, [loadAgentStatus, refreshKey]);
+
   const beneficiaryCompleted = completedCampaigns(community.fundraising);
-  const agentFunded = community.usePlatformAgent
+  const agentFundedFallback = community.usePlatformAgent
     ? fundedAgentPoolCampaigns(community.agentPool)
     : [];
+  const agentFunded =
+    agentStatus.length > 0
+      ? agentStatus
+      : (agentFundedFallback.map((c) => ({
+          ...c,
+          phase: c.executedAt ? ('executed' as const) : ('funded' as const),
+          statusLabel: c.executedAt ? 'Executed by agent' : 'Funded — awaiting agent job',
+          oxworkUrl: null,
+          fundedSince: c.fundedAt ?? c.proposedAt ?? null,
+          waitingMs: null,
+        })) as AgentPoolCampaignStatusView[]);
   const agentOpen = community.usePlatformAgent && hasPublicAgentPool(community.agentPool);
   const beneficiaryOpen = hasPublicFundraising(community.fundraising);
   const hasHistory =
@@ -116,7 +221,10 @@ export function FundraisersPanel({
             <CommunityProposeGoal
               tokenAddress={community.tokenAddress}
               symbol={community.symbol}
-              onProposed={() => onRefresh?.()}
+              onProposed={() => {
+                onRefresh?.();
+                void loadAgentStatus();
+              }}
             />
           ) : null}
           {agentOpen ? (
@@ -154,8 +262,10 @@ export function FundraisersPanel({
       {hasHistory ? (
         <div className="p-4 rounded-xl border border-border bg-surface space-y-3">
           <div>
-            <div className="text-sm font-semibold">Completed</div>
-            <p className="text-[11px] text-muted mt-0.5">Past goals and amounts raised.</p>
+            <div className="text-sm font-semibold">Goal history</div>
+            <p className="text-[11px] text-muted mt-0.5">
+              Raised amounts, linked 0xJobs, and agent execution status.
+            </p>
           </div>
           <div className="space-y-2">
             {beneficiaryCompleted.map((campaign) => (
@@ -165,24 +275,11 @@ export function FundraisersPanel({
                 title={campaign.label}
                 raisedUsd={campaign.raisedUsd}
                 goalUsd={campaign.goalUsd}
-                status="completed"
                 detail={fundraiserTypeLabel(campaign.id)}
               />
             ))}
             {agentFunded.map((campaign) => (
-              <HistoryCard
-                key={`agent-${campaign.skillId}`}
-                lane="Community agent"
-                title={campaign.label}
-                raisedUsd={campaign.raisedUsd}
-                goalUsd={campaign.goalUsd}
-                status={campaign.executedAt ? 'executed' : 'funded'}
-                detail={
-                  campaign.executedAt
-                    ? campaign.executionNote || campaign.workBrief
-                    : campaign.workBrief
-                }
-              />
+              <AgentPoolHistoryCard key={`agent-${campaign.skillId}`} campaign={campaign} />
             ))}
           </div>
         </div>
