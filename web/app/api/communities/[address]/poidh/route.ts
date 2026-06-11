@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getCommunity } from '@/lib/db';
-import { getPlatformAgentWallet } from '@/lib/platform-agent';
-import { fetchPoidhBountiesForSpace, poidhBountyUrl } from '@/lib/poidh-api';
+import { getCommunity, getCommunities, setCommunities } from '@/lib/db';
+import { mergeCommunityDefaults } from '@/lib/community-posts';
+import { migrateLegacyPoidhAgentPool } from '@/lib/agent-pool-legacy-poidh';
+import {
+  bountyPublicUrl,
+  POIDH_BOUNTY_GUIDE_URL,
+} from '@/lib/poidh-community-bounties';
+import { fetchPoidhBountyById } from '@/lib/poidh-api';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -18,44 +23,52 @@ export async function GET(_req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Space not found' }, { status: 404 });
     }
 
-    const platformWallet = getPlatformAgentWallet();
-    const issuerWallets = [platformWallet, community.ownerWallet].filter(Boolean) as string[];
-
-    if (issuerWallets.length === 0) {
-      return NextResponse.json({ bounties: [], total: 0, symbol: community.symbol });
+    const migrated = migrateLegacyPoidhAgentPool(community);
+    if (migrated.changed) {
+      const communities = await getCommunities();
+      const idx = communities.findIndex(
+        (c) => c.tokenAddress.toLowerCase() === tokenAddress
+      );
+      if (idx !== -1) {
+        communities[idx] = migrated.community;
+        await setCommunities(communities);
+      }
     }
+    const merged = mergeCommunityDefaults(migrated.community);
+    const state = merged.poidhBounties;
 
-    const data = await fetchPoidhBountiesForSpace({
-      issuerWallets,
-      symbol: community.symbol,
-      tokenAddress,
-    });
-
-    const bounties = data.bounties
-      .filter((b) => b.active)
-      .map((b) => ({
-        id: b.id,
-        frontendId: b.frontendId,
-        name: b.name,
-        description: b.description,
-        issuer: b.issuer,
-        amountWei: b.amountWei.toString(),
-        createdAt: b.createdAt,
-        url: poidhBountyUrl(b.id),
-        openBounty: true,
-      }));
+    const bounties = await Promise.all(
+      (state?.bounties ?? []).map(async (b) => {
+        let amountWei: string | null = null;
+        if (b.poidhBountyId != null) {
+          const onChain = await fetchPoidhBountyById(b.poidhBountyId).catch(() => null);
+          amountWei = onChain?.amountWei.toString() ?? null;
+        }
+        return {
+          id: b.id,
+          kind: b.kind,
+          title: b.title,
+          description: b.description,
+          status: b.poidhBountyId != null ? 'live' : b.status,
+          poidhBountyId: b.poidhBountyId,
+          url: bountyPublicUrl(b),
+          amountWei,
+          requestedBy: b.requestedBy,
+          createdAt: b.createdAt,
+        };
+      })
+    );
 
     return NextResponse.json({
       bounties,
       total: bounties.length,
-      symbol: community.symbol,
-      issuerWallet: data.issuerWallet,
-      usePlatformAgent: !!community.usePlatformAgent,
+      symbol: merged.symbol,
+      enabled: state?.enabled !== false,
+      pendingSpinUp: Boolean(state?.spinUpAt || state?.bankrAgentJobId),
       links: {
         poidh: 'https://poidh.xyz/base',
-        openBountyGuide: 'https://words.poidh.xyz/poidh-open-bounties-guide',
+        openBountyGuide: POIDH_BOUNTY_GUIDE_URL,
         skill: 'https://github.com/picsoritdidnthappen/poidh-app/blob/prod/SKILL.md',
-        docs: 'https://docs.poidh.xyz/api.html',
       },
     });
   } catch (err) {

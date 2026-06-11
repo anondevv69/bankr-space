@@ -109,6 +109,30 @@ export interface AgentPoolState {
   campaigns: AgentPoolCampaign[];
 }
 
+export type PoidhBountyKind = 'dex-profile' | 'dex-boost' | 'shoutout' | 'community';
+
+/** POIDH open bounty tracked per space — funded on-chain, not via x402. */
+export interface PoidhCommunityBounty {
+  id: string;
+  kind: PoidhBountyKind;
+  title: string;
+  description: string;
+  poidhBountyId: number | null;
+  status: 'pending' | 'live' | 'completed';
+  requestedBy: string | null;
+  createdAt: number;
+  jobLinkedAt: number | null;
+  bankrAgentJobId: string | null;
+}
+
+export interface PoidhBountyState {
+  enabled: boolean;
+  bounties: PoidhCommunityBounty[];
+  /** Set when agent should create pending on-chain bounties. */
+  spinUpAt: number | null;
+  bankrAgentJobId?: string | null;
+}
+
 export interface Community {
   tokenAddress: string;
   name: string;
@@ -174,6 +198,8 @@ export interface Community {
   fundraising?: FundraisingState;
   /** Lane B — community x402 pool for platform agent skills (QRCoin, 0xWork) */
   agentPool?: AgentPoolState;
+  /** POIDH open bounties — on-chain crowdfunding (no x402). */
+  poidhBounties?: PoidhBountyState;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
   pinnedPosts?: PinnedPost[];

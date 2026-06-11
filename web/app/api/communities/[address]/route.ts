@@ -22,6 +22,7 @@ import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
 import { normalizeTrustedDelegates } from '@/lib/space-delegates';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
+import { emptyPoidhBountyState } from '@/lib/poidh-community-bounties';
 import {
   syncCommunityProfile,
   withResolvedProfile,
@@ -37,6 +38,7 @@ import {
 import { normalizeBannerUrl } from '@/lib/banner-url';
 import { normalizeBlockedKeywords } from '@/lib/content-moderation';
 import { normalizeAgentPool, readStoredAgentPool } from '@/lib/agent-pool';
+import { migrateLegacyPoidhAgentPool } from '@/lib/agent-pool-legacy-poidh';
 import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
@@ -71,6 +73,11 @@ export async function GET(_req: Request, { params }: RouteParams) {
     }
 
     let normalized = mergeCommunityDefaults(community);
+    const migrated = migrateLegacyPoidhAgentPool(normalized);
+    normalized = migrated.community;
+    if (migrated.changed) {
+      await saveCommunity(normalized);
+    }
     const needsSync = shouldSyncProfile(normalized);
     normalized = await syncCommunityProfile(normalized, { force: needsSync });
     if (needsSync) {
@@ -432,6 +439,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       memberCount: 0,
       createdAt: Date.now(),
       launchTimestamp: launch.timestamp,
+      poidhBounties: emptyPoidhBountyState(),
     });
 
     const synced = await syncCommunityProfile(community, { force: true });

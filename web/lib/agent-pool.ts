@@ -1,17 +1,11 @@
 import type { AgentPoolCampaign, AgentPoolSkillId, AgentPoolState } from './types';
 
-export const AGENT_POOL_SKILL_IDS: AgentPoolSkillId[] = ['poidh', '0xwork', 'qrcoin'];
+export const AGENT_POOL_SKILL_IDS: AgentPoolSkillId[] = ['0xwork', 'qrcoin'];
 
 export const AGENT_POOL_SKILL_META: Record<
   AgentPoolSkillId,
   { label: string; defaultGoalUsd: number; description: string }
 > = {
-  poidh: {
-    label: 'POIDH — open bounty (human tasks)',
-    defaultGoalUsd: 5,
-    description:
-      'Open bounty on poidh.xyz — crowd fund in ETH, verify proof together, auto-pay winner. USDC here seeds the on-chain pool.',
-  },
   qrcoin: {
     label: 'QRCoin — QR listing for this space',
     defaultGoalUsd: 50,
@@ -21,6 +15,11 @@ export const AGENT_POOL_SKILL_META: Record<
     label: '0xWork — bagwork & bounties',
     defaultGoalUsd: 200,
     description: 'Agent posts paid tasks (tweets, art, banner) on 0xWork when funded.',
+  },
+  poidh: {
+    label: 'POIDH — open bounties (legacy)',
+    defaultGoalUsd: 50,
+    description: 'Legacy agent-pool path — use the Bounties tab for POIDH open bounties.',
   },
 };
 
@@ -172,7 +171,9 @@ export function isAgentPoolCampaignFunded(campaign: AgentPoolCampaign): boolean 
 
 export function openAgentPoolCampaigns(state: AgentPoolState | undefined | null): AgentPoolCampaign[] {
   if (!state?.optedIn) return [];
-  return state.campaigns.filter((c) => c.enabled && !isAgentPoolCampaignFunded(c));
+  return state.campaigns.filter(
+    (c) => c.enabled && !isAgentPoolCampaignFunded(c) && (c.skillId === '0xwork' || c.skillId === 'qrcoin')
+  );
 }
 
 export function matchedAgentPoolCampaigns(

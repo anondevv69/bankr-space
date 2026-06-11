@@ -7,6 +7,7 @@ import {
   openAgentPoolCampaigns,
   readStoredAgentPool,
 } from '@/lib/agent-pool';
+import { isActiveAgentPoolSkill } from '@/lib/agent-pool-legacy-poidh';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
 import { buildFundraisingX402BaseUrl, buildAgentPoolX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
 
     const merged = mergeCommunityDefaults(community);
     const pool = readStoredAgentPool(merged.agentPool);
-    const open = openAgentPoolCampaigns(pool);
+    const open = openAgentPoolCampaigns(pool).filter((c) => isActiveAgentPoolSkill(c.skillId));
     const platformWallet = getPlatformAgentWallet();
     const x402BaseUrl = buildAgentPoolX402BaseUrl(platformWallet);
 

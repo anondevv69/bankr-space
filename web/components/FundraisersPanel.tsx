@@ -13,6 +13,7 @@ import {
   hasAgentPoolHistory,
   hasPublicAgentPool,
 } from '@/lib/agent-pool';
+import { isActiveAgentPoolSkill } from '@/lib/agent-pool-legacy-poidh';
 import type { AgentPoolCampaignStatusView } from '@/lib/agent-pool-status';
 import { agentPoolStatusClass } from '@/lib/agent-pool-status';
 import { FundraisingWidget } from '@/components/FundraisingWidget';
@@ -182,11 +183,13 @@ export function FundraisersPanel({
 
   const beneficiaryCompleted = completedCampaigns(community.fundraising);
   const agentFundedFallback = community.usePlatformAgent
-    ? fundedAgentPoolCampaigns(community.agentPool)
+    ? fundedAgentPoolCampaigns(community.agentPool).filter((c) =>
+        isActiveAgentPoolSkill(c.skillId)
+      )
     : [];
   const agentFunded =
     agentStatus.length > 0
-      ? agentStatus
+      ? agentStatus.filter((c) => isActiveAgentPoolSkill(c.skillId))
       : (agentFundedFallback.map((c) => ({
           ...c,
           phase: c.executedAt ? ('executed' as const) : ('funded' as const),
@@ -212,7 +215,7 @@ export function FundraisersPanel({
   const fundraisingRefresh = refreshKey ?? JSON.stringify(community.fundraising?.campaigns);
 
   const introCommunity =
-    'Holders propose a task and chip in USDC ($1 per click). When funded, the agent seeds a POIDH open bounty on poidh.xyz — others can add ETH to the pool, workers submit proof, contributors vote 48h. One open task at a time.';
+    'Holders propose 0xWork or QRCoin tasks and chip in USDC ($1 per click). For POIDH open bounties — create and fund them in the Bounties tab (ETH on poidh.xyz, not x402).';
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">

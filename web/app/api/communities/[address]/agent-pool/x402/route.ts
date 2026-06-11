@@ -6,6 +6,7 @@ import { getPlatformAgentWallet } from '@/lib/platform-agent';
 import { SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { normalizeAddr } from '@/lib/utils';
 import type { AgentPoolSkillId } from '@/lib/types';
+import { isActiveAgentPoolSkill } from '@/lib/agent-pool-legacy-poidh';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,15 @@ export async function POST(req: Request, { params }: RouteParams) {
 
   if (!skillId) {
     return NextResponse.json({ error: 'skillId or agent-* campaignId required' }, { status: 400 });
+  }
+  if (!isActiveAgentPoolSkill(skillId)) {
+    return NextResponse.json(
+      {
+        error:
+          'POIDH bounties are not funded via x402. Create one in the Bounties tab — funding is in ETH on poidh.xyz.',
+      },
+      { status: 400 }
+    );
   }
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     return NextResponse.json({ error: 'amountUsd must be a positive number' }, { status: 400 });

@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const goalUsd = Number(body.goalUsd);
 
   if (!AGENT_POOL_SKILL_IDS.includes(skillId)) {
-    return NextResponse.json({ error: 'skillId must be poidh, qrcoin, or 0xwork' }, { status: 400 });
+    return NextResponse.json({ error: 'skillId must be qrcoin or 0xwork' }, { status: 400 });
   }
   if (!Number.isFinite(goalUsd) || goalUsd < 1) {
     return NextResponse.json({ error: 'goalUsd must be at least 1' }, { status: 400 });
