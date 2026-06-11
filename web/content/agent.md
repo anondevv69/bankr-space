@@ -59,6 +59,7 @@ install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/
 | Can I **post** in $TMP? | Holder check | `GET /api/holders/{token}?wallet=` |
 | Any **fundraising** on **$TMP**? | Open USDC goals | `GET /api/communities/{token}/fundraising` or briefing → `fundraising` |
 | **Fund** / **contribute** to a space | x402 on site | Read skill **`FUNDRAISING.md`** → reply progress + space URL |
+| **Create bounty** / **open bounty** for **$SPACE** | POIDH ETH bounty | Read **`POIDH-BOUNTIES.md`** → `POST …/poidh/request` or Bounties tab |
 
 ---
 

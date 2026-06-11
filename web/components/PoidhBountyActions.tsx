@@ -83,7 +83,8 @@ export function PoidhBountyActions({
   poidhBountyId,
   poolAmountWei,
   onChainActive,
-  focusSection = 'all',
+  showFundForm = false,
+  showClaimForm = false,
   compact = false,
   onAction,
 }: {
@@ -92,7 +93,8 @@ export function PoidhBountyActions({
   poidhBountyId: number;
   poolAmountWei?: string | null;
   onChainActive?: boolean | null;
-  focusSection?: 'fund' | 'claim' | 'all';
+  showFundForm?: boolean;
+  showClaimForm?: boolean;
   compact?: boolean;
   onAction?: () => void;
 }) {
@@ -141,10 +143,31 @@ export function PoidhBountyActions({
   }, [load]);
 
   useEffect(() => {
+    if (detail?.minContributionEth) {
+      setFundEth(detail.minContributionEth);
+    }
+  }, [detail?.minContributionEth]);
+
+  useEffect(() => {
     if (!detail?.voteActive) return;
     const id = window.setInterval(() => void load(), 25_000);
     return () => window.clearInterval(id);
   }, [detail?.voteActive, load]);
+
+  function formatVoteWeight(wei: bigint): string {
+    return formatEthAmount(Number(wei) / 1e18);
+  }
+
+  function parseTxError(err: unknown): string {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/simulation_reverted|tx\.origin|smart wallet|signer rejected/i.test(msg)) {
+      return 'Use MetaMask or Rabby directly on Base — POIDH requires an EOA wallet (not Bankr embed / smart wallet).';
+    }
+    if (/insufficient funds/i.test(msg)) {
+      return 'Insufficient ETH on Base for this transaction.';
+    }
+    return msg.length > 220 ? `${msg.slice(0, 217)}…` : msg;
+  }
 
   function ensureWallet(): Address | null {
     if (!address) {
@@ -176,7 +199,7 @@ export function PoidhBountyActions({
       await load();
       onAction?.();
     } catch (err) {
-      setHint(err instanceof Error ? err.message : `${label} failed`);
+      setHint(parseTxError(err));
     } finally {
       setBusy(null);
     }
@@ -185,6 +208,12 @@ export function PoidhBountyActions({
   async function addFunds() {
     const acct = ensureWallet();
     if (!acct) return;
+    const min = Number(detail?.minContributionEth ?? '0.00001');
+    const amt = Number(fundEth);
+    if (!Number.isFinite(amt) || amt < min) {
+      setHint(`Minimum contribution is ${detail?.minContributionEth ?? '0.00001'} ETH.`);
+      return;
+    }
     const wallet = createBrowserPaymentWalletClient(acct);
     await runTx('Add funds', () => poidhJoinBounty(wallet, acct, poidhBountyId, fundEth));
   }
@@ -223,7 +252,7 @@ export function PoidhBountyActions({
       return;
     }
     setBusy('Request vote');
-    setHint('Asking Bankr agent to propose this claim for voting…');
+    setHint('Starting 48h contributor vote…');
     try {
       const data = await apiFetch(`/api/communities/${tokenAddress}/poidh/propose`, {
         method: 'POST',
@@ -293,8 +322,6 @@ export function PoidhBountyActions({
   const display = detail ?? fallbackDetail;
   const stake = participantStake(display, address);
   const canVote = display.voteActive && stake > 0n;
-  const showFund = focusSection === 'all' || focusSection === 'fund';
-  const showClaim = focusSection === 'all' || focusSection === 'claim';
 
   return (
     <div className={`space-y-4 ${compact ? 'pt-1' : 'border-t border-border pt-3'}`}>
@@ -338,8 +365,7 @@ export function PoidhBountyActions({
         <div className="p-3 rounded-lg border border-accent/30 bg-accent/5 space-y-2">
           <div className="text-xs font-medium">Vote in progress — {voteTimeLeft(display.voteDeadline)}</div>
           <p className="text-[11px] text-muted">
-            Yes: {formatEthDisplay(String(Number(display.voteYes) / 1e18))} ETH weight · No:{' '}
-            {formatEthDisplay(String(Number(display.voteNo) / 1e18))} ETH weight
+            Yes: {formatVoteWeight(display.voteYes)} · No: {formatVoteWeight(display.voteNo)}
           </p>
           {canVote ? (
             <div className="flex flex-wrap gap-2">
@@ -360,11 +386,14 @@ export function PoidhBountyActions({
                 Vote no
               </button>
             </div>
-          ) : stake > 0n ? (
-            <p className="text-[11px] text-muted">You already voted or voting closed.</p>
-          ) : (
-            <p className="text-[11px] text-muted">Add funds to get voting power.</p>
-          )}
+          ) : display.voteActive && stake > 0n ? (
+            <p className="text-[11px] text-muted">You already voted.</p>
+          ) : display.voteActive ? (
+            <p className="text-[11px] text-muted">
+              Only funders can vote — use <strong className="text-text">Add funds</strong> first
+              (MetaMask/Rabby on Base).
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -382,7 +411,7 @@ export function PoidhBountyActions({
         </div>
       ) : null}
 
-      {display.active && showFund ? (
+      {display.active && showFundForm ? (
         <>
           <div className="space-y-2">
             <div className="text-xs font-medium">Add funds</div>
@@ -414,7 +443,7 @@ export function PoidhBountyActions({
         </>
       ) : null}
 
-      {display.active && showClaim ? (
+      {display.active && showClaimForm ? (
           <div className="space-y-2">
             <div className="text-xs font-medium">Submit claim</div>
             <p className="text-[11px] text-muted leading-relaxed">
@@ -501,7 +530,7 @@ export function PoidhBountyActions({
             })}
           </ul>
           <p className="text-[10px] text-muted">
-            After you submit a claim, the Bankr agent proposes it for a 48h contributor vote.
+            Claim submitter clicks Request vote to start 48h funder voting.
           </p>
         </div>
       ) : null}
