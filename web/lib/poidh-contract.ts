@@ -222,6 +222,28 @@ export type PoidhBountyDetail = {
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
+async function poidhRead<T>(fn: () => Promise<T>, retries = 5): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const transient =
+        /rate limit|429|too many|rpc request failed|limit exceeded|timeout|503|502|overloaded/i.test(
+          msg
+        );
+      if (attempt < retries - 1 && transient) {
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
 export async function readMinContribution(): Promise<bigint> {
   try {
     return await poidhPublicClient.readContract({
@@ -238,20 +260,24 @@ async function readParticipants(bountyId: number): Promise<PoidhBountyDetail['pa
   const out: PoidhBountyDetail['participants'] = [];
   for (let i = 0; i < 150; i++) {
     try {
-      const addr = await poidhPublicClient.readContract({
-        address: POIDH_V3_BASE,
-        abi: poidhV3Abi,
-        functionName: 'participants',
-        args: [BigInt(bountyId), BigInt(i)],
-      });
+      const addr = await poidhRead(() =>
+        poidhPublicClient.readContract({
+          address: POIDH_V3_BASE,
+          abi: poidhV3Abi,
+          functionName: 'participants',
+          args: [BigInt(bountyId), BigInt(i)],
+        })
+      );
       const address = String(addr).toLowerCase();
       if (address === ZERO) continue;
-      const amountWei = await poidhPublicClient.readContract({
-        address: POIDH_V3_BASE,
-        abi: poidhV3Abi,
-        functionName: 'participantAmounts',
-        args: [BigInt(bountyId), BigInt(i)],
-      });
+      const amountWei = await poidhRead(() =>
+        poidhPublicClient.readContract({
+          address: POIDH_V3_BASE,
+          abi: poidhV3Abi,
+          functionName: 'participantAmounts',
+          args: [BigInt(bountyId), BigInt(i)],
+        })
+      );
       if (amountWei > 0n) {
         out.push({
           address,
@@ -268,20 +294,24 @@ async function readParticipants(bountyId: number): Promise<PoidhBountyDetail['pa
 
 async function readClaims(bountyId: number): Promise<PoidhClaimView[]> {
   try {
-    const rows = await poidhPublicClient.readContract({
-      address: POIDH_V3_BASE,
-      abi: poidhV3Abi,
-      functionName: 'getClaimsByBountyId',
-      args: [BigInt(bountyId), 0n],
-    });
-    return rows.map((row) => ({
-      id: Number(row.id),
-      issuer: String(row.issuer).toLowerCase(),
-      name: String(row.name || ''),
-      description: String(row.description || ''),
-      createdAt: Number(row.createdAt),
-      accepted: Boolean(row.accepted),
-    }));
+    const rows = await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'getClaimsByBountyId',
+        args: [BigInt(bountyId), 0n],
+      })
+    );
+    return rows
+      .map((row) => ({
+        id: Number(row.id),
+        issuer: String(row.issuer).toLowerCase(),
+        name: String(row.name || ''),
+        description: String(row.description || ''),
+        createdAt: Number(row.createdAt),
+        accepted: Boolean(row.accepted),
+      }))
+      .filter((c) => c.id > 0 && c.issuer !== ZERO);
   } catch {
     return [];
   }
@@ -290,64 +320,105 @@ async function readClaims(bountyId: number): Promise<PoidhClaimView[]> {
 export async function fetchPoidhBountyDetail(bountyId: number): Promise<PoidhBountyDetail | null> {
   if (!bountyId || bountyId <= 0) return null;
 
-  try {
-    const [row, votingClaimId, voteTracker, minContributionWei, participants, claims] =
-      await Promise.all([
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const row = await poidhRead(() =>
         poidhPublicClient.readContract({
           address: POIDH_V3_BASE,
           abi: poidhV3Abi,
           functionName: 'bounties',
           args: [BigInt(bountyId)],
-        }),
-        poidhPublicClient.readContract({
-          address: POIDH_V3_BASE,
-          abi: poidhV3Abi,
-          functionName: 'bountyCurrentVotingClaim',
-          args: [BigInt(bountyId)],
-        }),
-        poidhPublicClient.readContract({
-          address: POIDH_V3_BASE,
-          abi: poidhV3Abi,
-          functionName: 'bountyVotingTracker',
-          args: [BigInt(bountyId)],
-        }),
-        readMinContribution(),
-        readParticipants(bountyId),
-        readClaims(bountyId),
-      ]);
+        })
+      );
 
-    const issuer = String(row[1]).toLowerCase();
-    if (issuer === ZERO) return null;
+      const issuer = String(row[1]).toLowerCase();
+      if (issuer === ZERO) return null;
 
-    const claimer = String(row[5]).toLowerCase();
-    const active = claimer === ZERO;
-    const deadline = Number(voteTracker[2]);
-    const nowSec = Math.floor(Date.now() / 1000);
-    const vClaim = Number(votingClaimId);
-    const voteActive = vClaim > 0 && deadline > nowSec;
+      let votingClaimId = 0n;
+      let voteTracker: readonly [bigint, bigint, bigint] = [0n, 0n, 0n];
+      let minContributionWei = parseEther('0.00001');
+      let participants: PoidhBountyDetail['participants'] = [];
+      let claims: PoidhClaimView[] = [];
 
-    return {
-      id: bountyId,
-      issuer,
-      name: String(row[2] || ''),
-      description: String(row[3] || ''),
-      amountWei: row[4],
-      amountEth: formatEther(row[4]),
-      active,
-      votingClaimId: vClaim,
-      voteYes: voteTracker[0],
-      voteNo: voteTracker[1],
-      voteDeadline: deadline,
-      voteActive,
-      voteEnded: vClaim > 0 && deadline > 0 && deadline <= nowSec,
-      participants,
-      claims,
-      minContributionWei,
-      minContributionEth: formatEther(minContributionWei),
-    };
-  } catch {
-    return null;
+      try {
+        votingClaimId = await poidhRead(() =>
+          poidhPublicClient.readContract({
+            address: POIDH_V3_BASE,
+            abi: poidhV3Abi,
+            functionName: 'bountyCurrentVotingClaim',
+            args: [BigInt(bountyId)],
+          })
+        );
+      } catch {
+        /* keep defaults */
+      }
+      try {
+        voteTracker = await poidhRead(() =>
+          poidhPublicClient.readContract({
+            address: POIDH_V3_BASE,
+            abi: poidhV3Abi,
+            functionName: 'bountyVotingTracker',
+            args: [BigInt(bountyId)],
+          })
+        );
+      } catch {
+        /* keep defaults */
+      }
+      try {
+        minContributionWei = await readMinContribution();
+      } catch {
+        /* keep defaults */
+      }
+      try {
+        participants = await readParticipants(bountyId);
+      } catch {
+        /* keep defaults */
+      }
+      try {
+        claims = await readClaims(bountyId);
+      } catch {
+        /* keep defaults */
+      }
+
+      const claimer = String(row[5]).toLowerCase();
+      const active = claimer === ZERO;
+      const deadline = Number(voteTracker[2]);
+      const nowSec = Math.floor(Date.now() / 1000);
+      const vClaim = Number(votingClaimId);
+      const voteActive = vClaim > 0 && deadline > nowSec;
+
+      return {
+        id: bountyId,
+        issuer,
+        name: String(row[2] || ''),
+        description: String(row[3] || ''),
+        amountWei: row[4],
+        amountEth: formatEther(row[4]),
+        active,
+        votingClaimId: vClaim,
+        voteYes: voteTracker[0],
+        voteNo: voteTracker[1],
+        voteDeadline: deadline,
+        voteActive,
+        voteEnded: vClaim > 0 && deadline > 0 && deadline <= nowSec,
+        participants,
+        claims,
+        minContributionWei,
+        minContributionEth: formatEther(minContributionWei),
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const transient = /rate limit|429|too many|rpc request failed|limit exceeded|timeout|503|502|overloaded/i.test(
+        msg
+      );
+      if (attempt < 2 && transient) {
+        await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+        continue;
+      }
+      return null;
+    }
   }
+  return null;
 }
 
 export function participantStake(

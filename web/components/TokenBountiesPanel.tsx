@@ -244,6 +244,7 @@ export function TokenBountiesPanel({
                   tokenAddress={tokenAddress}
                   symbol={symbol}
                   poidhBountyId={bounty.poidhBountyId}
+                  poolAmountWei={bounty.amountWei}
                   onAction={() => void load()}
                 />
               ) : (
