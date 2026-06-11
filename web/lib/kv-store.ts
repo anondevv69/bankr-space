@@ -93,3 +93,38 @@ export async function kvGet<T>(key: string): Promise<T | null> {
 export async function kvSet(key: string, value: unknown): Promise<void> {
   await getStore().set(key, value);
 }
+
+const LOCK_PREFIX = 'lock:';
+
+/** Best-effort distributed lock (Redis NX or always true without native Redis). */
+export async function kvAcquireLock(key: string, ttlSec: number): Promise<boolean> {
+  const lockKey = `${LOCK_PREFIX}${key}`;
+  if (process.env.REDIS_URL) {
+    const client = await getRedisClient();
+    const result = await client.set(lockKey, String(Date.now()), { NX: true, EX: ttlSec });
+    return result === 'OK';
+  }
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+  if (url && token) {
+    const client = createKvClient({ url, token });
+    const result = await client.set(lockKey, Date.now(), { nx: true, ex: ttlSec });
+    return result === 'OK';
+  }
+  return true;
+}
+
+export async function kvReleaseLock(key: string): Promise<void> {
+  const lockKey = `${LOCK_PREFIX}${key}`;
+  if (process.env.REDIS_URL) {
+    const client = await getRedisClient();
+    await client.del(lockKey);
+    return;
+  }
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+  if (url && token) {
+    const client = createKvClient({ url, token });
+    await client.del(lockKey);
+  }
+}

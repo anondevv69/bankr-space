@@ -222,7 +222,7 @@ export type PoidhBountyDetail = {
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
-async function poidhRead<T>(fn: () => Promise<T>, retries = 5): Promise<T> {
+export async function poidhRead<T>(fn: () => Promise<T>, retries = 5): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {
