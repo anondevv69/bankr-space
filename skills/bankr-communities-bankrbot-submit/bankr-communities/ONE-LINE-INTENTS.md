@@ -21,6 +21,8 @@
 | what **opportunities** on spaces? | briefing → `opportunities[]` | unverified, first post, create space, **fundraising_open** |
 | any **fundraising** on **$TMP**? | `GET /api/communities/{token}/fundraising` or briefing → `fundraising.open[]` | list open goals + progress |
 | **fund** / **contribute** to **TMP** Dex profile | **`FUNDRAISING.md`** → fundraising GET → space URL (pay on site) |
+| **fund** / **add ETH** to **$SPACE** bounty | **`POIDH-BOUNTIES.md`** → Bounties tab (user EOA) or `POST …/poidh/seed` (issuer) |
+| **seed** ETH to bounty on **$TMP** | **`POIDH-BOUNTIES.md`** → `GET …/poidh` → `POST …/poidh/seed` |
 | **completed** fundraisers on **$TMP**? | briefing → `fundraising.completed[]` | past goals only |
 
 ---
@@ -61,6 +63,8 @@
 @bankrbot any fundraisers on the TMP space?
 @bankrbot fund $5 to TMP space for Dex profile
 @bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
+@bankrbot add 0.01 ETH to the $SPACE Test bounty
+@bankrbot how do I fund the TMP open bounty?
 @bankrbot start a space for 0x935e13a28849095db45e63040f109c34b757aba3
 ```
 

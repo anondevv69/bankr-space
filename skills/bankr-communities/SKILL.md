@@ -35,6 +35,8 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
 | **fund** / **contribute** to **TMP** space fundraiser | Read **`FUNDRAISING.md`** → `GET …/fundraising` or briefing → reply progress + space URL |
 | **create bounty** / **open bounty** for **$SPACE** | Read **`POIDH-BOUNTIES.md`** → `POST …/poidh/request` (holder) or Bounties tab on space |
+| **fund** / **add ETH** to **$SPACE** bounty | Read **`POIDH-BOUNTIES.md`** → guide user to Bounties tab (EOA) or `POST …/poidh/seed` (issuer seed) |
+| **seed** **0.01 ETH** to bounty on **$SPACE** | **`POIDH-BOUNTIES.md`** → `GET …/poidh` → `POST …/poidh/seed` |
 | any **fundraising** on **$ARCHIVE**? | `GET …/fundraising` or briefing → `fundraising.open[]` |
 
 **Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
