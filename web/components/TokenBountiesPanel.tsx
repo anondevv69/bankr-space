@@ -275,46 +275,45 @@ export function TokenBountiesPanel({
                 {bounty.poidhBountyId != null && bounty.status === 'live' ? (
                   <>
                     {isOpen ? (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => togglePanel(bounty.id, 'claim')}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
-                            panelOpen && openPanel?.section === 'claim'
-                              ? 'bg-accent text-white'
-                              : 'bg-accent text-white'
-                          }`}
-                        >
-                          Submit claim
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => togglePanel(bounty.id, 'fund')}
-                          className={`px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 ${
-                            panelOpen && openPanel?.section === 'fund'
-                              ? 'border-accent'
-                              : ''
-                          }`}
-                        >
-                          Add funds
-                        </button>
-                      </div>
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => togglePanel(bounty.id, 'claim')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
+                              panelOpen && openPanel?.section === 'claim'
+                                ? 'bg-accent text-white'
+                                : 'bg-accent text-white'
+                            }`}
+                          >
+                            Submit claim
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => togglePanel(bounty.id, 'fund')}
+                            className={`px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 ${
+                              panelOpen && openPanel?.section === 'fund' ? 'border-accent' : ''
+                            }`}
+                          >
+                            Add funds
+                          </button>
+                        </div>
+
+                        <PoidhBountyActions
+                          tokenAddress={tokenAddress}
+                          symbol={symbol}
+                          poidhBountyId={bounty.poidhBountyId}
+                          poolAmountWei={bounty.amountWei}
+                          onChainActive={bounty.onChainActive}
+                          showFundForm={panelOpen && openPanel?.section === 'fund'}
+                          showClaimForm={panelOpen && openPanel?.section === 'claim'}
+                          compact
+                          onAction={() => void load()}
+                        />
+                      </>
                     ) : (
                       <p className="text-[11px] text-muted">This bounty has been paid out.</p>
                     )}
-
-                    {panelOpen && isOpen && openPanel ? (
-                      <PoidhBountyActions
-                        tokenAddress={tokenAddress}
-                        symbol={symbol}
-                        poidhBountyId={bounty.poidhBountyId}
-                        poolAmountWei={bounty.amountWei}
-                        onChainActive={bounty.onChainActive}
-                        focusSection={openPanel.section}
-                        compact
-                        onAction={() => void load()}
-                      />
-                    ) : null}
 
                     {externalUrl ? (
                       <p className="text-[10px] text-muted">

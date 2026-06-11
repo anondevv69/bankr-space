@@ -22,6 +22,8 @@ import {
   openAgentPoolCampaigns,
   readStoredAgentPool,
 } from '@/lib/agent-pool';
+import { bountyDescriptionForDisplay } from '@/lib/poidh-community-bounties';
+import { poidhBountyUrl } from '@/lib/poidh-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +119,26 @@ export async function GET(req: Request) {
       opportunities.push({
         type: 'fundraising_open',
         message: `$${community!.symbol} space — ${campaign.label}: $${campaign.raisedUsd}/$${campaign.goalUsd} raised ($${remaining} remaining). Contribute USDC on bankr.space.`,
+      });
+    }
+
+    const poidhState = normalizedCommunity?.poidhBounties;
+    const poidhBountyList =
+      poidhState?.enabled && poidhState.bounties.length
+        ? poidhState.bounties.map((b) => ({
+            id: b.id,
+            title: b.title,
+            description: bountyDescriptionForDisplay(b.description).slice(0, 280),
+            status: b.poidhBountyId != null ? 'live' : 'pending',
+            poidhBountyId: b.poidhBountyId,
+            url: b.poidhBountyId != null ? poidhBountyUrl(b.poidhBountyId) : null,
+          }))
+        : [];
+
+    for (const b of poidhBountyList.filter((row) => row.status === 'live')) {
+      opportunities.push({
+        type: 'poidh_bounty_live',
+        message: `$${community!.symbol} open bounty: ${b.title} — fund, claim, and vote on bankr.space Bounties tab.`,
       });
     }
 
@@ -216,6 +238,17 @@ export async function GET(req: Request) {
               'One line per task: description — $bounty — Category (Social|Creative|Writing). Replace $SYMBOL with token symbol; include https://bankr.space/community/{token} in descriptions when relevant.',
           }
         : null,
+      poidhBounties:
+        poidhState?.enabled && poidhBountyList.length
+          ? {
+              bounties: poidhBountyList,
+              createBounty:
+                'POST /api/communities/{token}/poidh/request header x-wallet-address — token holder; seeds 0.001 ETH on Base',
+              humanUi: 'Bounties tab on space page — fund, submit claim, vote (MetaMask/Rabby on Base)',
+              agentNote:
+                'Agents create bounties via API only; users fund/claim/vote with EOA wallet on site. See skills/bankr-communities/POIDH-BOUNTIES.md',
+            }
+          : null,
       links: {
         communityPage: pageLink,
         allCommunities: siteUrl,
@@ -231,6 +264,9 @@ export async function GET(req: Request) {
         checkHolder: 'GET /api/holders/{token}?wallet=0x…',
         react: 'POST /api/posts/{postId}/react header x-wallet-address',
         fundraising: 'GET /api/communities/{token}/fundraising',
+        poidhList: 'GET /api/communities/{token}/poidh',
+        poidhCreate:
+          'POST /api/communities/{token}/poidh/request header x-wallet-address — holder creates open bounty (ETH on Base)',
       },
     });
   } catch (err) {
