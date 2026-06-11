@@ -46,7 +46,7 @@ In Vercel → **Settings** → **Environment Variables**, add:
 | `PLATFORM_AGENT_WALLET` | Base Account for Lane B community agent pool (same as Aeon) |
 | `PLATFORM_AGENT_BANKR_API_KEY` | `bk_…` Bankr Agent API key on that wallet — **executes funded 0xWork/QRCoin goals** via Vercel cron (`/api/cron/agent-pool-worker` every 10 min). Same value as Aeon `BANKR_API_KEY`. |
 | `POIDH_ISSUER_WALLET` | EOA address for POIDH issuer txs (must match private key) |
-| `POIDH_ISSUER_PRIVATE_KEY` | EOA private key — `createOpenBounty` + `submitClaimForVote`. Fund with ETH on Base (~0.001 ETH/bounty + gas). |
+| `POIDH_ISSUER_PRIVATE_KEY` | EOA private key — `createOpenBounty`, `acceptClaim`, and `submitClaimForVote`. Fund with ETH on Base (~0.001 ETH/bounty + gas). |
 | `BASE_RPC_URL` | Base RPC with higher limits (Alchemy/Infura) — recommended for POIDH bounty reads on Vercel |
 | `NEXT_PUBLIC_PLATFORM_AGENT_UI` | `true` — show community agent UI on spaces |
 

@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import { resolveSpacePermissions } from '@/lib/community-owner';
-import { fetchPoidhBountyDetail } from '@/lib/poidh-contract';
+import { bountyNeedsContributorVote, fetchPoidhBountyDetail } from '@/lib/poidh-contract';
 import {
   isPoidhIssuerConfigured,
+  poidhIssuerAcceptClaim,
   poidhIssuerSubmitClaimForVote,
 } from '@/lib/poidh-issuer';
 import { normalizeAddr } from '@/lib/utils';
@@ -75,7 +76,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Claim not found on-chain' }, { status: 404 });
     }
     if (claim.issuer !== wallet) {
-      return NextResponse.json({ error: 'Only the claim submitter can request a vote' }, { status: 403 });
+      return NextResponse.json({ error: 'Only the claim submitter can finalize this claim' }, { status: 403 });
     }
 
     if (!isPoidhIssuerConfigured()) {
@@ -85,12 +86,26 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    const { txHash } = await poidhIssuerSubmitClaimForVote({ bountyId, claimId });
+    const needsVote = bountyNeedsContributorVote(detail);
 
+    if (needsVote) {
+      const { txHash } = await poidhIssuerSubmitClaimForVote({ bountyId, claimId });
+      return NextResponse.json({
+        success: true,
+        txHash,
+        mode: 'vote',
+        message:
+          'Multiple funders on this bounty — 48h contributor vote started. Refresh to vote yes/no.',
+      });
+    }
+
+    const { txHash } = await poidhIssuerAcceptClaim({ bountyId, claimId });
     return NextResponse.json({
       success: true,
       txHash,
-      message: 'Your claim is now up for a 48h contributor vote. Refresh to see voting status.',
+      mode: 'accept',
+      message:
+        'Only the issuer funded this bounty — claim accepted and paid out. Refresh to withdraw if needed.',
     });
   } catch (err) {
     console.error('POST poidh/propose', err);

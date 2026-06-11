@@ -83,6 +83,23 @@ export const poidhV3Abi = [
   {
     inputs: [
       { name: 'bountyId', type: 'uint256' },
+      { name: 'claimId', type: 'uint256' },
+    ],
+    name: 'acceptClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'bountyId', type: 'uint256' }],
+    name: 'everHadExternalContributor',
+    outputs: [{ type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'bountyId', type: 'uint256' },
       { name: 'vote', type: 'bool' },
     ],
     name: 'voteClaim',
@@ -218,6 +235,8 @@ export type PoidhBountyDetail = {
   claims: PoidhClaimView[];
   minContributionWei: bigint;
   minContributionEth: string;
+  /** True when external funders joined — claim must go to 48h vote. */
+  needsContributorVote: boolean;
 };
 
 const ZERO = '0x0000000000000000000000000000000000000000';
@@ -290,6 +309,27 @@ async function readParticipants(bountyId: number): Promise<PoidhBountyDetail['pa
     }
   }
   return out;
+}
+
+async function readEverHadExternalContributor(bountyId: number): Promise<boolean> {
+  try {
+    return await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'everHadExternalContributor',
+        args: [BigInt(bountyId)],
+      })
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function bountyNeedsContributorVote(
+  detail: Pick<PoidhBountyDetail, 'participants' | 'needsContributorVote'>
+): boolean {
+  return detail.needsContributorVote || detail.participants.length > 1;
 }
 
 async function readClaims(bountyId: number): Promise<PoidhClaimView[]> {
@@ -379,6 +419,7 @@ export async function fetchPoidhBountyDetail(bountyId: number): Promise<PoidhBou
       } catch {
         /* keep defaults */
       }
+      const everExternal = await readEverHadExternalContributor(bountyId);
 
       const claimer = String(row[5]).toLowerCase();
       const active = claimer === ZERO;
@@ -405,6 +446,7 @@ export async function fetchPoidhBountyDetail(bountyId: number): Promise<PoidhBou
         claims,
         minContributionWei,
         minContributionEth: formatEther(minContributionWei),
+        needsContributorVote: everExternal || participants.length > 1,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
