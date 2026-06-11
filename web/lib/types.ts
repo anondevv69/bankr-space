@@ -70,7 +70,7 @@ export interface FundraisingState {
 }
 
 /** Bankr Skills the community agent may run after Lane B x402 pool is matched. */
-export type AgentPoolSkillId = 'qrcoin' | '0xwork';
+export type AgentPoolSkillId = 'qrcoin' | '0xwork' | 'poidh';
 
 /** Community-funded agent goal (x402 → platform agent wallet). */
 export interface AgentPoolCampaign {
@@ -90,11 +90,13 @@ export interface AgentPoolCampaign {
   oxworkTaskId?: number | null;
   /** Last known 0xWork task status (Open, Completed, etc.). */
   oxworkTaskStatus?: string | null;
-  /** When oxworkTaskId was linked from 0xWork API. */
+  /** Linked POIDH on-chain bounty id (Base). */
+  poidhBountyId?: number | null;
+  /** When oxworkTaskId / poidhBountyId was linked. */
   jobLinkedAt?: number | null;
   /** In-flight Bankr Agent API job (resume polling on next cron tick). */
   bankrAgentJobId?: string | null;
-  /** 0xWork only — admin brief; agent parses lines into tasks when pool is funded. */
+  /** 0xWork / POIDH — task brief; agent parses lines when pool is funded. */
   workBrief?: string | null;
   /** Set when holders propose this goal (community-led, Lane B). */
   communityLed?: boolean;

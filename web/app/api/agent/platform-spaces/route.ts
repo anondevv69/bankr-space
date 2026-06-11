@@ -80,8 +80,10 @@ export async function GET(req: Request) {
                 0,
                 Math.round((campaign.goalUsd - campaign.raisedUsd) * 100) / 100
               ),
-              ...(campaign.skillId === '0xwork' && campaign.workBrief
-                ? { workBrief: campaign.workBrief }
+              ...(campaign.skillId === '0xwork' || campaign.skillId === 'poidh'
+                ? campaign.workBrief
+                  ? { workBrief: campaign.workBrief }
+                  : {}
                 : {}),
             })),
             readyForExecution: poolReady.map((campaign) => ({
@@ -94,7 +96,7 @@ export async function GET(req: Request) {
               spendFrom: 'platform-agent-wallet' as const,
               communityLed: Boolean(campaign.communityLed),
               proposedBy: campaign.proposedBy || null,
-              ...(campaign.skillId === '0xwork'
+              ...(campaign.skillId === '0xwork' || campaign.skillId === 'poidh'
                 ? { workBrief: campaign.workBrief || null }
                 : {}),
             })),

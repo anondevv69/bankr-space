@@ -20,9 +20,11 @@ function formatBounty(amount: string): string {
 export function OxWorkJobsPanel({
   tokenAddress,
   symbol,
+  embedded = false,
 }: {
   tokenAddress: string;
   symbol: string;
+  embedded?: boolean;
 }) {
   const [tasks, setTasks] = useState<OxWorkTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,7 @@ export function OxWorkJobsPanel({
   }
 
   if (!tasks.length) {
+    if (embedded) return null;
     return (
       <div className="text-center py-12 px-6 border border-dashed border-border rounded-xl bg-surface space-y-3">
         <p className="text-muted text-sm">No open 0xJobs for ${symbol} yet.</p>

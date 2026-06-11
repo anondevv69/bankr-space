@@ -197,14 +197,20 @@ export async function GET(req: Request) {
               label: c.label,
               goalUsd: c.goalUsd,
               raisedUsd: c.raisedUsd,
-              ...(c.skillId === '0xwork' && c.workBrief ? { workBrief: c.workBrief } : {}),
+              ...(c.skillId === '0xwork' || c.skillId === 'poidh'
+                ? c.workBrief
+                  ? { workBrief: c.workBrief }
+                  : {}
+                : {}),
             })),
             readyForExecution: agentPoolReady.map((c) => ({
               skillId: c.skillId,
               label: c.label,
               goalUsd: c.goalUsd,
               raisedUsd: c.raisedUsd,
-              ...(c.skillId === '0xwork' ? { workBrief: c.workBrief || null } : {}),
+              ...(c.skillId === '0xwork' || c.skillId === 'poidh'
+                ? { workBrief: c.workBrief || null }
+                : {}),
             })),
             workBriefFormat:
               'One line per task: description — $bounty — Category (Social|Creative|Writing). Replace $SYMBOL with token symbol; include https://bankr.space/community/{token} in descriptions when relevant.',

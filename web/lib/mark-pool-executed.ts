@@ -10,6 +10,7 @@ export async function markAgentPoolExecuted(input: {
   executionNote?: string | null;
   executionTxHash?: string | null;
   oxworkTaskId?: number | null;
+  poidhBountyId?: number | null;
 }): Promise<boolean> {
   const tokenAddress = normalizeAddr(input.tokenAddress);
   const skillId = input.skillId;
@@ -38,8 +39,12 @@ export async function markAgentPoolExecuted(input: {
             executionTxHash:
               input.executionTxHash?.slice(0, 66) ?? c.executionTxHash ?? null,
             oxworkTaskId: input.oxworkTaskId ?? c.oxworkTaskId ?? null,
+            poidhBountyId: input.poidhBountyId ?? c.poidhBountyId ?? null,
             jobLinkedAt:
-              input.oxworkTaskId != null ? c.jobLinkedAt ?? Date.now() : c.jobLinkedAt,
+              input.oxworkTaskId != null || input.poidhBountyId != null
+                ? c.jobLinkedAt ?? Date.now()
+                : c.jobLinkedAt,
+            bankrAgentJobId: null,
           }
         : c
     ),

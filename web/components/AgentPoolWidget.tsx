@@ -7,6 +7,7 @@ import { payAgentPoolFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { AgentPoolSkillId } from '@/lib/types';
+import { PoidhOpenBountyGuide } from '@/components/PoidhOpenBountyGuide';
 
 type AgentPoolView = {
   skillId: AgentPoolSkillId;
@@ -160,11 +161,11 @@ export function AgentPoolWidget({
     <div className={shellClass}>
       <div className="flex flex-col gap-4">
         <div>
-          <div className="text-sm font-semibold">Fund the community agent</div>
+          <div className="text-sm font-semibold">Fund this task</div>
           <p className="text-xs text-muted mt-1">
             {layout === 'sidebar'
-              ? `QRCoin & 0xWork for $${symbol} — USDC to the platform agent wallet.`
-              : `Holders chip in so the Bankr Space Agent can run tasks for $${symbol} — QRCoin listings, 0xWork bounties, and more. USDC goes to the platform agent wallet, not the fee recipient.`}
+              ? `$1 USDC per click toward the goal below.`
+              : `Holders chip in so the Bankr Space Agent can run tasks for $${symbol} — QRCoin listings, 0xWork bounties, and more.`}
           </p>
         </div>
 
@@ -181,7 +182,7 @@ export function AgentPoolWidget({
                     : 'text-muted hover:text-text'
                 }`}
               >
-                {c.skillId === 'qrcoin' ? 'QRCoin' : '0xWork'}
+                {c.skillId === 'poidh' ? 'POIDH' : c.skillId === 'qrcoin' ? 'QRCoin' : '0xWork'}
               </button>
             ))}
           </div>
@@ -201,9 +202,17 @@ export function AgentPoolWidget({
             />
           </div>
           <p className="text-[11px] text-muted mt-1">
-            ${active.remainingUsd.toLocaleString()} remaining · agent executes when goal is met
+            ${active.remainingUsd.toLocaleString()} remaining
+            {active.skillId === 'poidh'
+              ? ' · USDC seeds the POIDH open bounty (ETH on poidh.xyz)'
+              : ' · agent executes when goal is met'}
           </p>
-          {active.skillId === '0xwork' && active.workBrief?.trim() ? (
+          {active.skillId === 'poidh' ? (
+            <div className="mt-2">
+              <PoidhOpenBountyGuide compact />
+            </div>
+          ) : null}
+          {(active.skillId === '0xwork' || active.skillId === 'poidh') && active.workBrief?.trim() ? (
             <div className="mt-2 p-2 rounded-md border border-border bg-bg/50">
               <div className="text-[10px] uppercase tracking-wide text-muted mb-1">
                 Planned work
@@ -245,7 +254,7 @@ export function AgentPoolWidget({
             }
             className="px-4 py-1.5 text-xs font-medium bg-accent text-white rounded-lg disabled:opacity-50"
           >
-            {paying ? 'Paying…' : 'Fund agent'}
+            {paying ? 'Paying…' : 'Contribute $1'}
           </button>
         </div>
 
@@ -253,15 +262,7 @@ export function AgentPoolWidget({
           <p className="text-xs text-muted border-t border-border pt-3">{payHint}</p>
         ) : (
           <p className="text-[11px] text-muted leading-snug">
-            ${SPACE_FUND_X402_MAX_USDC} USDC per click · Lane B community pool ·{' '}
-            <a
-              href="https://skills.bankr.bot/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent-hover hover:underline"
-            >
-              Bankr Skills
-            </a>
+            ${SPACE_FUND_X402_MAX_USDC} USDC per click via x402 on Base.
           </p>
         )}
       </div>

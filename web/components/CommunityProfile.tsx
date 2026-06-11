@@ -24,6 +24,7 @@ import { isAgentPoolCampaignFunded } from '@/lib/agent-pool';
 import {
   AGENT_POOL_SKILL_META,
   DEFAULT_AGENT_POOL_CAMPAIGNS,
+  POIDH_WORK_BRIEF_PLACEHOLDER,
   WORK_BRIEF_MAX_LENGTH,
   WORK_BRIEF_PLACEHOLDER,
 } from '@/lib/agent-pool';
@@ -1180,16 +1181,22 @@ export function CommunityProfile({
                                 }
                                 />
                               </div>
-                              {campaign.skillId === '0xwork' ? (
+                              {campaign.skillId === '0xwork' || campaign.skillId === 'poidh' ? (
                                 <div>
                                   <label className="block text-xs text-muted mb-1">
-                                    Work brief (custom tasks)
+                                    {campaign.skillId === 'poidh'
+                                      ? 'POIDH task brief'
+                                      : 'Work brief (custom tasks)'}
                                   </label>
                                   <p className="text-[11px] text-muted mb-1.5">{WORK_BRIEF_NOTE}</p>
                                   <textarea
                                     rows={5}
                                     maxLength={WORK_BRIEF_MAX_LENGTH}
-                                    placeholder={WORK_BRIEF_PLACEHOLDER}
+                                    placeholder={
+                                      campaign.skillId === 'poidh'
+                                        ? POIDH_WORK_BRIEF_PLACEHOLDER
+                                        : WORK_BRIEF_PLACEHOLDER
+                                    }
                                     className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono leading-relaxed resize-y min-h-[120px]"
                                     value={campaign.workBrief || ''}
                                     onChange={(e) =>

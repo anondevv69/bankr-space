@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     executionNote?: string;
     txHash?: string;
     oxworkTaskId?: number;
+    poidhBountyId?: number;
   };
   try {
     body = await req.json();
@@ -41,6 +42,10 @@ export async function POST(req: Request) {
     body.oxworkTaskId != null && Number.isFinite(Number(body.oxworkTaskId))
       ? Number(body.oxworkTaskId)
       : null;
+  const poidhBountyId =
+    body.poidhBountyId != null && Number.isFinite(Number(body.poidhBountyId))
+      ? Number(body.poidhBountyId)
+      : null;
   if (!AGENT_POOL_SKILL_IDS.includes(skillId)) {
     return NextResponse.json({ error: 'Invalid skillId' }, { status: 400 });
   }
@@ -52,6 +57,7 @@ export async function POST(req: Request) {
       executionNote: note,
       executionTxHash: txHash,
       oxworkTaskId,
+      poidhBountyId,
     });
 
     if (!ok) {
