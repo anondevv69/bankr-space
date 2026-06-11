@@ -75,6 +75,13 @@ function AgentPoolHistoryCard({ campaign }: { campaign: AgentPoolCampaignStatusV
           Execution tx ↗
         </a>
       ) : null}
+      {campaign.phase === 'pending_job' ? (
+        <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-2 leading-snug">
+          Bankr agent is posting the 0xWork bounty
+          {campaign.bankrAgentJobId ? ` (job ${campaign.bankrAgentJobId})` : ''}. This usually
+          takes a few minutes — refresh shortly.
+        </p>
+      ) : null}
       {campaign.phase === 'stuck' ? (
         <p className="text-[11px] text-red-700 dark:text-red-300 mt-2 leading-snug">
           USDC is funded but no 0xWork job is linked yet. bankr.space runs an automatic worker

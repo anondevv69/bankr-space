@@ -45,6 +45,7 @@ export const DEFAULT_AGENT_POOL_CAMPAIGNS: AgentPoolCampaign[] = AGENT_POOL_SKIL
     oxworkTaskId: null,
     oxworkTaskStatus: null,
     jobLinkedAt: null,
+    bankrAgentJobId: null,
     workBrief: null,
     communityLed: false,
     proposedBy: null,
@@ -108,6 +109,10 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
         jobLinkedAt:
           (item as AgentPoolCampaign).jobLinkedAt != null
             ? Number((item as AgentPoolCampaign).jobLinkedAt)
+            : null,
+        bankrAgentJobId:
+          (item as AgentPoolCampaign).bankrAgentJobId != null
+            ? String((item as AgentPoolCampaign).bankrAgentJobId).slice(0, 80)
             : null,
         workBrief:
           skillId === '0xwork'

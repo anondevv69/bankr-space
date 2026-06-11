@@ -1,7 +1,11 @@
-import { getCommunities } from '@/lib/db';
+import { getCommunities, setCommunities } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import { matchedAgentPoolCampaigns, readStoredAgentPool } from '@/lib/agent-pool';
-import { runBankrAgentPrompt, getPlatformAgentBankrApiKey } from '@/lib/bankr-agent-client';
+import {
+  getPlatformAgentBankrApiKey,
+  pollBankrAgentJob,
+  submitBankrAgentPrompt,
+} from '@/lib/bankr-agent-client';
 import { createPlatformAgentPost } from '@/lib/agent-pool-feed';
 import { markAgentPoolExecuted } from '@/lib/mark-pool-executed';
 import { verifyAgentPoolForCommunity } from '@/lib/agent-pool-verify';
@@ -22,10 +26,62 @@ export type AgentPoolExecuteItemResult = {
   tokenAddress: string;
   symbol: string;
   skillId: AgentPoolSkillId;
-  status: 'executed' | 'skipped' | 'failed' | 'pending_api_key';
+  status: 'executed' | 'skipped' | 'failed' | 'pending_api_key' | 'pending_job';
   message?: string;
   oxworkTaskId?: number | null;
+  bankrAgentJobId?: string | null;
 };
+
+async function setCampaignBankrJobId(
+  tokenAddress: string,
+  skillId: AgentPoolSkillId,
+  jobId: string | null
+): Promise<void> {
+  const communities = await getCommunities();
+  const index = communities.findIndex(
+    (c) => c.tokenAddress.toLowerCase() === tokenAddress.toLowerCase()
+  );
+  if (index === -1) return;
+
+  const current = mergeCommunityDefaults(communities[index]);
+  const pool = readStoredAgentPool(current.agentPool);
+  communities[index] = mergeCommunityDefaults({
+    ...current,
+    agentPool: {
+      ...pool,
+      campaigns: pool.campaigns.map((c) =>
+        c.skillId === skillId ? { ...c, bankrAgentJobId: jobId } : c
+      ),
+    },
+  });
+  await setCommunities(communities);
+}
+
+async function runBankrAgentWithResume(
+  tokenAddress: string,
+  skillId: AgentPoolSkillId,
+  campaign: AgentPoolCampaign,
+  prompt: string
+): Promise<string> {
+  let jobId = campaign.bankrAgentJobId?.trim() || null;
+  if (!jobId) {
+    jobId = await submitBankrAgentPrompt(prompt);
+    await setCampaignBankrJobId(tokenAddress, skillId, jobId);
+  }
+
+  try {
+    const result = await pollBankrAgentJob(jobId, { maxAttempts: 90, delayMs: 2000 });
+    await setCampaignBankrJobId(tokenAddress, skillId, null);
+    return result.text;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('timed out')) {
+      throw new Error(`PENDING_JOB:${jobId}`);
+    }
+    await setCampaignBankrJobId(tokenAddress, skillId, null);
+    throw err;
+  }
+}
 
 export type AgentPoolExecuteResult = {
   configured: boolean;
@@ -104,7 +160,26 @@ async function executeCampaign(
           workBrief: campaign.workBrief ?? null,
           goalUsd: campaign.goalUsd,
         });
-        resultText = await runBankrAgentPrompt(prompt);
+        try {
+          resultText = await runBankrAgentWithResume(
+            community.tokenAddress,
+            campaign.skillId,
+            campaign,
+            prompt
+          );
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.startsWith('PENDING_JOB:')) {
+            const jobId = message.slice('PENDING_JOB:'.length);
+            return {
+              ...base,
+              status: 'pending_job',
+              message: `Bankr agent still running (${jobId}) — cron will retry`,
+              bankrAgentJobId: jobId,
+            };
+          }
+          throw err;
+        }
         oxworkTaskId = extractOxWorkTaskId(resultText);
         if (oxworkTaskId == null) {
           const verified = await verifyAgentPoolForCommunity(community, { persist: true });
@@ -121,7 +196,26 @@ async function executeCampaign(
         symbol: community.symbol,
         tokenAddress: community.tokenAddress,
       });
-      resultText = await runBankrAgentPrompt(prompt);
+      try {
+        resultText = await runBankrAgentWithResume(
+          community.tokenAddress,
+          campaign.skillId,
+          campaign,
+          prompt
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.startsWith('PENDING_JOB:')) {
+          const jobId = message.slice('PENDING_JOB:'.length);
+          return {
+            ...base,
+            status: 'pending_job',
+            message: `Bankr agent still running (${jobId}) — cron will retry`,
+            bankrAgentJobId: jobId,
+          };
+        }
+        throw err;
+      }
     }
 
     const txHash = extractTxHash(resultText);

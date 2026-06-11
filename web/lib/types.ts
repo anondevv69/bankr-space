@@ -92,6 +92,8 @@ export interface AgentPoolCampaign {
   oxworkTaskStatus?: string | null;
   /** When oxworkTaskId was linked from 0xWork API. */
   jobLinkedAt?: number | null;
+  /** In-flight Bankr Agent API job (resume polling on next cron tick). */
+  bankrAgentJobId?: string | null;
   /** 0xWork only — admin brief; agent parses lines into tasks when pool is funded. */
   workBrief?: string | null;
   /** Set when holders propose this goal (community-led, Lane B). */
