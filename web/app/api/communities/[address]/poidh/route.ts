@@ -59,9 +59,11 @@ export async function GET(req: Request, { params }: RouteParams) {
     const bounties = await Promise.all(
       (state?.bounties ?? []).map(async (b) => {
         let amountWei: string | null = null;
+        let onChainActive: boolean | null = null;
         if (b.poidhBountyId != null) {
           const onChain = await fetchPoidhBountyById(b.poidhBountyId).catch(() => null);
           amountWei = onChain?.amountWei.toString() ?? null;
+          onChainActive = onChain?.active ?? null;
         }
         const live = b.poidhBountyId != null;
         return {
@@ -73,6 +75,7 @@ export async function GET(req: Request, { params }: RouteParams) {
           poidhBountyId: b.poidhBountyId,
           url: bountyPublicUrl(b),
           amountWei,
+          onChainActive,
           requestedBy: b.requestedBy,
           createdAt: b.createdAt,
         };
