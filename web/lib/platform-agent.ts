@@ -56,7 +56,8 @@ export const PLATFORM_AGENT_MONEY_RULES = {
   laneA: 'beneficiary-fundraiser-x402-to-fee-recipient' as const,
   laneB: 'community-agent-pool-x402-to-platform-wallet' as const,
   fundraisingEnable: 'fee-recipient-only' as const,
-  agentPoolEnable: 'deployer-or-fee-recipient' as const,
+  agentPoolEnable: 'deployer-or-fee-recipient-master-switch' as const,
+  agentPoolPropose: 'verified-holders' as const,
   fundraiserRequest: 'fee-recipient-or-trusted-delegate' as const,
   skillExecutionGate: 'platformAgentSkills-and-campaign-matched' as const,
 };

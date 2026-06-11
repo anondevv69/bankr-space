@@ -20,7 +20,10 @@ export const SPACE_MODERATION_NOTE =
   'Blocked keywords apply to holder posts immediately. Fee recipient, deployer (if allowed), trusted delegates, and the platform agent can still post.';
 
 export const AGENT_POOL_NOTE =
-  'Lane B — holders fund goals below. USDC settles to the platform agent wallet. When a goal is met, the agent executes the linked Bankr Skill.';
+  'Lane B — community goals. Holders propose what the agent should do; everyone funds via x402. USDC → platform agent wallet. Separate from beneficiary programs (fee recipient only).';
+
+export const COMMUNITY_AGENT_LANE_NOTE =
+  'The Bankr Space Agent works for holders — bagwork, QRCoin, milestones. Fee recipient fundraisers are for their own token programs.';
 
 export const WORK_BRIEF_NOTE =
   'One task per line. Use description — $bounty — Category (Social, Creative, or Writing). $SYMBOL and the space URL are filled in automatically. Leave blank for default bagwork tasks.';

@@ -133,6 +133,12 @@ export function hasCompletedFundraising(state: FundraisingState | undefined | nu
   return completedCampaigns(state).length > 0;
 }
 
+export function fundraiserTypeLabel(id: string): string {
+  if (id === 'dex-profile') return 'Dex profile';
+  if (id === 'dex-boost') return 'Dex boost';
+  return 'Community goal';
+}
+
 export function campaignProgress(campaign: FundraisingCampaign): number {
   if (campaign.goalUsd <= 0) return 0;
   return Math.min(100, (campaign.raisedUsd / campaign.goalUsd) * 100);

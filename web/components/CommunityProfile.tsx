@@ -14,18 +14,16 @@ import type {
   AgentPoolCampaign,
   TrustedDelegateEntry,
 } from '@/lib/types';
-import { DEFAULT_CAMPAIGNS, completedCampaigns, hasPublicFundraising } from '@/lib/fundraising';
+import { DEFAULT_CAMPAIGNS } from '@/lib/fundraising';
 import {
   AGENT_POOL_SKILL_META,
   DEFAULT_AGENT_POOL_CAMPAIGNS,
-  hasPublicAgentPool,
   WORK_BRIEF_MAX_LENGTH,
   WORK_BRIEF_PLACEHOLDER,
 } from '@/lib/agent-pool';
 import { MAX_TRUSTED_DELEGATES } from '@/lib/space-delegates';
 import { getSocialLinkPills } from '@/lib/social-links';
 import { VerifiedBeneficiarySection } from '@/components/VerifiedBeneficiarySection';
-import { FundraisingWidget } from '@/components/FundraisingWidget';
 import { MarketStats } from '@/components/MarketStats';
 import { TokenAvatar } from '@/components/TokenAvatar';
 import { BANNER_SIZE_LABEL, BANNER_ASPECT_LABEL } from '@/lib/banner-url';
@@ -38,7 +36,6 @@ import {
   AGENT_POOL_NOTE,
   WORK_BRIEF_NOTE,
 } from '@/lib/platform-agent-ui';
-import { AgentPoolWidget } from '@/components/AgentPoolWidget';
 import { BLOCKED_KEYWORD_LIMITS, normalizeBlockedKeywords } from '@/lib/content-moderation';
 import { shortAddr } from '@/lib/utils';
 import { apiFetch } from '@/lib/wagmi';
@@ -122,54 +119,6 @@ function SocialPills({ pills }: { pills: ReturnType<typeof getSocialLinkPills> }
           {item.label === 'DexScreener' ? <span className="text-muted text-xs">↗</span> : null}
         </a>
       ))}
-    </div>
-  );
-}
-
-function campaignTypeLabel(id: string): string {
-  if (id === 'dex-profile') return 'Dex profile';
-  if (id === 'dex-boost') return 'Dex boost';
-  return 'Community goal';
-}
-
-function CompletedFundraisers({
-  campaigns,
-}: {
-  campaigns: FundraisingCampaign[];
-}) {
-  if (!campaigns.length) return null;
-
-  return (
-    <div className="mt-4 p-4 md:p-5 rounded-xl border border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div>
-          <div className="text-sm font-semibold">Completed fundraisers</div>
-          <p className="text-[11px] text-muted mt-0.5">
-            Past goals this space has funded.
-          </p>
-        </div>
-        <span className="text-[11px] text-muted">{campaigns.length} completed</span>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {campaigns.map((campaign) => (
-          <div
-            key={campaign.id}
-            className="p-3 rounded-lg border border-border bg-surface-2"
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {campaignTypeLabel(campaign.id)}
-            </div>
-            <div className="text-sm font-medium truncate mt-1">{campaign.label}</div>
-            <div className="text-xs text-muted mt-1">
-              Raised ${campaign.raisedUsd.toLocaleString()} of $
-              {campaign.goalUsd.toLocaleString()} USDC
-            </div>
-            <div className="text-[11px] text-green-600 dark:text-green-400 mt-2">
-              Goal completed
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -1071,6 +1020,10 @@ export function CommunityProfile({
                       <div>
                         <div className="text-sm font-medium">Community agent pool (Lane B)</div>
                         <p className="text-xs text-muted mt-1">{AGENT_POOL_NOTE}</p>
+                        <p className="text-xs text-muted mt-1">
+                          Holders can also propose goals in the Fundraisers sidebar — you can
+                          bootstrap defaults here.
+                        </p>
                       </div>
                       {agentPoolCampaigns.map((campaign) => (
                         <div
@@ -1237,26 +1190,6 @@ export function CommunityProfile({
         </div>
       ) : null}
 
-      {hasPublicFundraising(community.fundraising) ? (
-        <FundraisingWidget
-          tokenAddress={community.tokenAddress}
-          symbol={community.symbol}
-          refreshKey={JSON.stringify(community.fundraising?.campaigns)}
-          layout="horizontal"
-        />
-      ) : null}
-
-      {community.usePlatformAgent && hasPublicAgentPool(community.agentPool) ? (
-        <AgentPoolWidget
-          tokenAddress={community.tokenAddress}
-          symbol={community.symbol}
-          refreshKey={JSON.stringify(community.agentPool?.campaigns)}
-        />
-      ) : null}
-
-      {community.fundraising?.campaigns ? (
-        <CompletedFundraisers campaigns={completedCampaigns(community.fundraising)} />
-      ) : null}
     </div>
   );
 }

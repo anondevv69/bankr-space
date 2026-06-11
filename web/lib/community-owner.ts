@@ -74,6 +74,8 @@ export type SpacePermissions = {
   canManagePlatformAgent: boolean;
   /** Fee recipient only — skill-linked execution after x402 match */
   canEnablePlatformAgentSkills: boolean;
+  /** Verified holder — propose community agent pool goals (Lane B) */
+  canProposeCommunityAgentGoal: boolean;
   canPinPosts: boolean;
   /** Same as canPinPosts — delete posts, enforce moderation */
   canModeratePosts: boolean;
@@ -123,6 +125,8 @@ export async function resolveSpacePermissions(
   const canManagePlatformAgent =
     (verified && isBeneficiary) || isDeployer;
   const canEnablePlatformAgentSkills = verified && isBeneficiary;
+  const canProposeCommunityAgentGoal =
+    verified && usePlatformAgent && holdResult.holds;
   const canPinPosts = verified && hasSocialAccess;
   const canPost = holdResult.holds || hasSocialAccess;
   const canReact = canPost;
@@ -143,6 +147,7 @@ export async function resolveSpacePermissions(
     canEditFundraising,
     canManagePlatformAgent,
     canEnablePlatformAgentSkills,
+    canProposeCommunityAgentGoal,
     canPinPosts,
     canModeratePosts: canPinPosts,
     holds: holdResult.holds,

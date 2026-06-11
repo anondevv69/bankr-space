@@ -41,6 +41,9 @@ export const DEFAULT_AGENT_POOL_CAMPAIGNS: AgentPoolCampaign[] = AGENT_POOL_SKIL
     executedAt: null,
     executionNote: null,
     workBrief: null,
+    communityLed: false,
+    proposedBy: null,
+    proposedAt: null,
   })
 );
 
@@ -85,6 +88,15 @@ function mergeCampaigns(raw: AgentPoolState | null | undefined): AgentPoolCampai
           skillId === '0xwork'
             ? normalizeWorkBrief((item as AgentPoolCampaign).workBrief)
             : null,
+        communityLed: Boolean((item as AgentPoolCampaign).communityLed),
+        proposedBy:
+          (item as AgentPoolCampaign).proposedBy != null
+            ? String((item as AgentPoolCampaign).proposedBy).toLowerCase()
+            : null,
+        proposedAt:
+          (item as AgentPoolCampaign).proposedAt != null
+            ? Number((item as AgentPoolCampaign).proposedAt)
+            : null,
       });
     }
   }
@@ -127,6 +139,13 @@ export function matchedAgentPoolCampaigns(
   );
 }
 
+export function fundedAgentPoolCampaigns(
+  state: AgentPoolState | undefined | null
+): AgentPoolCampaign[] {
+  if (!state?.optedIn) return [];
+  return state.campaigns.filter((c) => c.enabled && isAgentPoolCampaignFunded(c));
+}
+
 export function completedAgentPoolCampaigns(
   state: AgentPoolState | undefined | null
 ): AgentPoolCampaign[] {
@@ -136,6 +155,11 @@ export function completedAgentPoolCampaigns(
 
 export function hasPublicAgentPool(state: AgentPoolState | undefined | null): boolean {
   return openAgentPoolCampaigns(state).length > 0;
+}
+
+export function hasAgentPoolHistory(state: AgentPoolState | undefined | null): boolean {
+  if (!state?.optedIn) return false;
+  return state.campaigns.some((c) => c.enabled && c.raisedUsd > 0);
 }
 
 export function agentPoolCampaignProgress(campaign: AgentPoolCampaign): number {
@@ -162,6 +186,42 @@ export function creditAgentPoolUsd(
 /** x402 campaign query param for agent pool credits (distinct from beneficiary campaigns). */
 export function agentPoolX402CampaignId(skillId: AgentPoolSkillId): string {
   return `agent-${skillId}`;
+}
+
+/** Holder proposes a community agent goal — enables Lane B campaign without deployer edit. */
+export function applyCommunityAgentProposal(
+  state: AgentPoolState | undefined | null,
+  input: {
+    skillId: AgentPoolSkillId;
+    goalUsd: number;
+    workBrief?: string | null;
+    label?: string | null;
+    proposedBy: string;
+  }
+): AgentPoolState {
+  const pool = readStoredAgentPool(state);
+  const proposer = input.proposedBy.trim().toLowerCase();
+  const now = Date.now();
+
+  return {
+    optedIn: true,
+    campaigns: pool.campaigns.map((c) => {
+      if (c.skillId !== input.skillId) return c;
+      return {
+        ...c,
+        enabled: true,
+        goalUsd: clampGoal(input.goalUsd),
+        label: String(input.label || c.label).slice(0, 120),
+        workBrief:
+          input.skillId === '0xwork'
+            ? normalizeWorkBrief(input.workBrief ?? c.workBrief)
+            : null,
+        communityLed: true,
+        proposedBy: proposer,
+        proposedAt: now,
+      };
+    }),
+  };
 }
 
 export function parseAgentPoolX402CampaignId(

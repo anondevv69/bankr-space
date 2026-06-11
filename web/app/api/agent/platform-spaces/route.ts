@@ -92,6 +92,8 @@ export async function GET(req: Request) {
               matched: isAgentPoolCampaignFunded(campaign),
               readyForSkillExecution: canExecuteSkills,
               spendFrom: 'platform-agent-wallet' as const,
+              communityLed: Boolean(campaign.communityLed),
+              proposedBy: campaign.proposedBy || null,
               ...(campaign.skillId === '0xwork'
                 ? { workBrief: campaign.workBrief || null }
                 : {}),
