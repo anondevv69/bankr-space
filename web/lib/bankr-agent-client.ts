@@ -66,7 +66,7 @@ export async function pollBankrAgentJob(
     throw new Error('PLATFORM_AGENT_BANKR_API_KEY (or BANKR_API_KEY) not configured');
   }
 
-  const maxAttempts = options?.maxAttempts ?? 45;
+  const maxAttempts = options?.maxAttempts ?? 120;
   const delayMs = options?.delayMs ?? 2000;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {

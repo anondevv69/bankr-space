@@ -8,6 +8,7 @@ export const AGENT_POOL_STUCK_MS = 30 * 60 * 1000;
 export type AgentPoolExecutionPhase =
   | 'open'
   | 'funded'
+  | 'pending_job'
   | 'stuck'
   | 'job_linked'
   | 'executed';
@@ -30,6 +31,10 @@ export function agentPoolExecutionPhase(
   if (campaign.executedAt) return 'executed';
   if (!isAgentPoolCampaignFunded(campaign)) return 'open';
 
+  if (campaign.bankrAgentJobId?.trim()) {
+    return 'pending_job';
+  }
+
   if (campaign.oxworkTaskId != null && campaign.skillId === '0xwork') {
     return 'job_linked';
   }
@@ -48,6 +53,8 @@ export function agentPoolStatusLabel(phase: AgentPoolExecutionPhase): string {
       return 'Open — accepting contributions';
     case 'funded':
       return 'Funded — awaiting agent job';
+    case 'pending_job':
+      return 'Agent working — posting 0xJob';
     case 'stuck':
       return 'Funded — agent delayed (check worker)';
     case 'job_linked':
@@ -64,6 +71,8 @@ export function agentPoolStatusClass(phase: AgentPoolExecutionPhase): string {
     case 'executed':
     case 'job_linked':
       return 'text-green-600 dark:text-green-400';
+    case 'pending_job':
+      return 'text-blue-600 dark:text-blue-400';
     case 'stuck':
       return 'text-red-600 dark:text-red-400';
     case 'funded':
