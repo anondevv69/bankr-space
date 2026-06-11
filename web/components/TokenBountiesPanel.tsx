@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PoidhOpenBountyGuide } from '@/components/PoidhOpenBountyGuide';
 import { PoidhBountyActions } from '@/components/PoidhBountyActions';
 import { useAppWallet } from '@/hooks/useAppWallet';
+import { poidhBountyUrl } from '@/lib/poidh-api';
 import { apiFetch } from '@/lib/wagmi';
 
 type BountyView = {
@@ -40,6 +41,12 @@ function formatEth(wei: string | null): string | null {
 function truncateAddress(addr: string | null): string | null {
   if (!addr) return null;
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function bountyExternalUrl(bounty: BountyView): string | null {
+  if (bounty.url) return bounty.url;
+  if (bounty.poidhBountyId != null) return poidhBountyUrl(bounty.poidhBountyId);
+  return null;
 }
 
 function pendingLabel(bounty: BountyView, spinUp: SpinUpView | null): string {
@@ -155,7 +162,7 @@ export function TokenBountiesPanel({
         <div className="text-sm font-semibold">Community bounties for ${symbol}</div>
         <p className="text-[11px] text-muted leading-relaxed">
           Create a task → opens on-chain automatically → add ETH below → do the work →{' '}
-          <strong className="font-medium text-text">post proof in community</strong> → submit claim
+          <strong className="font-medium text-text">submit proof</strong> → submit claim
           here → contributors vote 48h to pay out.
         </p>
         <PoidhOpenBountyGuide collapsible />
@@ -205,7 +212,9 @@ export function TokenBountiesPanel({
       {bounties.length ? (
         <div className="space-y-3">
           <div className="text-sm font-semibold">Open bounties</div>
-          {bounties.map((bounty) => (
+          {bounties.map((bounty) => {
+            const externalUrl = bountyExternalUrl(bounty);
+            return (
             <div
               key={bounty.id}
               className="p-4 rounded-xl border border-border bg-surface space-y-3"
@@ -229,6 +238,21 @@ export function TokenBountiesPanel({
                       Created by {truncateAddress(bounty.requestedBy)}
                     </p>
                   ) : null}
+                  {externalUrl ? (
+                    <p className="text-[10px] text-muted mt-0.5">
+                      {bounty.poidhBountyId != null ? (
+                        <span>On-chain #{bounty.poidhBountyId} · </span>
+                      ) : null}
+                      <a
+                        href={externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent-hover hover:underline"
+                      >
+                        View on poidh.xyz ↗
+                      </a>
+                    </p>
+                  ) : null}
                   {bounty.description ? (
                     <p className="text-xs text-muted mt-1 whitespace-pre-wrap">{bounty.description}</p>
                   ) : null}
@@ -245,6 +269,7 @@ export function TokenBountiesPanel({
                   symbol={symbol}
                   poidhBountyId={bounty.poidhBountyId}
                   poolAmountWei={bounty.amountWei}
+                  poidhUrl={externalUrl}
                   onAction={() => void load()}
                 />
               ) : (
@@ -253,7 +278,8 @@ export function TokenBountiesPanel({
                 </p>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="text-center text-muted text-sm py-6 border border-dashed border-border rounded-xl bg-surface">

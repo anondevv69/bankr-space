@@ -20,8 +20,8 @@ function communityProofBlock(symbol: string, tokenAddress: string): string {
     '',
     'Required when claiming:',
     '1. Complete the task described above',
-    '2. Post in the bankr.space community with proof (screenshot + tx link)',
-    '3. Submit your POIDH claim with the community post URL as proof',
+    '2. Submit a public proof link (tweet, screenshot/image URL, etc.)',
+    '3. Optional: also post in the community tab so funders can discuss',
     '',
     'Contributors on POIDH vote to approve payout after the creator proposes the winner.',
   ].join('\n');

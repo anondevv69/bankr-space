@@ -13,8 +13,8 @@ export const POIDH_OPEN_BOUNTY_STEPS = [
     body: 'Use Add funds right on the bounty card to grow the reward pool. Your share of the pool = your voting power when a winner is proposed.',
   },
   {
-    title: 'Do the work & post proof',
-    body: 'Complete the task, post proof in the bankr.space community, then submit your community post URL on the same bounty card.',
+    title: 'Do the work & submit proof',
+    body: 'Complete the task, then paste a proof link on the bounty card — tweet URL, screenshot/image link, or your bankr.space community page if you posted there.',
   },
   {
     title: 'Issuer proposes winner → 48h vote',
@@ -24,3 +24,15 @@ export const POIDH_OPEN_BOUNTY_STEPS = [
 
 export const POIDH_COMMUNITY_TASK_INTRO =
   'Open bounties are crowdfunded outcome markets: create a task in the Bounties tab, pool ETH on-chain here, verify proof together, pay automatically.';
+
+/** Any public http(s) link — tweet, image, community page, etc. Stored on-chain as claim URI. */
+export function isValidProofUrl(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}

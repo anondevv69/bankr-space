@@ -19,7 +19,7 @@ export function PoidhOpenBountyGuide({
     return (
       <p className="text-[11px] text-muted leading-relaxed">
         <strong className="font-medium text-text">Open bounty</strong> — pool ETH on-chain here,
-        submit community proof, contributors vote 48h, auto-pay.
+        submit proof (any link), contributors vote 48h, auto-pay.
       </p>
     );
   }
