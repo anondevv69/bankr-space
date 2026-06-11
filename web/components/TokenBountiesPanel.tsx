@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { PoidhOpenBountyGuide } from '@/components/PoidhOpenBountyGuide';
+import { PoidhBountyActions } from '@/components/PoidhBountyActions';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { apiFetch } from '@/lib/wagmi';
 
@@ -41,14 +42,14 @@ function truncateAddress(addr: string | null): string | null {
 }
 
 function pendingLabel(bounty: BountyView, spinUp: SpinUpView | null): string {
-  if (bounty.status === 'live') return 'Live on POIDH';
-  if (spinUp?.agentJobRunning) return 'Opening on POIDH…';
-  return 'Opening on POIDH';
+  if (bounty.status === 'live') return 'Live';
+  if (spinUp?.agentJobRunning) return 'Opening on-chain…';
+  return 'Opening on-chain';
 }
 
 function pendingHint(spinUp: SpinUpView | null): string {
   if (spinUp?.message) return spinUp.message;
-  return 'The Bankr agent creates an open bounty on poidh.xyz (small ETH seed). This page refreshes automatically — usually 1–5 minutes per bounty.';
+  return 'The issuer wallet creates an open bounty on Base (0.001 ETH seed). This page refreshes automatically.';
 }
 
 export function TokenBountiesPanel({
@@ -147,18 +148,9 @@ export function TokenBountiesPanel({
       <div className="p-4 rounded-xl border border-border bg-surface space-y-1">
         <div className="text-sm font-semibold">Community bounties for ${symbol}</div>
         <p className="text-[11px] text-muted leading-relaxed">
-          Create a task → Bankr agent opens it on{' '}
-          <a
-            href="https://poidh.xyz/base"
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent-hover hover:underline"
-          >
-            POIDH
-          </a>{' '}
-          → community adds ETH → do the work →{' '}
-          <strong className="font-medium text-text">post proof here</strong> → submit on POIDH →
-          contributors vote 48h to pay out.
+          Create a task → Bankr agent opens it on-chain → add ETH below → do the work →{' '}
+          <strong className="font-medium text-text">post proof in community</strong> → submit claim
+          here → contributors vote 48h to pay out.
         </p>
         <PoidhOpenBountyGuide collapsible />
       </div>
@@ -189,7 +181,7 @@ export function TokenBountiesPanel({
             onClick={() => void submitCreate()}
             className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg disabled:opacity-50"
           >
-            {submitting ? 'Creating on POIDH…' : address ? 'Create bounty' : 'Connect to create'}
+            {submitting ? 'Creating bounty…' : address ? 'Create bounty' : 'Connect to create'}
           </button>
         </div>
       ) : (
@@ -239,25 +231,13 @@ export function TokenBountiesPanel({
                   </div>
                 ) : null}
               </div>
-              {bounty.url ? (
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={bounty.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg"
-                  >
-                    Do task & submit proof ↗
-                  </a>
-                  <a
-                    href={bounty.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2"
-                  >
-                    Add funds (voting power) ↗
-                  </a>
-                </div>
+              {bounty.poidhBountyId != null && bounty.status === 'live' ? (
+                <PoidhBountyActions
+                  tokenAddress={tokenAddress}
+                  symbol={symbol}
+                  poidhBountyId={bounty.poidhBountyId}
+                  onAction={() => void load()}
+                />
               ) : (
                 <p className="text-[11px] text-muted">{pendingHint(spinUp)}</p>
               )}

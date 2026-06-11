@@ -86,10 +86,12 @@ export async function POST(req: Request, { params }: RouteParams) {
       success: true,
       message:
         spin.status === 'live'
-          ? 'Bounty is live on POIDH — add funds and share the task.'
-          : spin.status === 'pending_job'
-            ? 'Bounty queued — Bankr agent is opening it on POIDH now.'
-            : 'Bounty saved — Bankr agent will open it on POIDH shortly.',
+          ? 'Bounty is live — add funds and share the task.'
+          : spin.status === 'pending_issuer'
+            ? 'Bounty saved — waiting for POIDH issuer wallet on server.'
+            : spin.status === 'failed'
+              ? `Bounty saved — on-chain open failed: ${spin.message || 'retry via cron'}`
+              : 'Bounty saved — opening on-chain now.',
       bounty: {
         id: bounty.id,
         title: bounty.title,

@@ -1,22 +1,16 @@
 import { getCommunities, getCommunity, setCommunities } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import {
-  buildPoidhSpinUpPrompt,
-  extractPoidhBountyLinks,
-  pendingPoidhBounties,
-  bountyPublicUrl,
-} from '@/lib/poidh-community-bounties';
+import { pendingPoidhBounties } from '@/lib/poidh-community-bounties';
 import { fetchPoidhBountiesForSpace } from '@/lib/poidh-api';
-import {
-  getPlatformAgentBankrApiKey,
-  pollBankrAgentJob,
-  submitBankrAgentPrompt,
-} from '@/lib/bankr-agent-client';
 import { createPlatformAgentPost } from '@/lib/agent-pool-feed';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
+import {
+  getPoidhIssuerWallet,
+  isPoidhIssuerConfigured,
+  poidhIssuerCreateOpenBounty,
+} from '@/lib/poidh-issuer';
 import { communityUrl } from '@/lib/site-url';
-import { extractPoidhBountyId, extractTxHash } from '@/lib/work-brief';
-import type { Community, PoidhBountyState } from '@/lib/types';
+import type { Community, PoidhBountyState, PoidhCommunityBounty } from '@/lib/types';
 import { normalizeAddr } from '@/lib/utils';
 
 export type PoidhSpinUpResult = {
@@ -52,7 +46,10 @@ async function linkFromOnChain(community: Community): Promise<number> {
   if (!state?.enabled) return 0;
 
   const platformWallet = getPlatformAgentWallet();
-  const issuers = [platformWallet, community.ownerWallet].filter(Boolean) as string[];
+  const issuerWallet = getPoidhIssuerWallet();
+  const issuers = [issuerWallet, platformWallet, community.ownerWallet].filter(
+    Boolean
+  ) as string[];
   if (!issuers.length) return 0;
 
   const onChain = await fetchPoidhBountiesForSpace({
@@ -88,9 +85,21 @@ async function linkFromOnChain(community: Community): Promise<number> {
       ...state,
       bounties,
       spinUpAt: stillPending ? state.spinUpAt ?? Date.now() : null,
+      bankrAgentJobId: null,
     });
   }
   return linked;
+}
+
+async function openBountyOnChain(
+  community: Community,
+  bounty: PoidhCommunityBounty
+): Promise<{ bountyId: number; txHash: string }> {
+  const { bountyId, txHash } = await poidhIssuerCreateOpenBounty({
+    name: bounty.title,
+    description: bounty.description,
+  });
+  return { bountyId, txHash };
 }
 
 async function spinUpNextPoidhBounty(
@@ -108,105 +117,74 @@ async function spinUpNextPoidhBounty(
     return { status: 'skipped', message: 'nothing pending', linked };
   }
 
-  if (!getPlatformAgentBankrApiKey()) {
-    return { status: 'pending_api_key', message: 'PLATFORM_AGENT_BANKR_API_KEY not set' };
+  if (!isPoidhIssuerConfigured()) {
+    return {
+      status: 'pending_issuer',
+      message: 'POIDH_ISSUER_PRIVATE_KEY not set on server',
+    };
   }
 
   const batch = pending.slice(0, 1);
-  let jobId = state.bankrAgentJobId?.trim() || null;
-  let resultText = '';
+  const target = batch[0];
 
   try {
-    if (!jobId) {
-      const prompt = buildPoidhSpinUpPrompt({
-        symbol: merged.symbol,
-        tokenAddress: merged.tokenAddress,
-        bounties: batch,
-      });
-      jobId = await submitBankrAgentPrompt(prompt);
-      await savePoidhState(merged.tokenAddress, { ...state, bankrAgentJobId: jobId });
-    }
+    const { bountyId, txHash } = await openBountyOnChain(merged, target);
 
-    const polled = await pollBankrAgentJob(jobId, { maxAttempts: 90, delayMs: 2000 });
-    resultText = polled.text;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('timed out')) {
-      return { status: 'pending_job', message: `Bankr agent running (${jobId})` };
-    }
-    await savePoidhState(merged.tokenAddress, { ...state, bankrAgentJobId: null });
-    return { status: 'failed', message };
-  }
+    const communities = await getCommunities();
+    const idx = communities.findIndex(
+      (c) => c.tokenAddress.toLowerCase() === normalizeAddr(merged.tokenAddress)
+    );
+    if (idx === -1) return { status: 'failed', message: 'community missing' };
 
-  const links = extractPoidhBountyLinks(resultText);
-  const txHash = extractTxHash(resultText);
+    const current = mergeCommunityDefaults(communities[idx]);
+    const currentState = current.poidhBounties!;
+    let linked = 0;
 
-  const communities = await getCommunities();
-  const idx = communities.findIndex(
-    (c) => c.tokenAddress.toLowerCase() === normalizeAddr(merged.tokenAddress)
-  );
-  if (idx === -1) return { status: 'failed', message: 'community missing' };
-
-  const current = mergeCommunityDefaults(communities[idx]);
-  const currentState = current.poidhBounties!;
-  let linked = 0;
-
-  const bounties = currentState.bounties.map((b) => {
-    let onChainId: number | null = links[b.id] ?? null;
-    if (onChainId == null && batch.some((p) => p.id === b.id)) {
-      onChainId = extractPoidhBountyId(resultText);
-    }
-    if (onChainId != null && b.poidhBountyId == null && batch.some((p) => p.id === b.id)) {
+    const bounties = currentState.bounties.map((b) => {
+      if (b.id !== target.id || b.poidhBountyId != null) return b;
       linked += 1;
       return {
         ...b,
-        poidhBountyId: onChainId,
+        poidhBountyId: bountyId,
         status: 'live' as const,
         jobLinkedAt: Date.now(),
       };
+    });
+
+    const stillPending = bounties.some((b) => b.poidhBountyId == null && b.status === 'pending');
+
+    communities[idx] = mergeCommunityDefaults({
+      ...current,
+      poidhBounties: {
+        ...currentState,
+        bounties,
+        spinUpAt: stillPending ? currentState.spinUpAt ?? Date.now() : null,
+        bankrAgentJobId: null,
+      },
+    });
+    await setCommunities(communities);
+
+    if (linked > 0) {
+      await createPlatformAgentPost(
+        merged.tokenAddress,
+        [
+          `$${merged.symbol} — open bounty live: ${target.title}`,
+          'Add funds on the Bounties tab, complete the task, post proof in community, then submit your claim.',
+          `On-chain bounty #${bountyId}`,
+          communityUrl(merged.tokenAddress),
+        ].join('\n')
+      ).catch(() => undefined);
     }
-    return b;
-  });
 
-  const stillPending = bounties.some((b) => b.poidhBountyId == null && b.status === 'pending');
-
-  communities[idx] = mergeCommunityDefaults({
-    ...current,
-    poidhBounties: {
-      ...currentState,
-      bounties,
-      spinUpAt: stillPending ? currentState.spinUpAt ?? Date.now() : null,
-      bankrAgentJobId: null,
-    },
-  });
-  await setCommunities(communities);
-
-  if (linked < batch.length) {
-    linked += await linkFromOnChain(communities[idx]);
+    return {
+      status: 'live',
+      message: `tx ${txHash.slice(0, 10)}… bounty #${bountyId}`,
+      linked,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: 'failed', message };
   }
-
-  if (linked > 0) {
-    const live = bounties.filter((b) => b.poidhBountyId != null);
-    const lines = live
-      .map((b) => bountyPublicUrl(b))
-      .filter(Boolean)
-      .slice(0, 5);
-    await createPlatformAgentPost(
-      merged.tokenAddress,
-      [
-        `$${merged.symbol} — POIDH open bounty live: ${batch[0].title}`,
-        'Add funds on POIDH, complete the task, post proof here, then submit on poidh.xyz.',
-        ...lines.map((u) => `Bounty: ${u}`),
-        communityUrl(merged.tokenAddress),
-      ].join('\n')
-    ).catch(() => undefined);
-  }
-
-  return {
-    status: linked > 0 ? 'live' : 'pending_link',
-    message: txHash ? `tx ${txHash.slice(0, 10)}…` : resultText.slice(0, 120),
-    linked,
-  };
 }
 
 export async function spinUpPoidhBountiesForCommunity(
@@ -223,16 +201,12 @@ export async function spinUpPoidhBountiesForCommunity(
 
   for (let i = 0; i < maxBounties; i++) {
     const pending = pendingPoidhBounties(merged.poidhBounties);
-    if (!pending.length && !merged.poidhBounties?.bankrAgentJobId) break;
+    if (!pending.length) break;
 
     last = await spinUpNextPoidhBounty(merged);
     totalLinked += last.linked ?? 0;
 
-    if (
-      last.status === 'pending_job' ||
-      last.status === 'failed' ||
-      last.status === 'pending_api_key'
-    ) {
+    if (last.status === 'failed' || last.status === 'pending_issuer') {
       break;
     }
 
@@ -247,7 +221,7 @@ export async function spinUpPoidhBountiesForCommunity(
 }
 
 export async function spinUpAllPoidhBounties(): Promise<PoidhSpinUpResult> {
-  const configured = Boolean(getPlatformAgentBankrApiKey());
+  const configured = isPoidhIssuerConfigured();
   const communities = await getCommunities();
   const items: PoidhSpinUpResult['items'] = [];
   let spacesProcessed = 0;
@@ -260,8 +234,7 @@ export async function spinUpAllPoidhBounties(): Promise<PoidhSpinUpResult> {
     if (!merged.poidhBounties?.enabled) continue;
     if (
       !pendingPoidhBounties(merged.poidhBounties).length &&
-      !merged.poidhBounties.spinUpAt &&
-      !merged.poidhBounties.bankrAgentJobId
+      !merged.poidhBounties.spinUpAt
     ) {
       continue;
     }
@@ -275,7 +248,7 @@ export async function spinUpAllPoidhBounties(): Promise<PoidhSpinUpResult> {
       message: result.message,
     });
     linked += result.linked ?? 0;
-    if (result.status === 'pending_job') pendingJobs += 1;
+    if (result.status === 'pending_issuer') pendingJobs += 1;
     if (result.status === 'failed') failed += 1;
   }
 
@@ -296,21 +269,19 @@ export function poidhSpinUpSummary(state: PoidhBountyState | undefined | null): 
   agentJobRunning: boolean;
   message: string | null;
 } {
-  const configured = Boolean(getPlatformAgentBankrApiKey());
+  const configured = isPoidhIssuerConfigured();
   const pendingCount = pendingPoidhBounties(state).length;
-  const agentJobRunning = Boolean(state?.bankrAgentJobId?.trim());
+  const agentJobRunning = pendingCount > 0 && configured;
 
   let message: string | null = null;
   if (pendingCount === 0) {
     message = null;
   } else if (!configured) {
     message =
-      'Platform agent is not configured — bounties will open once the operator adds the Bankr API key.';
-  } else if (agentJobRunning) {
-    message = 'Bankr agent is creating this bounty on POIDH right now — usually 1–3 minutes.';
+      'POIDH issuer wallet is not configured — bounties will open once POIDH_ISSUER_PRIVATE_KEY is set.';
   } else {
     message =
-      'Bankr agent opens each bounty on POIDH (seeds a small ETH pool). Then anyone can add funds, do the task, and vote on proof.';
+      'Opening bounty on-chain (seeds 0.001 ETH from issuer wallet). Usually completes in under a minute.';
   }
 
   return { configured, pendingCount, agentJobRunning, message };
