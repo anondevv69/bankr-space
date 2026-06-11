@@ -81,11 +81,13 @@ export function PoidhBountyActions({
   tokenAddress,
   symbol,
   poidhBountyId,
+  poolAmountWei,
   onAction,
 }: {
   tokenAddress: string;
   symbol: string;
   poidhBountyId: number;
+  poolAmountWei?: string | null;
   onAction?: () => void;
 }) {
   const { address, isEmbedded, connectWallet } = useAppWallet();
@@ -100,11 +102,13 @@ export function PoidhBountyActions({
   const [claimUri, setClaimUri] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [pendingWithdraw, setPendingWithdraw] = useState<string | null>(null);
 
   const communityBase = `https://www.bankr.space/community/${tokenAddress.toLowerCase()}`;
 
   const load = useCallback(async () => {
+    setLoadError(false);
     try {
       const qs = address ? `?wallet=${encodeURIComponent(address)}` : '';
       const res = await fetch(
@@ -120,6 +124,7 @@ export function PoidhBountyActions({
       }
     } catch {
       setDetail(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -257,26 +262,56 @@ export function PoidhBountyActions({
     return <p className="text-[11px] text-muted">Loading on-chain bounty…</p>;
   }
 
-  if (!detail) {
-    return (
-      <p className="text-[11px] text-muted">
-        Could not load bounty details — refresh the page. On-chain id #{poidhBountyId}.
-      </p>
-    );
-  }
+  const fallbackDetail: PoidhBountyDetail = {
+    id: poidhBountyId,
+    issuer: '',
+    name: '',
+    description: '',
+    amountWei: poolAmountWei ? BigInt(poolAmountWei) : 1000000000000000n,
+    amountEth: poolAmountWei
+      ? formatEthDisplay(String(Number(poolAmountWei) / 1e18))
+      : '0.001',
+    active: true,
+    votingClaimId: 0,
+    voteYes: 0n,
+    voteNo: 0n,
+    voteDeadline: 0,
+    voteActive: false,
+    voteEnded: false,
+    participants: [],
+    claims: [],
+    minContributionWei: 10000000000000n,
+    minContributionEth: '0.00001',
+  };
 
-  const stake = participantStake(detail, address);
-  const canVote = detail.voteActive && stake > 0n;
+  const display = detail ?? fallbackDetail;
+  const stake = participantStake(display, address);
+  const canVote = display.voteActive && stake > 0n;
 
   return (
     <div className="space-y-4 border-t border-border pt-3">
+      {loadError ? (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
+          <span>Live stats temporarily unavailable.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              void load();
+            }}
+            className="text-accent-hover hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
         <span>
-          Pool: <strong className="text-text">{formatEthDisplay(detail.amountEth)} ETH</strong>
+          Pool: <strong className="text-text">{formatEthDisplay(display.amountEth)} ETH</strong>
         </span>
         <span>·</span>
-        <span>{detail.participants.length} funder{detail.participants.length === 1 ? '' : 's'}</span>
-        {detail.active ? (
+        <span>{display.participants.length} funder{display.participants.length === 1 ? '' : 's'}</span>
+        {display.active ? (
           <>
             <span>·</span>
             <span className="text-green-600 dark:text-green-400">Open</span>
@@ -289,12 +324,12 @@ export function PoidhBountyActions({
         )}
       </div>
 
-      {detail.voteActive ? (
+      {display.voteActive ? (
         <div className="p-3 rounded-lg border border-accent/30 bg-accent/5 space-y-2">
-          <div className="text-xs font-medium">Vote in progress — {voteTimeLeft(detail.voteDeadline)}</div>
+          <div className="text-xs font-medium">Vote in progress — {voteTimeLeft(display.voteDeadline)}</div>
           <p className="text-[11px] text-muted">
-            Yes: {formatEthDisplay(String(Number(detail.voteYes) / 1e18))} ETH weight · No:{' '}
-            {formatEthDisplay(String(Number(detail.voteNo) / 1e18))} ETH weight
+            Yes: {formatEthDisplay(String(Number(display.voteYes) / 1e18))} ETH weight · No:{' '}
+            {formatEthDisplay(String(Number(display.voteNo) / 1e18))} ETH weight
           </p>
           {canVote ? (
             <div className="flex flex-wrap gap-2">
@@ -323,7 +358,7 @@ export function PoidhBountyActions({
         </div>
       ) : null}
 
-      {detail.voteEnded ? (
+      {display.voteEnded ? (
         <div className="p-3 rounded-lg border border-border bg-surface-2 space-y-2">
           <div className="text-xs font-medium">Vote ended — resolve to finalize payout</div>
           <button
@@ -337,12 +372,12 @@ export function PoidhBountyActions({
         </div>
       ) : null}
 
-      {detail.active ? (
+      {display.active ? (
         <>
           <div className="space-y-2">
             <div className="text-xs font-medium">Add funds</div>
             <p className="text-[11px] text-muted">
-              Min {detail.minContributionEth} ETH. Your share = voting power when a winner is proposed.
+              Min {display.minContributionEth} ETH. Your share = voting power when a winner is proposed.
             </p>
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -410,17 +445,17 @@ export function PoidhBountyActions({
         </>
       ) : null}
 
-      {detail.claims.length > 0 ? (
+      {display.claims.length > 0 ? (
         <div className="space-y-2">
-          <div className="text-xs font-medium">Claims ({detail.claims.length})</div>
+          <div className="text-xs font-medium">Claims ({display.claims.length})</div>
           <ul className="space-y-2">
-            {detail.claims.map((claim) => {
-              const isVoting = detail.votingClaimId === claim.id && detail.voteActive;
+            {display.claims.map((claim) => {
+              const isVoting = display.votingClaimId === claim.id && display.voteActive;
               const isMine = claim.issuer === address?.toLowerCase();
               const canRequestVote =
-                detail.active &&
-                !detail.voteActive &&
-                detail.votingClaimId === 0 &&
+                display.active &&
+                !display.voteActive &&
+                display.votingClaimId === 0 &&
                 isMine;
 
               return (
