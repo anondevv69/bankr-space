@@ -37,10 +37,31 @@ function matchesSpace(task: OxWorkTask, symbol: string, tokenAddress: string): b
   );
 }
 
+async function fetchPosterTasks(
+  poster: string,
+  options: { status?: string; limit?: number }
+): Promise<OxWorkTask[]> {
+  const params = new URLSearchParams({
+    poster,
+    limit: String(options.limit ?? 50),
+  });
+  if (options.status) params.set('status', options.status);
+  try {
+    const res = await fetch(`${OXWORK_API}/tasks?${params}`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { tasks?: OxWorkTask[] };
+    return data.tasks || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchOxWorkTasksForSpace(options: {
   posterWallets: string[];
   symbol: string;
   tokenAddress: string;
+  /** Verification: include closed/completed tasks for linking. */
+  includeAllStatuses?: boolean;
 }): Promise<OxWorkTasksResponse> {
   const posters = [
     ...new Set(
@@ -54,15 +75,14 @@ export async function fetchOxWorkTasksForSpace(options: {
 
   const tasksById = new Map<number, OxWorkTask>();
 
+  const statusFilters = options.includeAllStatuses
+    ? ['open', 'completed', 'closed', 'cancelled']
+    : ['open'];
+
   for (const poster of posters) {
-    try {
-      const res = await fetch(
-        `${OXWORK_API}/tasks?poster=${encodeURIComponent(poster)}&status=open&limit=50`,
-        { next: { revalidate: 60 } }
-      );
-      if (!res.ok) continue;
-      const data = (await res.json()) as { tasks?: OxWorkTask[] };
-      for (const task of data.tasks || []) {
+    for (const status of statusFilters) {
+      const batch = await fetchPosterTasks(poster, { status, limit: 50 });
+      for (const task of batch) {
         if (
           task.poster_address?.toLowerCase() === poster ||
           matchesSpace(task, options.symbol, options.tokenAddress)
@@ -70,8 +90,6 @@ export async function fetchOxWorkTasksForSpace(options: {
           tasksById.set(task.id, task);
         }
       }
-    } catch {
-      // try next poster
     }
   }
 

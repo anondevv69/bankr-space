@@ -19,7 +19,14 @@ export async function POST(req: Request) {
     }
   }
 
-  let body: { tokenAddress?: string; skillId?: string; note?: string };
+  let body: {
+    tokenAddress?: string;
+    skillId?: string;
+    note?: string;
+    executionNote?: string;
+    txHash?: string;
+    oxworkTaskId?: number;
+  };
   try {
     body = await req.json();
   } catch {
@@ -28,7 +35,14 @@ export async function POST(req: Request) {
 
   const tokenAddress = normalizeAddr(String(body.tokenAddress || ''));
   const skillId = String(body.skillId || '').toLowerCase() as AgentPoolSkillId;
-  const note = body.note ? String(body.note).slice(0, 500) : null;
+  const rawNote = body.executionNote ?? body.note;
+  const note = rawNote ? String(rawNote).slice(0, 500) : null;
+  const txHash = body.txHash ? String(body.txHash).slice(0, 66) : null;
+  const oxworkTaskId =
+    body.oxworkTaskId != null && Number.isFinite(Number(body.oxworkTaskId))
+      ? Number(body.oxworkTaskId)
+      : null;
+  const executionNote = note;
 
   if (!AGENT_POOL_SKILL_IDS.includes(skillId)) {
     return NextResponse.json({ error: 'Invalid skillId' }, { status: 400 });
@@ -49,7 +63,14 @@ export async function POST(req: Request) {
       ...pool,
       campaigns: pool.campaigns.map((c) =>
         c.skillId === skillId
-          ? { ...c, executedAt: Date.now(), executionNote: note }
+          ? {
+              ...c,
+              executedAt: Date.now(),
+              executionNote,
+              executionTxHash: txHash ?? c.executionTxHash ?? null,
+              oxworkTaskId: oxworkTaskId ?? c.oxworkTaskId ?? null,
+              jobLinkedAt: oxworkTaskId != null ? c.jobLinkedAt ?? Date.now() : c.jobLinkedAt,
+            }
           : c
       ),
     };

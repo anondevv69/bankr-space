@@ -79,9 +79,19 @@ export interface AgentPoolCampaign {
   goalUsd: number;
   raisedUsd: number;
   enabled: boolean;
+  /** When raisedUsd first reached goalUsd (x402 credit). */
+  fundedAt?: number | null;
   /** Set when the platform worker reports skill execution. */
   executedAt?: number | null;
   executionNote?: string | null;
+  /** On-chain tx when agent posted skill (0xWork / QRCoin). */
+  executionTxHash?: string | null;
+  /** Linked 0xWork task after verification sync. */
+  oxworkTaskId?: number | null;
+  /** Last known 0xWork task status (Open, Completed, etc.). */
+  oxworkTaskStatus?: string | null;
+  /** When oxworkTaskId was linked from 0xWork API. */
+  jobLinkedAt?: number | null;
   /** 0xWork only — admin brief; agent parses lines into tasks when pool is funded. */
   workBrief?: string | null;
   /** Set when holders propose this goal (community-led, Lane B). */
