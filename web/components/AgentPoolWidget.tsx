@@ -25,10 +25,12 @@ export function AgentPoolWidget({
   tokenAddress,
   symbol,
   refreshKey,
+  layout = 'horizontal',
 }: {
   tokenAddress: string;
   symbol: string;
   refreshKey?: string;
+  layout?: 'horizontal' | 'sidebar';
 }) {
   const { isEmbedded, connectWallet } = useAppWallet();
   const { address, isConnected, onBase } = usePaymentWalletClient();
@@ -133,7 +135,11 @@ export function AgentPoolWidget({
 
   if (loading) {
     return (
-      <div className="mt-4 p-5 rounded-xl border border-accent/30 bg-surface text-sm text-muted">
+      <div
+        className={`p-5 rounded-xl border border-accent/30 bg-surface text-sm text-muted ${
+          layout === 'horizontal' ? 'mt-4' : ''
+        }`}
+      >
         Loading community agent goals…
       </div>
     );
@@ -145,15 +151,20 @@ export function AgentPoolWidget({
 
   const active = campaigns.find((c) => c.skillId === activeSkillId) || campaigns[0];
 
+  const shellClass =
+    layout === 'sidebar'
+      ? 'p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10'
+      : 'mt-4 p-4 md:p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10';
+
   return (
-    <div className="mt-4 p-4 md:p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10">
+    <div className={shellClass}>
       <div className="flex flex-col gap-4">
         <div>
           <div className="text-sm font-semibold">Fund the community agent</div>
           <p className="text-xs text-muted mt-1">
-            Holders chip in so the Bankr Space Agent can run tasks for ${symbol} — QRCoin
-            listings, 0xWork bounties, and more. USDC goes to the platform agent wallet, not the
-            fee recipient.
+            {layout === 'sidebar'
+              ? `QRCoin & 0xWork for $${symbol} — USDC to the platform agent wallet.`
+              : `Holders chip in so the Bankr Space Agent can run tasks for $${symbol} — QRCoin listings, 0xWork bounties, and more. USDC goes to the platform agent wallet, not the fee recipient.`}
           </p>
         </div>
 

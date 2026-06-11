@@ -8,6 +8,7 @@ import { useAppWallet } from '@/hooks/useAppWallet';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer, Header } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
+import { FundraisersPanel } from '@/components/FundraisersPanel';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
@@ -36,6 +37,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     canEditFundraising: boolean;
     canManagePlatformAgent: boolean;
     canEnablePlatformAgentSkills: boolean;
+    canProposeCommunityAgentGoal: boolean;
     canPinPosts: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canEditFundraising: data.canEditFundraising,
         canManagePlatformAgent: data.canManagePlatformAgent,
         canEnablePlatformAgentSkills: data.canEnablePlatformAgentSkills,
+        canProposeCommunityAgentGoal: data.canProposeCommunityAgentGoal,
         canPinPosts: data.canPinPosts,
       });
     } catch {
@@ -95,6 +98,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canEditFundraising: false,
         canManagePlatformAgent: false,
         canEnablePlatformAgentSkills: false,
+        canProposeCommunityAgentGoal: false,
         canPinPosts: false,
       });
     }
@@ -258,28 +262,39 @@ export default function CommunityPage({ params }: { params: { address: string } 
         </div>
       )}
 
-      {canPost ? (
-        <PostForm tokenAddress={tokenAddress} onPosted={load} />
-      ) : isConnected ? null : (
-        <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
-          👀 View-only mode —{' '}
-          {isEmbedded
-            ? 'sign in with Bankr and hold this token to post and react.'
-            : 'connect wallet and hold this token to post and react.'}
-        </div>
-      )}
+      <div className="grid lg:grid-cols-[minmax(260px,300px)_1fr] gap-6 items-start">
+        <FundraisersPanel
+          community={community}
+          refreshKey={`${JSON.stringify(community.fundraising?.campaigns)}-${JSON.stringify(community.agentPool?.campaigns)}`}
+          canProposeCommunityGoal={!!holder?.canProposeCommunityAgentGoal}
+          onRefresh={load}
+        />
 
-      <PostFeed
-        tokenAddress={tokenAddress}
-        tokenSymbol={community.symbol}
-        posts={posts}
-        canInteract={!!canPost}
-        canManage={canPinPosts}
-        pinnedPosts={community.pinnedPosts}
-        beneficiaryWallet={beneficiary?.wallet}
-        ownerWallet={community.ownerWallet}
-        onUpdate={load}
-      />
+        <div className="min-w-0">
+          {canPost ? (
+            <PostForm tokenAddress={tokenAddress} onPosted={load} />
+          ) : isConnected ? null : (
+            <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
+              👀 View-only mode —{' '}
+              {isEmbedded
+                ? 'sign in with Bankr and hold this token to post and react.'
+                : 'connect wallet and hold this token to post and react.'}
+            </div>
+          )}
+
+          <PostFeed
+            tokenAddress={tokenAddress}
+            tokenSymbol={community.symbol}
+            posts={posts}
+            canInteract={!!canPost}
+            canManage={canPinPosts}
+            pinnedPosts={community.pinnedPosts}
+            beneficiaryWallet={beneficiary?.wallet}
+            ownerWallet={community.ownerWallet}
+            onUpdate={load}
+          />
+        </div>
+      </div>
       <Footer />
     </div>
   );

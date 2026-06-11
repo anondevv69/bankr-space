@@ -84,6 +84,10 @@ export interface AgentPoolCampaign {
   executionNote?: string | null;
   /** 0xWork only — admin brief; agent parses lines into tasks when pool is funded. */
   workBrief?: string | null;
+  /** Set when holders propose this goal (community-led, Lane B). */
+  communityLed?: boolean;
+  proposedBy?: string | null;
+  proposedAt?: number | null;
 }
 
 export interface AgentPoolState {

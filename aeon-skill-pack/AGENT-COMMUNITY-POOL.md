@@ -12,7 +12,7 @@ Holders fund **what the Bankr Space Agent should do** for a space — without wa
 ## Member flow
 
 1. Space has **Use Bankr Space Agent** + verified
-2. Admin enables goals in Edit profile → **Community agent pool** (QRCoin, 0xWork)
+2. **Holders propose** goals in Fundraisers sidebar (`POST …/agent-pool/propose`) **or** admin bootstraps in Edit profile
 3. Holders see **Fund the community agent** on the space page
 4. $1 USDC per x402 click → `PLATFORM_AGENT_WALLET`
 5. When `raisedUsd ≥ goalUsd` and **Authorize agent skill execution** is on → worker runs skill

@@ -41,6 +41,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       canEditProfile: permissions.canEditProfile,
       canEditFundraising: permissions.canEditFundraising,
       canManagePlatformAgent: permissions.canManagePlatformAgent,
+      canProposeCommunityAgentGoal: permissions.canProposeCommunityAgentGoal,
       canEnablePlatformAgentSkills: permissions.canEnablePlatformAgentSkills,
       canPinPosts: permissions.canPinPosts,
       canModeratePosts: permissions.canModeratePosts,
