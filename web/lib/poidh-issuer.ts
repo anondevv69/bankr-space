@@ -11,6 +11,7 @@ import { normalizeAddr } from './utils';
 import {
   POIDH_V3_BASE,
   poidhPublicClient,
+  poidhRead,
   poidhV3Abi,
 } from './poidh-contract';
 
@@ -71,13 +72,94 @@ function issuerWalletClient() {
   });
 }
 
+/** Serialize issuer writes within one serverless instance. */
+let issuerWriteChain: Promise<unknown> = Promise.resolve();
+
+function withIssuerWriteQueue<T>(fn: () => Promise<T>): Promise<T> {
+  const run = issuerWriteChain.then(fn, fn);
+  issuerWriteChain = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+function isTransientTxError(message: string): boolean {
+  return /nonce|replacement transaction underpriced|already known|rate limit|429|rpc request failed|limit exceeded|timeout|503|502|overloaded/i.test(
+    message
+  );
+}
+
+async function readIssuerNonce(issuer: Address): Promise<number> {
+  return poidhRead(() =>
+    poidhPublicClient.getTransactionCount({ address: issuer, blockTag: 'pending' })
+  );
+}
+
+async function issuerWriteContract(options: {
+  functionName: 'createOpenBounty';
+  args: readonly [string, string];
+  value: bigint;
+}): Promise<`0x${string}`>;
+async function issuerWriteContract(options: {
+  functionName: 'submitClaimForVote';
+  args: readonly [bigint, bigint];
+}): Promise<`0x${string}`>;
+async function issuerWriteContract(options: {
+  functionName: 'createOpenBounty' | 'submitClaimForVote';
+  args: readonly unknown[];
+  value?: bigint;
+}): Promise<`0x${string}`> {
+  return withIssuerWriteQueue(async () => {
+    const wallet = issuerWalletClient();
+    const issuer = wallet.account!.address;
+
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        const nonce = await readIssuerNonce(issuer);
+        if (options.functionName === 'createOpenBounty') {
+          return await wallet.writeContract({
+            chain: base,
+            address: POIDH_V3_BASE,
+            abi: poidhV3Abi,
+            functionName: 'createOpenBounty',
+            args: options.args as [string, string],
+            value: options.value!,
+            nonce,
+          });
+        }
+        return await wallet.writeContract({
+          chain: base,
+          address: POIDH_V3_BASE,
+          abi: poidhV3Abi,
+          functionName: 'submitClaimForVote',
+          args: options.args as [bigint, bigint],
+          nonce,
+        });
+      } catch (err) {
+        lastErr = err;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (attempt < 5 && isTransientTxError(msg)) {
+          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+  });
+}
+
 async function readMinBountyAmount(): Promise<bigint> {
   try {
-    return await poidhPublicClient.readContract({
-      address: POIDH_V3_BASE,
-      abi: poidhV3Abi,
-      functionName: 'MIN_BOUNTY_AMOUNT',
-    });
+    return await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'MIN_BOUNTY_AMOUNT',
+      })
+    );
   } catch {
     return parseEther(DEFAULT_SEED_ETH);
   }
@@ -85,12 +167,14 @@ async function readMinBountyAmount(): Promise<bigint> {
 
 async function readBountyRow(id: number) {
   try {
-    return await poidhPublicClient.readContract({
-      address: POIDH_V3_BASE,
-      abi: poidhV3Abi,
-      functionName: 'bounties',
-      args: [BigInt(id)],
-    });
+    return await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'bounties',
+        args: [BigInt(id)],
+      })
+    );
   } catch {
     return null;
   }
@@ -100,21 +184,25 @@ async function resolveBountyIdAfterCreate(
   txHash: `0x${string}`,
   issuer: Address
 ): Promise<number> {
-  const receipt = await poidhPublicClient.waitForTransactionReceipt({
-    hash: txHash,
-    confirmations: 1,
-  });
+  const receipt = await poidhRead(() =>
+    poidhPublicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: 1,
+    })
+  );
 
   if (receipt.status === 'reverted') {
     throw new Error('POIDH createOpenBounty transaction reverted on-chain');
   }
 
   const counter = Number(
-    await poidhPublicClient.readContract({
-      address: POIDH_V3_BASE,
-      abi: poidhV3Abi,
-      functionName: 'bountyCounter',
-    })
+    await poidhRead(() =>
+      poidhPublicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhV3Abi,
+        functionName: 'bountyCounter',
+      })
+    )
   );
 
   for (let id = counter - 1; id >= Math.max(1, counter - 5); id -= 1) {
@@ -141,10 +229,7 @@ export async function poidhIssuerCreateOpenBounty(options: {
     throw new Error(`Seed amount below POIDH minimum (${min} wei)`);
   }
 
-  const hash = await wallet.writeContract({
-    chain: base,
-    address: POIDH_V3_BASE,
-    abi: poidhV3Abi,
+  const hash = await issuerWriteContract({
     functionName: 'createOpenBounty',
     args: [options.name.slice(0, 120), options.description.slice(0, 8000)],
     value,
@@ -158,21 +243,19 @@ export async function poidhIssuerSubmitClaimForVote(options: {
   bountyId: number;
   claimId: number;
 }): Promise<{ txHash: `0x${string}` }> {
-  const wallet = issuerWalletClient();
-  const hash = await wallet.writeContract({
-    chain: base,
-    address: POIDH_V3_BASE,
-    abi: poidhV3Abi,
+  const hash = await issuerWriteContract({
     functionName: 'submitClaimForVote',
     args: [BigInt(options.bountyId), BigInt(options.claimId)],
   });
-  await poidhPublicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+  await poidhRead(() =>
+    poidhPublicClient.waitForTransactionReceipt({ hash, confirmations: 1 })
+  );
   return { txHash: hash };
 }
 
 export async function readPoidhIssuerBalanceEth(): Promise<string | null> {
   const wallet = getPoidhIssuerWallet();
   if (!wallet) return null;
-  const wei = await poidhPublicClient.getBalance({ address: wallet });
+  const wei = await poidhRead(() => poidhPublicClient.getBalance({ address: wallet }));
   return `${Number(wei) / 1e18}`;
 }

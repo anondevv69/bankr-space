@@ -74,7 +74,10 @@ export async function POST(req: Request, { params }: RouteParams) {
     communities[index] = saved;
     await setCommunities(communities);
 
-    const spin = await spinUpPoidhBountiesForCommunity(saved, { maxBounties: 1 }).catch(
+    const spin = await spinUpPoidhBountiesForCommunity(saved, {
+      maxBounties: 1,
+      force: true,
+    }).catch(
       (err) => ({
         status: 'failed',
         message: err instanceof Error ? err.message : String(err),

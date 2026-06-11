@@ -1,5 +1,6 @@
 import { createPublicClient, http, type Address } from 'viem';
 import { base } from 'viem/chains';
+import { poidhRead } from './poidh-contract';
 
 /** PoidhV3 on Base mainnet — https://docs.poidh.xyz/deployment.html */
 export const POIDH_V3_BASE = '0x5555Fa783936C260f77385b4E153B9725feF1719' as Address;
@@ -79,12 +80,14 @@ function matchesSpace(text: string, symbol: string, tokenAddress: string): boole
 async function readBounty(id: number): Promise<PoidhBounty | null> {
   if (id <= 0) return null;
   try {
-    const row = await publicClient.readContract({
-      address: POIDH_V3_BASE,
-      abi: poidhAbi,
-      functionName: 'bounties',
-      args: [BigInt(id)],
-    });
+    const row = await poidhRead(() =>
+      publicClient.readContract({
+        address: POIDH_V3_BASE,
+        abi: poidhAbi,
+        functionName: 'bounties',
+        args: [BigInt(id)],
+      })
+    );
     const issuer = String(row[1]).toLowerCase();
     if (issuer === '0x0000000000000000000000000000000000000000') return null;
 
@@ -133,11 +136,13 @@ export async function fetchPoidhBountiesForSpace(options: {
   let counter = 0;
   try {
     counter = Number(
-      await publicClient.readContract({
-        address: POIDH_V3_BASE,
-        abi: poidhAbi,
-        functionName: 'bountyCounter',
-      })
+      await poidhRead(() =>
+        publicClient.readContract({
+          address: POIDH_V3_BASE,
+          abi: poidhAbi,
+          functionName: 'bountyCounter',
+        })
+      )
     );
   } catch {
     return { bounties: [], total: 0, issuerWallet: primaryIssuer, symbol: options.symbol, spaceUrl };
@@ -154,6 +159,7 @@ export async function fetchPoidhBountiesForSpace(options: {
       continue;
     }
     matched.push(bounty);
+    if (matched.length >= 25) break;
   }
 
   matched.sort((a, b) => b.createdAt - a.createdAt);
