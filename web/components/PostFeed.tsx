@@ -446,6 +446,7 @@ export function PostFeed({
   beneficiaryWallet,
   ownerWallet,
   onUpdate,
+  hideExtraTabs,
 }: {
   tokenAddress: string;
   tokenSymbol: string;
@@ -456,6 +457,8 @@ export function PostFeed({
   beneficiaryWallet?: string | null;
   ownerWallet?: string | null;
   onUpdate: () => void;
+  /** Petition spaces — posts only, no bounties/jobs tabs */
+  hideExtraTabs?: boolean;
 }) {
   const { address } = useAppWallet();
   const [filter, setFilter] = useState<FeedTab>('all');
@@ -471,6 +474,7 @@ export function PostFeed({
   const pins = pinnedPosts || [];
 
   useEffect(() => {
+    if (hideExtraTabs) return;
     let cancelled = false;
     (async () => {
       try {
@@ -486,15 +490,22 @@ export function PostFeed({
     return () => {
       cancelled = true;
     };
-  }, [tokenAddress]);
+  }, [tokenAddress, hideExtraTabs]);
 
   useEffect(() => {
-    if (!hasJobs && filter === 'oxjobs') setFilter('all');
-  }, [hasJobs, filter]);
+    if (hideExtraTabs && (filter === 'oxjobs' || filter === 'bounties')) {
+      setFilter('all');
+    } else if (!hideExtraTabs && !hasJobs && filter === 'oxjobs') {
+      setFilter('all');
+    }
+  }, [hideExtraTabs, filter, hasJobs]);
 
   const visibleFilters = useMemo(
-    () => [...POST_FILTERS, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
-    [hasJobs]
+    () =>
+      hideExtraTabs
+        ? POST_FILTERS
+        : [...POST_FILTERS, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
+    [hasJobs, hideExtraTabs]
   );
 
   const visiblePosts = useMemo(() => {
@@ -633,9 +644,13 @@ export function PostFeed({
 export function PostForm({
   tokenAddress,
   onPosted,
+  postApiUrl,
+  placeholder = 'Share your thoughts with fellow holders…',
 }: {
   tokenAddress: string;
   onPosted: () => void;
+  postApiUrl?: string;
+  placeholder?: string;
 }) {
   const { address, isEmbedded } = useAppWallet();
   const [content, setContent] = useState('');
@@ -645,7 +660,7 @@ export function PostForm({
     if (!address || !content.trim()) return;
     setPosting(true);
     try {
-      await apiFetch(`/api/communities/${tokenAddress}/posts`, {
+      await apiFetch(postApiUrl || `/api/communities/${tokenAddress}/posts`, {
         method: 'POST',
         wallet: address,
         client: isEmbedded ? 'bankr-app' : 'web',
@@ -667,7 +682,7 @@ export function PostForm({
     <div className="bg-surface border border-border rounded-xl p-4 mb-6">
       <textarea
         className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm min-h-[100px] mb-3"
-        placeholder="Share your thoughts with fellow holders…"
+        placeholder={placeholder}
         maxLength={2000}
         value={content}
         onChange={(e) => setContent(e.target.value)}

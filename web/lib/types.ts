@@ -279,3 +279,21 @@ export interface TokenMarketStats {
   };
   fetchedAt: number;
 }
+
+export type PetitionSpacePhase = 'petition' | 'finalizing' | 'live' | 'expired';
+
+/** Pre-launch community on bankr.space backed by TMP petition API. */
+export interface PetitionSpace {
+  tmpPetitionId: string;
+  phase: PetitionSpacePhase;
+  founderWallet: string;
+  tokenName: string;
+  tokenSymbol: string;
+  description: string;
+  maxUnitsPerWallet: number;
+  imageUrl?: string | null;
+  tokenAddress: string | null;
+  websiteUrl: string;
+  createdAt: number;
+  updatedAt: number;
+}

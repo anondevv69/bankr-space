@@ -16,8 +16,8 @@
       "schedule": "*/10 * * * *"
     },
     {
-      "path": "/api/cron/poidh-bounties",
-      "schedule": "*/10 * * * *"
+      "path": "/api/cron/petition-finalize",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
