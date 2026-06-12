@@ -2,89 +2,60 @@
 
 Token holders create **crowdfunded outcome bounties** on **bankr.space** — funded in **ETH on Base** via POIDH (not x402, not USDC agent pool).
 
+> **@bankrbot execute create / seed / list:** read **`POIDH-BOUNTY-ACTIONS.md`** first — step-by-step GET/POST, curl, response fields, forbidden replies.
+
 ## User intents
 
 | User says | Agent does |
 |-----------|------------|
-| create a bounty for **$SPACE** | Holder calls API below → bounty opens on-chain automatically |
-| what's the **SPACE** bounty? | `GET …/poidh` → list title, pool, status |
-| fund / add ETH to bounty | See **Funding** below — user EOA vs issuer seed |
-| submit proof / claim | User submits claim on Bounties tab with proof URL (tweet, image link, etc.) |
-| vote on bounty claim | Funders vote yes/no on bankr.space during 48h vote (weighted by ETH contributed) |
-
-## Create bounty (token holder)
-
-Requires linked wallet that **holds the token** (`canPost`).
-
-```http
-POST https://bankr.space/api/communities/{tokenAddress}/poidh/request
-x-wallet-address: 0x…
-Content-Type: application/json
-
-{
-  "title": "Share $SPACE on X with screenshot",
-  "description": "Post on X mentioning $SPACE with a screenshot. Proof: tweet URL."
-}
-```
-
-Response: bounty saved; platform issuer wallet seeds **0.001 ETH** and opens POIDH open bounty on Base (~1 min).
-
-## List bounties
-
-```http
-GET https://bankr.space/api/communities/{tokenAddress}/poidh
-```
-
-Response includes `bounties[]` (title, `poidhBountyId`, `amountWei`, status) and `bountiesTabUrl`.
+| create a bounty for **$SPACE** | **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/request` |
+| **add** / **seed** ETH to bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → **`POST …/poidh/seed`** |
+| what's the **SPACE** bounty? | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` |
+| fund bounty (user's wallet) | Guide to Bounties tab + MetaMask (see actions doc) |
+| submit proof / claim | User on Bounties tab — EOA required |
+| vote on bounty claim | User on Bounties tab — EOA required |
 
 ## Funding (two paths)
 
-POIDH **`joinOpenBounty`** requires an **EOA** wallet (`tx.origin`). The user's linked Bankr smart wallet **cannot** fund directly.
+See **`POIDH-BOUNTY-ACTIONS.md`** for full execution. Summary:
 
 ### A — User adds their own ETH (voting power = their share)
 
-1. `GET …/poidh` → find bounty title + `poidhBountyId`
-2. Reply with steps + link:
+Guide to Bounties tab + MetaMask/Rabby on Base.
 
-```text
-Open your space Bounties tab → select the bounty → Add funds → connect MetaMask or Rabby on Base → confirm.
-
-https://bankr.space/community/{tokenAddress}
-```
-
-Example tweet: `@bankrbot how do I fund the $SPACE Test bounty?`
-
-### B — Platform issuer seeds more ETH (agent CAN do this)
-
-Holder asks to add pool ETH from the **platform issuer wallet** (not the user's wallet — issuer gets voting weight).
+### B — Platform issuer seeds more ETH (**agent executes POST seed**)
 
 ```http
 POST https://bankr.space/api/communities/{tokenAddress}/poidh/seed
 x-wallet-address: 0x…
 Content-Type: application/json
 
-{
-  "bountyId": 243,
-  "ethAmount": "0.01"
-}
-```
-
-Or match by title:
-
-```json
 { "title": "Test bounty", "ethAmount": "0.01" }
 ```
 
-Cap: **0.1 ETH** per request. Requires `canPost` + live on-chain bounty.
+Cap: **0.1 ETH** per request. Example tweet: `@bankrbot add 0.01 ETH to the $SPACE Test bounty`
 
-Example tweets:
+**Agent must NOT** say it lacks a funding tool — this endpoint is the tool.
 
-```text
-@bankrbot add 0.01 ETH to the $SPACE Test bounty
-@bankrbot seed 0.005 ETH to bounty "make a split" on $TMP
+---
+
+## Create bounty (token holder)
+
+Details in **`POIDH-BOUNTY-ACTIONS.md`**. Quick reference:
+
+```http
+POST https://bankr.space/api/communities/{tokenAddress}/poidh/request
+x-wallet-address: 0x…
+Content-Type: application/json
+
+{ "title": "Task name", "description": "Instructions + proof requirement" }
 ```
 
-After seed, reply with tx hash + Bounties tab URL.
+## List bounties
+
+```http
+GET https://bankr.space/api/communities/{tokenAddress}/poidh
+```
 
 ## Agent limitations
 

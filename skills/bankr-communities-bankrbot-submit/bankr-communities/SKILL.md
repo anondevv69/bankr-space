@@ -1,8 +1,10 @@
 ---
 name: bankr-communities
-version: 1.14.0
+version: 1.15.0
 description: >-
-  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise via API. X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + X-REPLY-POST-CONTENT.md + FUNDRAISING.md. PMFI: https://bankr.space/community/0xd77ce6d3137342bb5174673bdab5f51db16fcba3
+  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise/POIDH bounties via API.
+  add ETH to bounty → read POIDH-BOUNTY-ACTIONS.md + POST …/poidh/seed (never "no funding tool").
+  X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + POIDH-BOUNTY-ACTIONS.md + FUNDRAISING.md.
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -34,9 +36,9 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 | **post** in **TMP**: text **and pin it** | `POST …/posts` **with `source`** → `POST …/pin-post` if verified beneficiary |
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
 | **fund** / **contribute** to **TMP** space fundraiser | Read **`FUNDRAISING.md`** → `GET …/fundraising` or briefing → reply progress + space URL |
-| **create bounty** / **open bounty** for **$SPACE** | Read **`POIDH-BOUNTIES.md`** → `POST …/poidh/request` (holder) or Bounties tab on space |
-| **fund** / **add ETH** to **$SPACE** bounty | Read **`POIDH-BOUNTIES.md`** → guide user to Bounties tab (EOA) or `POST …/poidh/seed` (issuer seed) |
-| **seed** **0.01 ETH** to bounty on **$SPACE** | **`POIDH-BOUNTIES.md`** → `GET …/poidh` → `POST …/poidh/seed` |
+| **create bounty** / **open bounty** for **$SPACE** | Read **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/request` |
+| **add ETH** / **seed** / **fund** **$SPACE** bounty | Read **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → **`POST …/poidh/seed`** — **never** refuse as missing tool |
+| **list** bounties on **$SPACE** | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` |
 | any **fundraising** on **$ARCHIVE**? | `GET …/fundraising` or briefing → `fundraising.open[]` |
 
 **Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
@@ -133,7 +135,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **QRCoin** fundraiser for **SPACE** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [qrcoin skill](https://skills.bankr.bot/skills/qrcoin) |
 | **0xWork** bagwork / bounties for **TMP** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [0xwork skill](https://skills.bankr.bot/skills/0xwork) |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**).
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**) · say **"I don't have a bounty-funding tool"** or offer raw POIDH contract calls when user asks **add/seed ETH to bounty** — use **POIDH-BOUNTY-ACTIONS.md** → `POST …/poidh/seed`.
 
 ---
 
@@ -146,11 +148,13 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
   3. If TMP or ARCHIVE → paste URL from table → STOP (no tools, no HTTP)
   4. Else try GET /api/agent/link?q={TICKER} → paste body
   5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
-else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, fundraising, contribute, enable fundraiser, start fundraiser, custom fundraiser):
+else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, fundraising, contribute, enable fundraiser, start fundraiser, custom fundraiser, bounty, bounties, poidh, seed bounty, add eth to bounty):
   1. use_skill("bankr-communities")     ← BEFORE swaps/deploys/transfers
-  2. enable/start/turn on + fundraiser → BENEFICIARY-ACTIONS.md (Enable fundraiser) → PATCH fundraising
-  3. Other writes → BENEFICIARY-ACTIONS.md
-  4. Reads / contribute → ONE-LINE-INTENTS.md or FUNDRAISING.md
+  2. add eth / seed / fund + bounty (not USDC fundraiser) → POIDH-BOUNTY-ACTIONS.md → GET poidh → POST poidh/seed
+  3. create/open bounty → POIDH-BOUNTY-ACTIONS.md → POST poidh/request
+  4. enable/start/turn on + fundraiser → BENEFICIARY-ACTIONS.md (Enable fundraiser) → PATCH fundraising
+  5. Other writes → BENEFICIARY-ACTIONS.md
+  6. Reads / contribute → ONE-LINE-INTENTS.md or FUNDRAISING.md
   5. If posting: Read **X-REPLY-POST-CONTENT.md** (what goes in `content`) + **POST-SOURCE.md** → set source.trigger from DM vs tweet vs reply vs terminal
   6. GET /api/holders/{token}?wallet={linked} before writes
   7. Call API — BEFORE replying (posts must include source object)
@@ -250,6 +254,8 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `AGENT-WALLETS.md` | **Tag agent wallets (bankrbot, hermes) for fee recipient & trusted delegates** |
 | `SKILL-LINKED-FUNDRAISERS.md` | **Fundraiser → USDC → Bankr Skills (qrcoin, 0xwork) on [skills.bankr.bot](https://skills.bankr.bot/)** |
 | `PLATFORM-AGENT.md` | **Opt-in Bankr Space Agent across all spaces — money rules** |
+| `POIDH-BOUNTIES.md` | POIDH overview — ETH bounties vs x402 |
+| `POIDH-BOUNTY-ACTIONS.md` | **Execute create/seed/list — GET poidh, POST seed/request (mandatory for add ETH tweets)** |
 | `PLATFORM-AGENT-WORKER.md` | **Aeon / Hermes cron worker — platform-spaces loop, headers, internal APIs** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
