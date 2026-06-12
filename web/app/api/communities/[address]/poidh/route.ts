@@ -14,7 +14,7 @@ import {
   poidhSpinUpSummary,
   spinUpPoidhBountiesForCommunity,
 } from '@/lib/poidh-bounty-spinup';
-import { fetchPoidhBountyById } from '@/lib/poidh-api';
+import { fetchPoidhBountyById, poidhDisplayBountyId } from '@/lib/poidh-api';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -91,9 +91,12 @@ export async function GET(req: Request, { params }: RouteParams) {
           description: bountyDescriptionForDisplay(b.description),
           status: live ? 'live' : 'pending',
           poidhBountyId: b.poidhBountyId,
+          poidhDisplayId:
+            b.poidhBountyId != null ? poidhDisplayBountyId(b.poidhBountyId) : null,
           url: bountyPublicUrl(b),
           amountWei,
           onChainActive,
+          seedable: onChainActive === true,
           requestedBy: b.requestedBy,
           createdAt: b.createdAt,
         };

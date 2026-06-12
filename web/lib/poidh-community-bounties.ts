@@ -1,5 +1,5 @@
 import type { PoidhBountyKind, PoidhBountyState, PoidhCommunityBounty } from './types';
-import { poidhBountyUrl } from './poidh-api';
+import { normalizePoidhBountyId, poidhBountyUrl, poidhDisplayBountyId } from './poidh-api';
 
 export const POIDH_BOUNTY_GUIDE_URL = 'https://words.poidh.xyz/poidh-open-bounties-guide';
 
@@ -143,6 +143,37 @@ export function hasPendingPoidhTitle(
 
 export function spaceBountiesTabUrl(tokenAddress: string): string {
   return `https://www.bankr.space/community/${tokenAddress.toLowerCase()}#bounties`;
+}
+
+/** Resolve stored bounty row from on-chain id, poidh.xyz display id (e.g. 1229), or title. */
+export function resolveSpacePoidhBounty(
+  state: PoidhBountyState | undefined | null,
+  options: { bountyId?: number; title?: string }
+): PoidhCommunityBounty | null {
+  const bounties = state?.bounties ?? [];
+  const rawId = Number(options.bountyId);
+  if (Number.isFinite(rawId) && rawId > 0) {
+    const onChain = normalizePoidhBountyId(rawId);
+    const match = bounties.find(
+      (b) =>
+        b.poidhBountyId != null &&
+        (b.poidhBountyId === rawId || b.poidhBountyId === onChain)
+    );
+    if (match) return match;
+  }
+
+  const titleQuery = String(options.title || '')
+    .trim()
+    .toLowerCase();
+  if (!titleQuery) return null;
+
+  return (
+    bounties.find(
+      (b) =>
+        b.poidhBountyId != null &&
+        b.title.toLowerCase().includes(titleQuery)
+    ) ?? null
+  );
 }
 
 export function bountyPublicUrl(bounty: PoidhCommunityBounty): string | null {

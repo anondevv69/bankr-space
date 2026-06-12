@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import { resolveSpacePermissions } from '@/lib/community-owner';
-import { fetchPoidhBountyById } from '@/lib/poidh-api';
-import { spaceBountiesTabUrl } from '@/lib/poidh-community-bounties';
+import { fetchPoidhBountyById, poidhDisplayBountyId } from '@/lib/poidh-api';
+import {
+  resolveSpacePoidhBounty,
+  spaceBountiesTabUrl,
+} from '@/lib/poidh-community-bounties';
 import {
   isPoidhIssuerConfigured,
   poidhIssuerJoinBounty,
@@ -52,33 +55,45 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const merged = mergeCommunityDefaults(community);
-    const titleQuery = String(body.title || '').trim().toLowerCase();
-    let bountyId = Number(body.bountyId);
+    const match = resolveSpacePoidhBounty(merged.poidhBounties, {
+      bountyId: body.bountyId,
+      title: body.title,
+    });
 
-    if (!Number.isFinite(bountyId) || bountyId <= 0) {
-      const match = merged.poidhBounties?.bounties.find((b) => {
-        if (b.poidhBountyId == null) return false;
-        if (!titleQuery) return true;
-        return b.title.toLowerCase().includes(titleQuery);
-      });
-      bountyId = match?.poidhBountyId ?? 0;
-    }
-
-    if (!bountyId) {
+    if (!match?.poidhBountyId) {
       return NextResponse.json(
-        { error: 'bountyId required, or title matching a live bounty' },
-        { status: 400 }
+        {
+          error:
+            'Bounty not found — use on-chain poidhBountyId (e.g. 243) or poidh.xyz display id (e.g. 1229), or title',
+        },
+        { status: 404 }
       );
     }
 
-    const known = merged.poidhBounties?.bounties.some((b) => b.poidhBountyId === bountyId);
-    if (!known) {
-      return NextResponse.json({ error: 'Bounty not found for this space' }, { status: 404 });
+    const onChainId = match.poidhBountyId;
+    const onChain = await fetchPoidhBountyById(onChainId);
+    if (!onChain) {
+      return NextResponse.json(
+        {
+          error:
+            'Could not read bounty on-chain (RPC busy) — retry in a few seconds. This is not the same as inactive.',
+          poidhBountyId: onChainId,
+          poidhDisplayId: poidhDisplayBountyId(onChainId),
+          title: match.title,
+        },
+        { status: 503 }
+      );
     }
-
-    const onChain = await fetchPoidhBountyById(bountyId);
-    if (!onChain?.active) {
-      return NextResponse.json({ error: 'Bounty is not active on-chain' }, { status: 400 });
+    if (!onChain.active) {
+      return NextResponse.json(
+        {
+          error: 'Bounty is closed on-chain (already paid out)',
+          poidhBountyId: onChainId,
+          poidhDisplayId: poidhDisplayBountyId(onChainId),
+          title: match.title,
+        },
+        { status: 400 }
+      );
     }
 
     if (!isPoidhIssuerConfigured()) {
@@ -88,15 +103,17 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    const { txHash } = await poidhIssuerJoinBounty({ bountyId, ethAmount });
+    const { txHash } = await poidhIssuerJoinBounty({ bountyId: onChainId, ethAmount });
 
     return NextResponse.json({
       success: true,
       txHash,
-      bountyId,
+      bountyId: onChainId,
+      poidhDisplayId: poidhDisplayBountyId(onChainId),
+      title: match.title,
       ethAmount,
       mode: 'issuer_seed',
-      message: `Added ${ethAmount} ETH to bounty #${bountyId} from the platform issuer wallet. Refresh the Bounties tab to see the pool.`,
+      message: `Added ${ethAmount} ETH to "${match.title}" (on-chain #${onChainId}). Refresh the Bounties tab.`,
       bountiesUrl: spaceBountiesTabUrl(tokenAddress),
     });
   } catch (err) {
