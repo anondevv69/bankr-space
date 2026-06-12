@@ -25,6 +25,9 @@ export async function GET() {
             baseEnabled: config.base?.enabled,
             priceEth: config.base?.priceEth,
             goalUnits: config.base?.goalUnits,
+            publicSaleUnitsWithTmkClaim: config.base?.publicSaleUnitsWithTmkClaim,
+            tmkClaimService: config.base?.tmkClaimService,
+            tmkClaimReserveUnits: config.base?.tmkClaimReserveUnits,
           }
         : null,
     });
@@ -47,10 +50,12 @@ export async function POST(req: Request) {
     .replace(/^\$/, '')
     .toUpperCase();
   const description = String(body.description || '').trim();
+  const supporterSlots = body.supporterSlots ? Number(body.supporterSlots) : null;
   const maxUnitsPerWallet = Math.min(
     1000,
     Math.max(1, Number(body.maxUnitsPerWallet) || 10)
   );
+  const tmkClaimOptIn = body.tmkClaimOptIn === true;
   const imageUrl = body.imageUrl ? String(body.imageUrl).trim() : undefined;
 
   if (tokenName.length < 2) {
@@ -74,17 +79,30 @@ export async function POST(req: Request) {
         { status: 503 }
       );
     }
+    if (tmkClaimOptIn && !config.base.tmkClaimService) {
+      return NextResponse.json(
+        { error: 'TMK claim service is not available right now' },
+        { status: 503 }
+      );
+    }
 
-    const tmpPetition = await tmpCreatePetition({
+    const createBody: Parameters<typeof tmpCreatePetition>[0] = {
       chain: 'base',
       tokenName,
       tokenSymbol,
-      maxUnitsPerWallet,
       starterWallet: wallet,
       description,
       imageUrl,
       websiteUrl: `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://bankr.space'}/community/petition`,
-    });
+      tmkClaimOptIn: tmkClaimOptIn || undefined,
+    };
+    if (supporterSlots && supporterSlots >= 1) {
+      createBody.supporterSlots = Math.min(1000, Math.floor(supporterSlots));
+    } else {
+      createBody.maxUnitsPerWallet = maxUnitsPerWallet;
+    }
+
+    const tmpPetition = await tmpCreatePetition(createBody);
 
     const space = createPetitionSpaceRecord({
       tmpPetitionId: tmpPetition.id,
@@ -92,18 +110,24 @@ export async function POST(req: Request) {
       tokenName,
       tokenSymbol,
       description,
-      maxUnitsPerWallet,
+      maxUnitsPerWallet: tmpPetition.maxUnitsPerWallet || maxUnitsPerWallet,
+      supporterSlots: tmpPetition.supporterSlots ?? supporterSlots,
+      tmkClaimOptIn: tmpPetition.tmkClaimOptIn ?? tmkClaimOptIn,
       imageUrl: imageUrl || tmpPetition.imageUrl || null,
     });
     space.websiteUrl = petitionUrl(tmpPetition.id);
     await savePetitionSpace(space);
+
+    const publicCap = tmkClaimOptIn
+      ? config.base.publicSaleUnitsWithTmkClaim || 999
+      : config.base.goalUnits;
 
     return NextResponse.json({
       success: true,
       petition: space,
       tmp: tmpPetition,
       petitionUrl: space.websiteUrl,
-      message: `Petition space created for $${tokenSymbol}. Back with ETH to reach ${config.base.goalUnits} units.`,
+      message: `Petition space created for $${tokenSymbol}. Back with ETH to reach ${publicCap} units.`,
     });
   } catch (err) {
     console.error('POST /api/petitions', err);

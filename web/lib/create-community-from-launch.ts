@@ -20,6 +20,8 @@ export async function createCommunityFromLaunch(options: {
   description?: string;
   /** Completed TMP petition — mark space verified for the founder */
   fromPetition?: boolean;
+  tmpPetitionId?: string | null;
+  tmkClaimOptIn?: boolean;
 }): Promise<{ community: Community; created: boolean; links: { communityPage: string } }> {
   const tokenAddress = normalizeAddr(options.tokenAddress);
   const wallet = options.founderWallet.toLowerCase();
@@ -43,12 +45,15 @@ export async function createCommunityFromLaunch(options: {
   );
   if (existing) {
     let merged = mergeCommunityDefaults(existing);
-    if (options.fromPetition && !merged.verified) {
+    if (options.fromPetition) {
       merged = {
         ...merged,
         verified: true,
-        verifiedAt: Date.now(),
-        verifiedBy: wallet,
+        verifiedAt: merged.verifiedAt ?? Date.now(),
+        verifiedBy: merged.verifiedBy ?? wallet,
+        fromPetition: true,
+        tmpPetitionId: options.tmpPetitionId ?? merged.tmpPetitionId ?? null,
+        tmkClaimOptIn: options.tmkClaimOptIn ?? merged.tmkClaimOptIn,
       };
       const communities = await getCommunities();
       const idx = communities.findIndex(
@@ -84,6 +89,9 @@ export async function createCommunityFromLaunch(options: {
     verified: verifiedFromPetition || isBeneficiary,
     verifiedAt: verifiedFromPetition || isBeneficiary ? Date.now() : null,
     verifiedBy: verifiedFromPetition || isBeneficiary ? wallet : null,
+    fromPetition: verifiedFromPetition,
+    tmpPetitionId: options.tmpPetitionId ?? null,
+    tmkClaimOptIn: options.tmkClaimOptIn ?? false,
     description: description || `${launch.tokenName} holder space`,
     imageUri: launch.imageUri ?? null,
     socialLinks: {},

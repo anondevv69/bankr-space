@@ -5,7 +5,13 @@ import {
   isPetitionFounder,
 } from '@/lib/petition-spaces';
 import { syncPetitionFromTmp, upgradePetitionToCommunity } from '@/lib/petition-finalize';
-import { tmpGetPetitionStatus, tmpPrepareDeposit } from '@/lib/tmp-petition';
+import {
+  petitionSlotSummary,
+  tmpFetchPetitionConfig,
+  tmpGetPetitionStatus,
+  tmpPrepareDeposit,
+  tmpRefundPetition,
+} from '@/lib/tmp-petition';
 import { getWalletFromRequest } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -21,9 +27,13 @@ export async function GET(_req: Request, { params }: RouteParams) {
     }
 
     const { space: synced, tmpStatus } = await syncPetitionFromTmp(space);
-    const status = await tmpGetPetitionStatus(id);
+    const [status, config] = await Promise.all([
+      tmpGetPetitionStatus(id),
+      tmpFetchPetitionConfig().catch(() => null),
+    ]);
     const petition = status.petition;
     const orderWallets = (petition.orders || []).map((o) => o.wallet);
+    const slots = petitionSlotSummary(petition, config);
 
     const existingCommunity = synced.tokenAddress
       ? await getCommunity(synced.tokenAddress)
@@ -51,6 +61,14 @@ export async function GET(_req: Request, { params }: RouteParams) {
           : null,
       backers: petition.orders || [],
       orderWallets,
+      slots,
+      config: config
+        ? {
+            priceEth: config.base?.priceEth,
+            tmkClaimService: config.base?.tmkClaimService,
+            publicSaleUnitsWithTmkClaim: config.base?.publicSaleUnitsWithTmkClaim,
+          }
+        : null,
     });
   } catch (err) {
     console.error('GET /api/petitions/[id]', err);
@@ -175,6 +193,26 @@ export async function POST(req: Request, { params }: RouteParams) {
     } catch (err) {
       return NextResponse.json(
         { error: err instanceof Error ? err.message : 'Confirm failed' },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (action === 'refund') {
+    try {
+      const refund = await tmpRefundPetition({
+        id,
+        wallet,
+        scope: body.scope === 'all' ? 'all' : 'units',
+      });
+      const space = await getPetitionSpace(id);
+      if (space) {
+        await syncPetitionFromTmp(space);
+      }
+      return NextResponse.json({ success: true, refund });
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : 'Refund failed' },
         { status: 400 }
       );
     }

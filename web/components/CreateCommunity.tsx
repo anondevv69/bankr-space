@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { useConnectWallet } from '@/components/WalletButton';
@@ -11,6 +11,14 @@ import Link from 'next/link';
 import { TokenAvatar } from '@/components/TokenAvatar';
 
 type CreateMode = 'token' | 'petition';
+type BackingMode = 'slots' | 'maxUnits';
+
+type PetitionConfig = {
+  goalUnits?: number;
+  publicSaleUnitsWithTmkClaim?: number;
+  tmkClaimService?: boolean;
+  tmkClaimReserveUnits?: number;
+};
 
 export function CreateCommunity({
   communities,
@@ -34,7 +42,38 @@ export function CreateCommunity({
   const [petitionName, setPetitionName] = useState('');
   const [petitionSymbol, setPetitionSymbol] = useState('');
   const [petitionDesc, setPetitionDesc] = useState('');
+  const [backingMode, setBackingMode] = useState<BackingMode>('slots');
+  const [supporterSlots, setSupporterSlots] = useState('50');
   const [maxUnits, setMaxUnits] = useState('10');
+  const [tmkClaimOptIn, setTmkClaimOptIn] = useState(false);
+  const [petitionConfig, setPetitionConfig] = useState<PetitionConfig | null>(null);
+
+  useEffect(() => {
+    if (!open || mode !== 'petition') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch('/api/petitions');
+        if (!cancelled) setPetitionConfig(data.config || null);
+      } catch {
+        if (!cancelled) setPetitionConfig(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, mode]);
+
+  const goalUnits = petitionConfig?.goalUnits || 1000;
+  const publicCap =
+    tmkClaimOptIn && petitionConfig?.publicSaleUnitsWithTmkClaim
+      ? petitionConfig.publicSaleUnitsWithTmkClaim
+      : goalUnits;
+  const slotsN = Math.max(1, Math.floor(Number(supporterSlots) || 1));
+  const unitsPerSlot = Math.floor(publicCap / slotsN);
+  const maxUnitsN = Math.max(1, Math.min(1000, Number(maxUnits) || 10));
+  const maxBackersFromUnits = Math.floor(publicCap / maxUnitsN);
+  const showTmkOption = !!petitionConfig?.tmkClaimService;
 
   function closeSearch() {
     setOpen(false);
@@ -100,15 +139,22 @@ export function CreateCommunity({
     }
     setCreating(true);
     try {
+      const body: Record<string, unknown> = {
+        tokenName: petitionName.trim(),
+        tokenSymbol: petitionSymbol.trim().replace(/^\$/, ''),
+        description: petitionDesc.trim(),
+        tmkClaimOptIn: tmkClaimOptIn || undefined,
+      };
+      if (backingMode === 'slots') {
+        body.supporterSlots = slotsN;
+      } else {
+        body.maxUnitsPerWallet = maxUnitsN;
+      }
+
       const data = await apiFetch('/api/petitions', {
         method: 'POST',
         wallet: address,
-        body: JSON.stringify({
-          tokenName: petitionName.trim(),
-          tokenSymbol: petitionSymbol.trim().replace(/^\$/, ''),
-          description: petitionDesc.trim(),
-          maxUnitsPerWallet: Number(maxUnits) || 10,
-        }),
+        body: JSON.stringify(body),
       });
       closeSearch();
       onCreated();
@@ -207,17 +253,85 @@ export function CreateCommunity({
                   value={petitionDesc}
                   onChange={(e) => setPetitionDesc(e.target.value)}
                 />
-                <label className="block text-xs text-muted">
-                  Max units per wallet
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    className="mt-1 w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                    value={maxUnits}
-                    onChange={(e) => setMaxUnits(e.target.value)}
-                  />
-                </label>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted">Backing layout</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBackingMode('slots')}
+                      className={`flex-1 px-3 py-2 text-xs rounded-lg border ${
+                        backingMode === 'slots'
+                          ? 'bg-accent/15 border-accent text-accent'
+                          : 'border-border bg-surface-2'
+                      }`}
+                    >
+                      Equal slots
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBackingMode('maxUnits')}
+                      className={`flex-1 px-3 py-2 text-xs rounded-lg border ${
+                        backingMode === 'maxUnits'
+                          ? 'bg-accent/15 border-accent text-accent'
+                          : 'border-border bg-surface-2'
+                      }`}
+                    >
+                      Max per wallet
+                    </button>
+                  </div>
+                  {backingMode === 'slots' ? (
+                    <label className="block text-xs text-muted">
+                      Number of backers (slots)
+                      <input
+                        type="number"
+                        min={1}
+                        max={publicCap}
+                        className="mt-1 w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                        value={supporterSlots}
+                        onChange={(e) => setSupporterSlots(e.target.value)}
+                      />
+                      <span className="block mt-1 text-[10px]">
+                        {publicCap % slotsN === 0
+                          ? `${slotsN} backers × ${unitsPerSlot} units each (${publicCap} total)`
+                          : `${slotsN} slots — must divide ${publicCap} evenly (e.g. ${Math.floor(publicCap / 37)} × 37)`}
+                      </span>
+                    </label>
+                  ) : (
+                    <label className="block text-xs text-muted">
+                      Max units per wallet (1–1000)
+                      <input
+                        type="number"
+                        min={1}
+                        max={1000}
+                        className="mt-1 w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                        value={maxUnits}
+                        onChange={(e) => setMaxUnits(e.target.value)}
+                      />
+                      <span className="block mt-1 text-[10px]">
+                        Up to {maxBackersFromUnits} wallet{maxBackersFromUnits === 1 ? '' : 's'} at max · use 1 for widest distribution
+                      </span>
+                    </label>
+                  )}
+                </div>
+
+                {showTmkOption ? (
+                  <label className="flex items-start gap-2 text-xs text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tmkClaimOptIn}
+                      onChange={(e) => setTmkClaimOptIn(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      Enable @TokenMkp fee claims via X — reserves{' '}
+                      {petitionConfig?.tmkClaimReserveUnits ?? 1} unit for the marketplace (
+                      {petitionConfig?.publicSaleUnitsWithTmkClaim ?? 999} public units). Holders
+                      tweet to claim fees; TMK earns ~0.1% from that unit.
+                    </span>
+                  </label>
+                ) : null}
+
                 <button
                   type="button"
                   disabled={creating}

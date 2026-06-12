@@ -601,7 +601,14 @@ export function CommunityProfile({
             <div className="flex items-start gap-4 min-w-0">
               <TokenAvatar symbol={community.symbol} imageUrl={community.imageUrl} size={72} />
               <div className="min-w-0">
-                <div className="text-3xl font-bold tracking-tight">{community.symbol}</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="text-3xl font-bold tracking-tight">{community.symbol}</div>
+                  {community.fromPetition ? (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent/15 text-accent uppercase tracking-wide">
+                      Petition
+                    </span>
+                  ) : null}
+                </div>
                 <div className="text-lg font-medium text-muted mt-0.5">{community.name}</div>
                 <button
                   type="button"

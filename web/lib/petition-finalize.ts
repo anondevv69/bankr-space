@@ -103,6 +103,8 @@ export async function upgradePetitionToCommunity(options: {
     founderWallet: synced.founderWallet,
     description: synced.description,
     fromPetition: true,
+    tmpPetitionId: synced.tmpPetitionId,
+    tmkClaimOptIn: synced.tmkClaimOptIn,
   });
 
   const postsMigrated = await migratePetitionPostsToCommunity(
@@ -151,6 +153,8 @@ export async function finalizeAllPendingPetitions(): Promise<{
             founderWallet: synced.founderWallet,
             description: synced.description,
             fromPetition: true,
+            tmpPetitionId: synced.tmpPetitionId,
+            tmkClaimOptIn: synced.tmkClaimOptIn,
           });
         }
         await savePetitionSpace({ ...synced, phase: 'live', updatedAt: Date.now() });
@@ -163,6 +167,8 @@ export async function finalizeAllPendingPetitions(): Promise<{
         founderWallet: synced.founderWallet,
         description: synced.description,
         fromPetition: true,
+        tmpPetitionId: synced.tmpPetitionId,
+        tmkClaimOptIn: synced.tmkClaimOptIn,
       });
       await migratePetitionPostsToCommunity(synced.tmpPetitionId, synced.tokenAddress);
       await savePetitionSpace({ ...synced, phase: 'live', updatedAt: Date.now() });

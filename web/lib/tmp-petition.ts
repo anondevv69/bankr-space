@@ -1,11 +1,16 @@
-/** Token Marketplace petition API — https://www.tokenmarketplace.shop/agent.md */
+/** Token Marketplace petition + holders API */
 
 const DEFAULT_TMP_PETITION_API =
   'https://www.tokenmarketplace.shop/api/petition';
+const DEFAULT_TMP_SITE = 'https://www.tokenmarketplace.shop';
 
 export function tmpPetitionApiBase(): string {
   const raw = process.env.TMP_PETITION_API_BASE || DEFAULT_TMP_PETITION_API;
   return raw.replace(/\/$/, '');
+}
+
+export function tmpSiteBase(): string {
+  return (process.env.TMP_SITE_URL || DEFAULT_TMP_SITE).replace(/\/$/, '');
 }
 
 export type TmpPetitionConfig = {
@@ -19,6 +24,9 @@ export type TmpPetitionConfig = {
     escrowWallet: string;
     maxLaunchBuyEth: string;
     publicSaleUnitsWithTmkClaim?: number;
+    tmkClaimService?: boolean;
+    tmkClaimReserveUnits?: number;
+    tmkClaimWallet?: string;
   };
 };
 
@@ -39,6 +47,10 @@ export type TmpPetitionRecord = {
   soldUnits: number;
   goalUnits: number;
   maxUnitsPerWallet: number;
+  supporterSlots?: number;
+  supportersJoined?: number;
+  supportersRemaining?: number;
+  unitsPerSupporter?: number;
   starterWallet: string;
   escrowWallet: string;
   expiresAt?: string;
@@ -46,6 +58,8 @@ export type TmpPetitionRecord = {
   description?: string;
   imageUrl?: string;
   websiteUrl?: string;
+  tmkClaimOptIn?: boolean;
+  tmkClaimWallet?: string;
   orders?: TmpPetitionOrder[];
   finalResult?: {
     tokenAddress?: string;
@@ -75,8 +89,13 @@ export type TmpPrepareDeposit = {
   };
 };
 
-async function tmpFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${tmpPetitionApiBase()}${path.startsWith('/') ? path : `/${path}`}`;
+export type TmpCapTableHolder = {
+  wallet: string;
+  units: string;
+  sharePct: number;
+};
+
+async function tmpFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -91,7 +110,7 @@ async function tmpFetch<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
   } catch {
-    throw new Error(text.slice(0, 200) || `TMP petition API error (${res.status})`);
+    throw new Error(text.slice(0, 200) || `TMP API error (${res.status})`);
   }
   if (!res.ok) {
     const err = data.error || data.message || text.slice(0, 200);
@@ -101,7 +120,9 @@ async function tmpFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function tmpFetchPetitionConfig(): Promise<TmpPetitionConfig> {
-  const data = await tmpFetch<{ ok?: boolean; config: TmpPetitionConfig }>('/config');
+  const data = await tmpFetch<{ ok?: boolean; config: TmpPetitionConfig }>(
+    `${tmpPetitionApiBase()}/config`
+  );
   return data.config;
 }
 
@@ -110,16 +131,18 @@ export async function tmpCreatePetition(body: {
   tokenName: string;
   tokenSymbol: string;
   maxUnitsPerWallet?: number;
+  supporterSlots?: number;
   starterWallet: string;
   description?: string;
   imageUrl?: string;
   websiteUrl?: string;
   tweetUrl?: string;
+  tmkClaimOptIn?: boolean;
 }): Promise<TmpPetitionRecord> {
-  const data = await tmpFetch<{ ok?: boolean; petition: TmpPetitionRecord }>('/create', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const data = await tmpFetch<{ ok?: boolean; petition: TmpPetitionRecord }>(
+    `${tmpPetitionApiBase()}/create`,
+    { method: 'POST', body: JSON.stringify(body) }
+  );
   if (!data.petition?.id) {
     throw new Error('TMP create did not return a petition id');
   }
@@ -129,9 +152,13 @@ export async function tmpCreatePetition(body: {
 export async function tmpGetPetitionStatus(id: string): Promise<{
   petition: TmpPetitionRecord;
   petitionUrl?: string;
-  agentParticipation?: { remainingUnits?: number; maxUnitsPerWallet?: number };
+  agentParticipation?: {
+    remainingUnits?: number;
+    maxUnitsPerWallet?: number;
+    supportersRemaining?: number;
+  };
 }> {
-  return tmpFetch(`/status?id=${encodeURIComponent(id)}`);
+  return tmpFetch(`${tmpPetitionApiBase()}/status?id=${encodeURIComponent(id)}`);
 }
 
 export async function tmpPrepareDeposit(options: {
@@ -146,7 +173,7 @@ export async function tmpPrepareDeposit(options: {
     units: String(options.units),
     launchBuyWei: options.launchBuyWei || '0',
   });
-  return tmpFetch(`/prepare-deposit?${qs.toString()}`);
+  return tmpFetch(`${tmpPetitionApiBase()}/prepare-deposit?${qs.toString()}`);
 }
 
 export async function tmpConfirmDeposit(body: {
@@ -156,7 +183,7 @@ export async function tmpConfirmDeposit(body: {
   signature: string;
   launchBuyWei?: string;
 }): Promise<Record<string, unknown>> {
-  return tmpFetch('/confirm', {
+  return tmpFetch(`${tmpPetitionApiBase()}/confirm`, {
     method: 'POST',
     body: JSON.stringify({
       ...body,
@@ -165,6 +192,75 @@ export async function tmpConfirmDeposit(body: {
   });
 }
 
+export async function tmpRefundPetition(body: {
+  id: string;
+  wallet: string;
+  scope?: 'units' | 'all';
+}): Promise<Record<string, unknown>> {
+  return tmpFetch(`${tmpPetitionApiBase()}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({
+      id: body.id,
+      wallet: body.wallet,
+      scope: body.scope || 'units',
+    }),
+  });
+}
+
+export async function tmpFetchHoldersByToken(tokenAddress: string): Promise<{
+  ok?: boolean;
+  tokenAddress: string;
+  symbol?: string;
+  capTable?: {
+    holderCount: number;
+    totalUnits: string;
+    holders: TmpCapTableHolder[];
+  };
+} | null> {
+  try {
+    return await tmpFetch(
+      `${tmpSiteBase()}/api/holders/by-token?token=${encodeURIComponent(tokenAddress)}`
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function tmpPetitionPublicUrl(id: string): string {
-  return `https://www.tokenmarketplace.shop/petition?id=${encodeURIComponent(id)}`;
+  return `${tmpSiteBase()}/petition?id=${encodeURIComponent(id)}`;
+}
+
+export function petitionSlotSummary(petition: TmpPetitionRecord, config?: TmpPetitionConfig | null): {
+  goalUnits: number;
+  publicCap: number;
+  unitsPerBacker: number;
+  maxBackers: number;
+  backersJoined: number;
+  backersRemaining: number;
+  usesSlots: boolean;
+} {
+  const goalUnits = petition.goalUnits || config?.base?.goalUnits || 1000;
+  const publicCap =
+    petition.tmkClaimOptIn && config?.base?.publicSaleUnitsWithTmkClaim
+      ? config.base.publicSaleUnitsWithTmkClaim
+      : goalUnits;
+  const usesSlots = !!(petition.supporterSlots && petition.supporterSlots > 0);
+  const unitsPerBacker = usesSlots
+    ? petition.unitsPerSupporter ||
+      Math.floor(publicCap / (petition.supporterSlots || 1))
+    : petition.maxUnitsPerWallet || 10;
+  const maxBackers = usesSlots
+    ? petition.supporterSlots || Math.floor(publicCap / unitsPerBacker)
+    : Math.floor(publicCap / unitsPerBacker);
+  return {
+    goalUnits,
+    publicCap,
+    unitsPerBacker,
+    maxBackers,
+    backersJoined: petition.supportersJoined ?? (petition.orders?.length || 0),
+    backersRemaining:
+      petition.supportersRemaining ??
+      Math.max(0, maxBackers - (petition.supportersJoined ?? petition.orders?.length ?? 0)),
+    usesSlots,
+  };
 }

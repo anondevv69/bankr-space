@@ -1,6 +1,7 @@
 import { getCommunity, getLaunches } from './db';
 import { fetchLaunchByAddress, getLaunchOwnerWallets } from './bankr-api';
 import { holdsToken } from './holder';
+import { getPetitionSpaceByToken } from './petition-spaces';
 import {
   isTrustedDelegateWallet,
   normalizeTrustedDelegates,
@@ -95,12 +96,17 @@ export async function resolveSpacePermissions(
   const w = wallet.toLowerCase();
   const token = normalizeAddr(tokenAddress);
   const community = await getCommunity(token);
+  const petitionSpace = community ? await getPetitionSpaceByToken(token) : null;
   const verified = !!community?.verified;
   const allowDeployerEdit = !!community?.allowDeployerEdit;
   const usePlatformAgent = !!community?.usePlatformAgent;
   const platformAgentSkills = !!community?.platformAgentSkills;
   const trustedDelegates = normalizeTrustedDelegates(community?.trustedDelegates);
-  const isFounder = community?.founderWallet?.toLowerCase() === w;
+  const fromPetition = !!(community?.fromPetition || petitionSpace);
+  const founderWallet =
+    community?.founderWallet || petitionSpace?.founderWallet || '';
+  const isFounder = founderWallet.toLowerCase() === w;
+  const isPetitionFounder = fromPetition && isFounder;
   const resolvedChain = community?.chain || chain;
 
   const [isBeneficiary, isDeployer, holdResult] = await Promise.all([
@@ -118,17 +124,21 @@ export async function resolveSpacePermissions(
   const deployerHasSocialAccess =
     isDeployer && (!verified || allowDeployerEdit);
   const hasSocialAccess =
-    isBeneficiary || deployerHasSocialAccess || isTrustedDelegate || isPlatformAgent;
+    isBeneficiary ||
+    deployerHasSocialAccess ||
+    isTrustedDelegate ||
+    isPlatformAgent ||
+    isPetitionFounder;
 
   const canEditProfile = hasSocialAccess;
   const canEditFundraising = isBeneficiary;
   const canManagePlatformAgent =
-    (verified && isBeneficiary) || isDeployer;
+    (verified && isBeneficiary) || isDeployer || isPetitionFounder;
   const canEnablePlatformAgentSkills = verified && isBeneficiary;
   const canProposeCommunityAgentGoal =
     verified && usePlatformAgent && holdResult.holds;
-  const canPinPosts = verified && hasSocialAccess;
-  const canPost = holdResult.holds || hasSocialAccess;
+  const canPinPosts = (verified && hasSocialAccess) || isPetitionFounder;
+  const canPost = holdResult.holds || hasSocialAccess || isPetitionFounder;
   const canReact = canPost;
 
   return {

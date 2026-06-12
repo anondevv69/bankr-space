@@ -210,6 +210,10 @@ export interface Community {
   memberCount: number;
   createdAt: number;
   launchTimestamp?: number;
+  /** Space created from a completed TMP petition */
+  fromPetition?: boolean;
+  tmpPetitionId?: string | null;
+  tmkClaimOptIn?: boolean;
 }
 
 export interface PostSource {
@@ -291,6 +295,8 @@ export interface PetitionSpace {
   tokenSymbol: string;
   description: string;
   maxUnitsPerWallet: number;
+  supporterSlots?: number | null;
+  tmkClaimOptIn?: boolean;
   imageUrl?: string | null;
   tokenAddress: string | null;
   websiteUrl: string;

@@ -19,7 +19,7 @@ import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
 import { normalizeTrustedDelegates } from '@/lib/space-delegates';
 import { getBeneficiaryInfo } from '@/lib/beneficiary';
 import { mergeCommunityDefaults, sortPostsWithPinned } from '@/lib/community-posts';
-import { emptyPoidhBountyState } from '@/lib/poidh-community-bounties';
+import { getPetitionSpaceByToken } from '@/lib/petition-spaces';
 import {
   syncCommunityProfile,
   withResolvedProfile,
@@ -70,6 +70,20 @@ export async function GET(_req: Request, { params }: RouteParams) {
     }
 
     let normalized = mergeCommunityDefaults(community);
+    const petitionSpace = await getPetitionSpaceByToken(tokenAddress);
+    if (petitionSpace && !normalized.fromPetition) {
+      normalized = {
+        ...normalized,
+        fromPetition: true,
+        tmpPetitionId: petitionSpace.tmpPetitionId,
+        tmkClaimOptIn: petitionSpace.tmkClaimOptIn ?? normalized.tmkClaimOptIn,
+        verified: true,
+        verifiedAt: normalized.verifiedAt ?? Date.now(),
+        verifiedBy: normalized.verifiedBy ?? petitionSpace.founderWallet,
+        founderWallet: normalized.founderWallet || petitionSpace.founderWallet,
+      };
+      await saveCommunity(normalized);
+    }
     const migrated = migrateLegacyPoidhAgentPool(normalized);
     normalized = migrated.community;
     if (migrated.changed) {
