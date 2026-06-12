@@ -72,7 +72,7 @@ export const poidhV3Abi = [
   {
     inputs: [{ name: 'bountyId', type: 'uint256' }],
     name: 'joinOpenBounty',
-    outputs: [{ type: 'uint256' }],
+    outputs: [],
     stateMutability: 'payable',
     type: 'function',
   },

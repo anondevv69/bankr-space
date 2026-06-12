@@ -1,10 +1,9 @@
 ---
 name: bankr-communities
-version: 1.15.0
+version: 1.18.0
 description: >-
-  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise/POIDH bounties via API.
-  add ETH to bounty → read POIDH-BOUNTY-ACTIONS.md + POST …/poidh/seed (never "no funding tool").
-  X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + POIDH-BOUNTY-ACTIONS.md + FUNDRAISING.md.
+  Bankr Space on bankr.space. POIDH seed: POST …/poidh/seed — NOT a wallet transfer, never ask recipient 0x.
+  add ETH / seed bounty → POIDH-BOUNTY-ACTIONS.md. NOT Twitter audio Spaces.
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space

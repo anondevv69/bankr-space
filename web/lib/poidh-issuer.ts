@@ -151,6 +151,17 @@ async function issuerWriteContract(options: {
             nonce,
           });
         }
+        if (options.functionName === 'joinOpenBounty') {
+          return await wallet.writeContract({
+            chain: base,
+            address: POIDH_V3_BASE,
+            abi: poidhV3Abi,
+            functionName: 'joinOpenBounty',
+            args: options.args as [bigint],
+            value: options.value!,
+            nonce,
+          });
+        }
         return await wallet.writeContract({
           chain: base,
           address: POIDH_V3_BASE,
