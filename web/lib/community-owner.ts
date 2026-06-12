@@ -63,6 +63,9 @@ export type SpacePermissions = {
   isTrustedDelegate: boolean;
   isPlatformAgent: boolean;
   isFounder: boolean;
+  isPetitionFounder: boolean;
+  /** On-chain fee recipient, or petition creator on petition-launched spaces */
+  effectiveBeneficiary: boolean;
   verified: boolean;
   usePlatformAgent: boolean;
   platformAgentSkills: boolean;
@@ -115,6 +118,8 @@ export async function resolveSpacePermissions(
     holdsToken(w, token, resolvedChain),
   ]);
 
+  const effectiveBeneficiary = isBeneficiary || isPetitionFounder;
+
   const isTrustedDelegate =
     verified && isTrustedDelegateWallet(w, trustedDelegates);
 
@@ -124,21 +129,19 @@ export async function resolveSpacePermissions(
   const deployerHasSocialAccess =
     isDeployer && (!verified || allowDeployerEdit);
   const hasSocialAccess =
-    isBeneficiary ||
+    effectiveBeneficiary ||
     deployerHasSocialAccess ||
     isTrustedDelegate ||
-    isPlatformAgent ||
-    isPetitionFounder;
+    isPlatformAgent;
 
   const canEditProfile = hasSocialAccess;
-  const canEditFundraising = isBeneficiary;
-  const canManagePlatformAgent =
-    (verified && isBeneficiary) || isDeployer || isPetitionFounder;
-  const canEnablePlatformAgentSkills = verified && isBeneficiary;
+  const canEditFundraising = effectiveBeneficiary;
+  const canManagePlatformAgent = (verified && effectiveBeneficiary) || isDeployer;
+  const canEnablePlatformAgentSkills = verified && effectiveBeneficiary;
   const canProposeCommunityAgentGoal =
     verified && usePlatformAgent && holdResult.holds;
-  const canPinPosts = (verified && hasSocialAccess) || isPetitionFounder;
-  const canPost = holdResult.holds || hasSocialAccess || isPetitionFounder;
+  const canPinPosts = verified && hasSocialAccess;
+  const canPost = holdResult.holds || hasSocialAccess;
   const canReact = canPost;
 
   return {
@@ -147,6 +150,8 @@ export async function resolveSpacePermissions(
     isTrustedDelegate,
     isPlatformAgent,
     isFounder,
+    isPetitionFounder,
+    effectiveBeneficiary,
     verified,
     usePlatformAgent,
     platformAgentSkills,
@@ -190,4 +195,13 @@ export async function canPinCommunityPosts(
 ): Promise<boolean> {
   const permissions = await resolveSpacePermissions(wallet, tokenAddress);
   return permissions.canPinPosts;
+}
+
+/** Petition creator on petition-launched spaces, or on-chain fee recipient */
+export async function canActAsFeeRecipient(
+  wallet: string,
+  tokenAddress: string
+): Promise<boolean> {
+  const permissions = await resolveSpacePermissions(wallet, tokenAddress);
+  return permissions.effectiveBeneficiary;
 }

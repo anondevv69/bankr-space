@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommunities, setCommunities } from '@/lib/db';
 import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
-import { getTokenBeneficiaryWallet, isTokenBeneficiary } from '@/lib/community-owner';
+import { canActAsFeeRecipient, getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import {
   normalizeTrustedDelegates,
@@ -24,7 +24,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const tokenAddress = normalizeAddr(address);
 
   try {
-    if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+    if (!(await canActAsFeeRecipient(wallet, tokenAddress))) {
       return NextResponse.json(
         { error: 'Only the fee recipient can resolve agent tags' },
         { status: 403 }
