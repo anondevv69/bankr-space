@@ -65,6 +65,10 @@ export function normalizePoidhBountyId(raw: number): number {
   return Math.round(raw);
 }
 
+export function poidhDisplayBountyId(onChainId: number): number {
+  return onChainId + POIDH_FRONTEND_OFFSET_BASE;
+}
+
 function matchesSpace(text: string, symbol: string, tokenAddress: string): boolean {
   const hay = text.toLowerCase();
   const sym = symbol.toLowerCase().replace(/^\$/, '');

@@ -42,9 +42,12 @@ GET https://bankr.space/api/communities/{tokenAddress}/poidh
 
 | Field | Meaning |
 |-------|---------|
-| `bounties[]` | Each row: `id`, `title`, `status` (`live`/`pending`), `poidhBountyId`, `amountWei`, `onChainActive` |
+| `bounties[]` | Each row: `id`, `title`, `status`, **`poidhBountyId`** (on-chain, use for seed), **`poidhDisplayId`** (poidh.xyz URL id, e.g. 1229 = on-chain 243), `amountWei`, `onChainActive`, **`seedable`** |
 | `bountiesTabUrl` | Link for user |
-| `spinUp.message` | If pending open on-chain |
+
+**ID rule for POST seed:** use **`poidhBountyId`** (243) **or** `poidhDisplayId` (1229) **or** `title` — server normalizes. Formula: `poidhDisplayId = poidhBountyId + 986` on Base.
+
+**Do not** treat `onChainActive: null` as seedable — means RPC read failed, retry GET.
 
 **Reply:** summarize live bounties (title, pool ETH if `amountWei`, on-chain id) + paste `bountiesTabUrl` or `communityLink` on its own line.
 
@@ -167,7 +170,9 @@ Only **claim submitter's** linked wallet. Issuer accepts or starts vote.
 
 ## Submit claim / vote (browser only)
 
-`createClaim`, `voteClaim` require user **EOA on bankr.space** — no agent API. Guide to Bounties tab.
+`createClaim`, `voteClaim` require user **EOA on bankr.space** — no agent API.
+
+**Tweet + photo:** user cannot @bankrbot "submit this image as my claim" today — POIDH needs a **proof URL** on-chain signed by user EOA. Workflow: post proof on X → copy **tweet URL** → Submit claim on Bounties tab with that link. Bot may guide but cannot sign `createClaim`.
 
 ---
 
