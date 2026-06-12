@@ -9,7 +9,7 @@ import { CreateCommunity } from '@/components/CreateCommunity';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
 import { apiFetch } from '@/lib/wagmi';
-import type { Community, TokenMarketStats } from '@/lib/types';
+import type { Community, PetitionSpace, TokenMarketStats } from '@/lib/types';
 
 type VerifiedFilter = 'all' | 'verified' | 'unverified';
 
@@ -21,6 +21,7 @@ const VERIFIED_FILTERS: Array<{ id: VerifiedFilter; label: string }> = [
 
 export default function HomePage() {
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [petitions, setPetitions] = useState<PetitionSpace[]>([]);
   const [markets, setMarkets] = useState<Record<string, TokenMarketStats>>({});
   const [syncAt, setSyncAt] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
@@ -36,10 +37,15 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/communities');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load');
+      const [commRes, petRes] = await Promise.all([
+        fetch('/api/communities'),
+        fetch('/api/petitions'),
+      ]);
+      const data = await commRes.json();
+      const petData = petRes.ok ? await petRes.json() : { petitions: [] };
+      if (!commRes.ok) throw new Error(data.error || 'Failed to load');
       setCommunities(data.communities || []);
+      setPetitions(petData.petitions || []);
       setSyncAt(data.syncUpdatedAt || null);
 
       const list: Community[] = data.communities || [];
@@ -133,6 +139,30 @@ export default function HomePage() {
           </div>
           <CreateCommunity communities={communities} onCreated={load} />
         </div>
+
+        {petitions.length ? (
+          <div className="mb-8">
+            <div className="text-sm font-semibold mb-3">Petition spaces (pre-launch)</div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+              {petitions.map((p) => (
+                <a
+                  key={p.tmpPetitionId}
+                  href={`/community/petition/${p.tmpPetitionId}`}
+                  className="block p-4 rounded-xl border border-accent/30 bg-surface hover:border-accent transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-accent-hover">${p.tokenSymbol}</span>
+                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-accent/15 text-accent">
+                      Petition
+                    </span>
+                  </div>
+                  <div className="text-sm font-medium mt-1">{p.tokenName}</div>
+                  <p className="text-xs text-muted mt-2 line-clamp-2">{p.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <input
           className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm mb-4"

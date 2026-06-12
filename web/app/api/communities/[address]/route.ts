@@ -1,21 +1,18 @@
 import { NextResponse } from 'next/server';
 import {
   getCommunity,
-  getCommunities,
-  getAllPosts,
-  getLaunches,
-  setCommunities,
-  setPostsForToken,
-  getPosts,
   deleteCommunity,
   deletePostsForToken,
+  getCommunities,
+  setCommunities,
+  getPosts,
 } from '@/lib/db';
-import { fetchLaunchByAddress, getLaunchOwnerWallets } from '@/lib/bankr-api';
+import { createCommunityFromLaunch } from '@/lib/create-community-from-launch';
+import { fetchLaunchByAddress } from '@/lib/bankr-api';
 import {
   canEditCommunityFundraising,
   getTokenBeneficiaryWallet,
   isTokenBeneficiary,
-  isTokenDeployer,
   resolveSpacePermissions,
 } from '@/lib/community-owner';
 import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
@@ -389,22 +386,6 @@ export async function POST(req: Request, { params }: RouteParams) {
   const description = String(body.description || '').trim();
 
   try {
-    let launch = (await getLaunches()).find(
-      (l) => l.tokenAddress?.toLowerCase() === tokenAddress
-    );
-    if (!launch) {
-      launch = (await fetchLaunchByAddress(tokenAddress)) || undefined;
-    }
-    if (!launch) {
-      return NextResponse.json(
-        {
-          error:
-            'Token not found in Bankr launches. It must be a Bankr-launched token (including legacy tokens like BNKR).',
-        },
-        { status: 400 }
-      );
-    }
-
     const communities = await getCommunities();
     if (communities.some((c) => c.tokenAddress.toLowerCase() === tokenAddress)) {
       return NextResponse.json(
@@ -413,55 +394,24 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    const { feeRecipient, deployer } = getLaunchOwnerWallets(launch);
-    const isBeneficiary = await isTokenBeneficiary(wallet, tokenAddress);
-
-    const community = mergeCommunityDefaults({
-      tokenAddress: launch.tokenAddress,
-      name: launch.tokenName,
-      symbol: launch.tokenSymbol,
-      chain: launch.chain || 'base',
+    const result = await createCommunityFromLaunch({
+      tokenAddress,
       founderWallet: wallet,
-      ownerWallet: feeRecipient || deployer,
-      allowDeployerEdit: false,
-      trustedDelegates: [],
-      usePlatformAgent: false,
-      platformAgentSkills: false,
-      verified: isBeneficiary,
-      verifiedAt: isBeneficiary ? Date.now() : null,
-      verifiedBy: isBeneficiary ? wallet : null,
-      description: description || `${launch.tokenName} holder space`,
-      imageUri: launch.imageUri ?? null,
-      socialLinks: {},
-      pinnedPosts: [],
-      pinnedPostId: null,
-      postCount: 0,
-      memberCount: 0,
-      createdAt: Date.now(),
-      launchTimestamp: launch.timestamp,
-      poidhBounties: emptyPoidhBountyState(),
+      description,
     });
-
-    const synced = await syncCommunityProfile(community, { force: true });
-    communities.unshift(synced);
-    await setCommunities(communities);
-
-    const allPosts = await getAllPosts();
-    if (!allPosts[tokenAddress]) {
-      await setPostsForToken(tokenAddress, []);
-    }
 
     return NextResponse.json({
       success: true,
-      community: withResolvedProfile(synced),
-      autoVerified: isBeneficiary,
-      links: {
-        communityPage: communityUrl(launch.tokenAddress),
-      },
+      community: result.community,
+      autoVerified: result.community.verified,
+      links: result.links,
+      created: result.created,
     });
   } catch (err) {
     console.error('POST community', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Server error';
+    const status = message.includes('already exists') ? 409 : message.includes('not found') ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 

@@ -18,3 +18,7 @@ export function communityUrl(tokenAddress: string): string {
 export function communityUrlTemplate(): string {
   return `${getSiteUrl()}/community/{tokenContractAddress}`;
 }
+
+export function petitionUrl(petitionId: string): string {
+  return `${getSiteUrl()}/community/petition/${encodeURIComponent(petitionId)}`;
+}
