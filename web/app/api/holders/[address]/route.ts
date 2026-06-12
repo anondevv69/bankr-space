@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
-import { getPetitionSpaceByToken } from '@/lib/petition-spaces';
 import { resolveSpacePermissions } from '@/lib/community-owner';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -23,7 +22,6 @@ export async function GET(req: Request, { params }: RouteParams) {
 
   try {
     const community = await getCommunity(tokenAddress);
-    const petitionSpace = await getPetitionSpaceByToken(tokenAddress);
     const chain = community?.chain || 'base';
     const permissions = await resolveSpacePermissions(wallet.toLowerCase(), tokenAddress, chain);
 
@@ -38,8 +36,8 @@ export async function GET(req: Request, { params }: RouteParams) {
       isTrustedDelegate: permissions.isTrustedDelegate,
       isPlatformAgent: permissions.isPlatformAgent,
       isFounder: permissions.isFounder,
-      isPetitionFounder:
-        !!(community?.fromPetition || petitionSpace) && permissions.isFounder,
+      isPetitionFounder: permissions.isPetitionFounder,
+      effectiveBeneficiary: permissions.effectiveBeneficiary,
       usePlatformAgent: permissions.usePlatformAgent,
       platformAgentSkills: permissions.platformAgentSkills,
       canEditProfile: permissions.canEditProfile,

@@ -35,6 +35,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     isTrustedDelegate: boolean;
     isFounder: boolean;
     isPetitionFounder: boolean;
+    effectiveBeneficiary: boolean;
     canEditProfile: boolean;
     canEditFundraising: boolean;
     canManagePlatformAgent: boolean;
@@ -80,6 +81,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isTrustedDelegate: data.isTrustedDelegate,
         isFounder: data.isFounder,
         isPetitionFounder: data.isPetitionFounder,
+        effectiveBeneficiary: data.effectiveBeneficiary,
         canEditProfile: data.canEditProfile,
         canEditFundraising: data.canEditFundraising,
         canManagePlatformAgent: data.canManagePlatformAgent,
@@ -98,6 +100,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isTrustedDelegate: false,
         isFounder: false,
         isPetitionFounder: false,
+        effectiveBeneficiary: false,
         canEditProfile: false,
         canEditFundraising: false,
         canManagePlatformAgent: false,
@@ -151,7 +154,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canPinPosts = isConnected && !!holder?.canPinPosts;
   const canVerify = isConnected && !!holder?.isBeneficiary && !community.verified;
   const canManageTeamAccess =
-    isConnected && !!holder?.isBeneficiary && !!community.verified;
+    isConnected && !!holder?.effectiveBeneficiary && !!community.verified;
   const canManagePlatformAgent = isConnected && !!holder?.canManagePlatformAgent;
   const canEnablePlatformAgentSkills =
     isConnected && !!holder?.canEnablePlatformAgentSkills;
@@ -239,11 +242,11 @@ export default function CommunityPage({ params }: { params: { address: string } 
       ) : holder?.canPost ? (
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-600 dark:text-green-400">
           {holder.isPetitionFounder
-            ? `✓ Petition founder — you can post, react, and edit this space`
-            : holder.holds
-              ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
-              : holder.isBeneficiary
-                ? `✓ You are the fee recipient — you can post and react without holding`
+            ? `✓ Petition founder — full space admin (same as fee recipient)`
+            : holder.effectiveBeneficiary
+              ? `✓ You are the fee recipient — you can post and react without holding`
+              : holder.holds
+                ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
                 : holder.isDeployer
                   ? community.verified
                     ? `✓ Deployer access enabled — you can post and moderate (not fundraisers)`

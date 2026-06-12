@@ -11,8 +11,8 @@ import { createCommunityFromLaunch } from '@/lib/create-community-from-launch';
 import { fetchLaunchByAddress } from '@/lib/bankr-api';
 import {
   canEditCommunityFundraising,
+  canActAsFeeRecipient,
   getTokenBeneficiaryWallet,
-  isTokenBeneficiary,
   resolveSpacePermissions,
 } from '@/lib/community-owner';
 import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
@@ -236,7 +236,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     let nextAllowDeployerEdit = current.allowDeployerEdit ?? false;
     if (body.allowDeployerEdit !== undefined) {
-      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+      if (!(await canActAsFeeRecipient(wallet, tokenAddress))) {
         return NextResponse.json(
           { error: 'Only the fee recipient can change deployer access' },
           { status: 403 }
@@ -247,7 +247,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     let nextTrustedDelegates = normalizeTrustedDelegates(current.trustedDelegates);
     if (body.trustedDelegates !== undefined) {
-      if (!(await isTokenBeneficiary(wallet, tokenAddress))) {
+      if (!(await canActAsFeeRecipient(wallet, tokenAddress))) {
         return NextResponse.json(
           { error: 'Only the fee recipient can change trusted delegate wallets' },
           { status: 403 }
@@ -328,7 +328,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         body.allowDeployerEdit !== undefined ||
         body.usePlatformAgent !== undefined ||
         body.refreshAgentTags === true) &&
-      (await isTokenBeneficiary(wallet, tokenAddress))
+      (await canActAsFeeRecipient(wallet, tokenAddress))
     ) {
       const beneficiaryWallet =
         (await getTokenBeneficiaryWallet(tokenAddress)) || wallet;
