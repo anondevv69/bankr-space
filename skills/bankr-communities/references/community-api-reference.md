@@ -71,6 +71,20 @@ POST  /api/communities/{tokenAddress}/fundraising/x402   ← browser x402 proxy 
 
 **Post tips:** community-token transfer on Base from space UI — no agent API.
 
+## POIDH open bounties (ETH on Base)
+
+```
+GET  /api/communities/{tokenAddress}/poidh
+POST /api/communities/{tokenAddress}/poidh/request   body: { title, description }
+POST /api/communities/{tokenAddress}/poidh/seed      body: { ethAmount, title? | bountyId? }
+POST /api/communities/{tokenAddress}/poidh/propose     body: { bountyId, claimId }
+GET  /api/communities/{tokenAddress}/poidh/{bountyId}   ← on-chain detail
+```
+
+**Seed (`/poidh/seed`):** platform issuer adds ETH to pool — agent uses this for "add 0.01 ETH to bounty". Header `x-wallet-address` = linked holder. Max 0.1 ETH. Skill: **`POIDH-BOUNTY-ACTIONS.md`**.
+
+**User fund/claim/vote:** browser EOA on Bounties tab — no agent API for `createClaim`.
+
 **PATCH socialLinks fields:** `x`, `website`, `github`, `telegram`, `discord`, `custom[]` (`{ title, url }`, max 12) (beneficiary wallet is read-only from Bankr).
 
 **pin-post:** verified fee beneficiary only. Multiple pins allowed; most recent pin shows first.

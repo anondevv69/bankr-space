@@ -15,11 +15,14 @@
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
+@bankrbot add 0.01 ETH to the $SPACE Test bounty
 ```
 
 Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet paste (if X↔Bankr linked).
 
 **Fundraiser writes are NOT swaps/deploys/transfers** — route to `bankr-communities` + PATCH fundraising.
+
+**POIDH seed writes are NOT raw contract calls** — route to `bankr-communities` + **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/seed`.
 
 ---
 
@@ -52,6 +55,10 @@ Must log: `POST …/posts` with `content` = `xxxxx ewrwe xx test test` — **not
 Must log: `PATCH …/api/communities/{token}/` with `fundraising.campaigns` including `{ "id": "custom", "label": "testing on x", "goalUsd": 10, "enabled": true }` and linked wallet header.
 
 **Fail:** "I don't currently have a tool available for enabling custom fundraisers" — wrong; skill must load first.
+
+**Write acceptance test:** `@bankrbot add 0.01 ETH to the $SPACE Test bounty`  
+Must log: `GET …/api/communities/0xef703…/poidh` then `POST …/poidh/seed` with `{ "title": "Test bounty", "ethAmount": "0.01" }` and linked wallet header.  
+**Fail:** "I don't have a bounty-funding tool" or "raw contract call" — wrong; use **`POIDH-BOUNTY-ACTIONS.md`**.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 

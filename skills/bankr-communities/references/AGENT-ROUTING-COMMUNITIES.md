@@ -10,6 +10,8 @@
 
 **Writes (same routing as post-in-space):** verify, post, pin, update profile, add links, **enable/start/turn on fundraiser** → **`BENEFICIARY-ACTIONS.md`**.
 
+**POIDH bounties (add ETH / seed / create / list):** → **`POIDH-BOUNTY-ACTIONS.md`** — `GET …/poidh`, `POST …/poidh/seed`, `POST …/poidh/request`. Never "no bounty-funding tool."
+
 **Other reads:** space (user may say community), members, posts, latest on $TICKER space, start space.
 
 **Load:** `bankr-communities` → **`INSTANT-LINK-REPLIES.md`** (links) or **`ONE-LINE-INTENTS.md`** (everything else).
