@@ -75,6 +75,8 @@ export function Header({
 const BANKR_APP_URL =
   'https://bankr.bot/u/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/apps/bankr-communities-v2';
 
+const BANKR_SPACE_X_URL = 'https://x.com/BankrSpace';
+
 export function Footer() {
   const embed = useEmbeddedBankr();
 
@@ -110,6 +112,15 @@ export function Footer() {
       rel="noopener noreferrer"
     >
       agent.md
+    </a>
+    {' · '}
+    <a
+      href={BANKR_SPACE_X_URL}
+      className="text-accent-hover hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      @BankrSpace
     </a>
   </footer>
   );
