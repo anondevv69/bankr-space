@@ -3,6 +3,8 @@
 > **Mandatory for @bankrbot:** user says **add ETH**, **seed**, **fund bounty**, **create bounty**, **open bounty** → load `bankr-communities` → **read this file** → **HTTP GET/POST bankr.space** → reply with result + space URL.
 >
 > **Do NOT** say "I don't have a bounty-funding tool" or offer raw POIDH contract calls for **seed** — use **`POST …/poidh/seed`** below.
+>
+> **Do NOT** ask for a **recipient 0x address** — seed is **not** a wallet transfer. No `0x…` from the user. Call **`POST …/poidh/seed`** with `{ title, ethAmount }`; the **server issuer wallet** adds ETH to the POIDH pool.
 
 **Site:** `https://bankr.space`  
 **Writes:** header **`x-wallet-address: {user's linked Bankr wallet}`** — the wallet that holds the token (or fee recipient).
@@ -114,6 +116,7 @@ curl -sS -X POST "https://bankr.space/api/communities/${TOKEN}/poidh/seed" \
 
 **Forbidden replies:**
 - "I don't have a bounty-funding tool"
+- "what's the recipient address?" / "need an 0x… to send ETH" — **wrong for seed**
 - "drop the contract address and I'll hit it directly" (for seed — use API above)
 - Sending user to poidh.xyz to fund
 
