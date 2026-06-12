@@ -35,6 +35,14 @@ export async function savePetitionSpace(space: PetitionSpace): Promise<PetitionS
   return space;
 }
 
+export async function getPetitionSpaceByToken(
+  tokenAddress: string
+): Promise<PetitionSpace | null> {
+  const token = tokenAddress.toLowerCase();
+  const spaces = await getPetitionSpaces();
+  return spaces.find((s) => s.tokenAddress?.toLowerCase() === token) || null;
+}
+
 export function createPetitionSpaceRecord(options: {
   tmpPetitionId: string;
   founderWallet: string;
@@ -42,6 +50,8 @@ export function createPetitionSpaceRecord(options: {
   tokenSymbol: string;
   description: string;
   maxUnitsPerWallet: number;
+  supporterSlots?: number | null;
+  tmkClaimOptIn?: boolean;
   imageUrl?: string | null;
 }): PetitionSpace {
   const now = Date.now();
@@ -53,6 +63,8 @@ export function createPetitionSpaceRecord(options: {
     tokenSymbol: options.tokenSymbol.replace(/^\$/, '').toUpperCase(),
     description: options.description,
     maxUnitsPerWallet: options.maxUnitsPerWallet,
+    supporterSlots: options.supporterSlots ?? null,
+    tmkClaimOptIn: options.tmkClaimOptIn ?? false,
     imageUrl: options.imageUrl ?? null,
     tokenAddress: null,
     createdAt: now,

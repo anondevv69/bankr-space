@@ -18,11 +18,13 @@ Base URL: `https://www.tokenmarketplace.shop/api/petition`
 
 | Method | Path | Used by bankr.space |
 |--------|------|---------------------|
-| GET | `/config` | Pricing, goal units, Base enabled |
-| POST | `/create` | Create Space → Petition tab |
+| GET | `/config` | Pricing, goal units, Base enabled, TMK claim service |
+| POST | `/create` | Create Space → Petition tab (`supporterSlots`, `maxUnitsPerWallet`, `tmkClaimOptIn`) |
 | GET | `/status?id=` | Poll progress, backers, finalize |
 | GET | `/prepare-deposit?id=&wallet=&units=` | Quote + ETH tx shape |
 | POST | `/confirm` | After wallet sends ETH |
+| POST | `/refund` | Back out — refund units while petition is open |
+| GET | `https://www.tokenmarketplace.shop/api/holders/by-token?token=` | Live cap table after deploy |
 
 CORS: `Access-Control-Allow-Origin: *` — browser calls work from bankr.space.
 
@@ -36,13 +38,30 @@ Deposits are **native ETH** to TMP escrow — **not** bankr.space x402 USDC.
 | `GET /api/petitions` | List open petition spaces |
 | `GET /api/petitions/[id]` | Merged Space + TMP status |
 | `PATCH /api/petitions/[id]` | Founder edits description |
-| `POST /api/petitions/[id]` | `prepare-deposit`, `confirm`, `upgrade` |
+| `POST /api/petitions/[id]` | `prepare-deposit`, `confirm`, `refund`, `upgrade` |
+| `GET /api/communities/[address]/holders` | Petition backers (pre-launch orders or live cap table) |
 | `GET/POST /api/petitions/[id]/posts` | Pre-launch community posts |
 | `GET /api/cron/petition-finalize` | Upgrade finalized petitions to token spaces |
 
 Pages: `/community/petition/[id]`
 
-Env: `TMP_PETITION_API_BASE` (default: production URL above)
+Env: `TMP_PETITION_API_BASE`, `TMP_SITE_URL` (holders API; default production URL)
+
+## Backing options (create)
+
+- **Equal slots** — `supporterSlots: 50` → 50 backers × 20 units each (1000 total). With TMK claim, public cap is 999 — slots must divide evenly.
+- **Max per wallet** — `maxUnitsPerWallet: 10` (1–1000). UI shows how many wallets can fill the cap at max.
+- **TMK claim opt-in** — `tmkClaimOptIn: true` (Base only, when `config.base.tmkClaimService === true`). Reserves 1 unit for @TokenMkp; public cap becomes 999.
+
+## Refund
+
+While petition status is `open`, backers can **Back out / refund** via `POST /api/petitions/[id]` with `{ action: "refund", scope: "units" }` → TMP `POST /refund`.
+
+## Live space after finalize
+
+- **Petition** tag + auto **Verified** on token spaces from petitions
+- **Founder** (starter wallet) keeps edit/post rights even though fee beneficiary is a contract
+- **Backers panel** — `GET /api/communities/{token}/holders` (TMP cap table or petition orders)
 
 ## Flow
 

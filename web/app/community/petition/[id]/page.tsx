@@ -21,14 +21,30 @@ type PetitionView = {
       goalUnits: number;
       expiresAt?: string;
       maxUnitsPerWallet: number;
+      tmkClaimOptIn?: boolean;
+      tmkClaimWallet?: string;
     };
-    agentParticipation?: { remainingUnits?: number };
+    agentParticipation?: { remainingUnits?: number; supportersRemaining?: number };
   };
   progress: { soldUnits: number; goalUnits: number; pct: number };
   needsUpgrade: boolean;
   redirectTo: string | null;
   backers: Array<{ wallet: string; units: number }>;
   orderWallets: string[];
+  slots?: {
+    goalUnits: number;
+    publicCap: number;
+    unitsPerBacker: number;
+    maxBackers: number;
+    backersJoined: number;
+    backersRemaining: number;
+    usesSlots: boolean;
+  };
+  config?: {
+    priceEth?: string;
+    tmkClaimService?: boolean;
+    publicSaleUnitsWithTmkClaim?: number;
+  } | null;
 };
 
 export default function PetitionSpacePage({ params }: { params: { id: string } }) {
@@ -38,7 +54,6 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
   const { connectWallet } = useConnectWallet();
   const [view, setView] = useState<PetitionView | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [config, setConfig] = useState<{ priceEth: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editDesc, setEditDesc] = useState('');
@@ -46,18 +61,15 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
 
   const load = useCallback(async () => {
     try {
-      const [detailRes, postsRes, configRes] = await Promise.all([
+      const [detailRes, postsRes] = await Promise.all([
         fetch(`/api/petitions/${petitionId}`),
         fetch(`/api/petitions/${petitionId}/posts`),
-        fetch('/api/petitions'),
       ]);
       const detail = await detailRes.json();
       const postsData = await postsRes.json();
-      const configData = await configRes.json();
       if (!detailRes.ok) throw new Error(detail.error);
       setView(detail);
       setPosts(postsData.posts || []);
-      setConfig(configData.config ? { priceEth: configData.config.priceEth } : { priceEth: '0.00001' });
 
       if (detail.redirectTo) {
         router.replace(detail.redirectTo);
@@ -147,7 +159,17 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
     );
   }
 
-  const { space, progress, tmp } = view;
+  const { space, progress, tmp, slots, config } = view;
+  const priceEth = config?.priceEth || '0.00001';
+  const userOrder = address
+    ? view.backers.find((b) => b.wallet.toLowerCase() === address.toLowerCase())
+    : undefined;
+  const userOrderUnits = userOrder?.units ?? 0;
+  const slotSummary = slots
+    ? slots.usesSlots
+      ? `${slots.maxBackers} equal slots · ${slots.unitsPerBacker} units each · ${slots.backersRemaining} slot${slots.backersRemaining === 1 ? '' : 's'} left`
+      : `Up to ${slots.maxBackers} backers at ${slots.unitsPerBacker} units/wallet max`
+    : undefined;
 
   return (
     <div className="max-w-[1100px] mx-auto px-5 pb-16">
@@ -161,6 +183,11 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
               <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent/15 text-accent">
                 Petition
               </span>
+              {tmp.petition.tmkClaimOptIn ? (
+                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-2 text-muted">
+                  TMK claims
+                </span>
+              ) : null}
               {isFinalizing ? (
                 <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
                   Deploying…
@@ -229,6 +256,9 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
               Window ends {new Date(tmp.petition.expiresAt).toLocaleString()}
             </p>
           ) : null}
+          {slotSummary ? (
+            <p className="text-[10px] text-accent-hover">{slotSummary}</p>
+          ) : null}
         </div>
       </div>
 
@@ -237,8 +267,15 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
           <PetitionBackPanel
             petitionId={petitionId}
             maxUnitsPerWallet={tmp.petition.maxUnitsPerWallet || space.maxUnitsPerWallet}
-            priceEth={config?.priceEth || '0.00001'}
+            unitsPerBacker={slots?.unitsPerBacker}
+            priceEth={priceEth}
             remainingUnits={view.tmp.agentParticipation?.remainingUnits}
+            remainingBackers={
+              slots?.backersRemaining ?? view.tmp.agentParticipation?.supportersRemaining
+            }
+            userOrderUnits={userOrderUnits}
+            canRefund={userOrderUnits > 0}
+            slotSummary={slotSummary}
             onSuccess={() => void load()}
           />
         </div>
@@ -266,9 +303,14 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
         <div className="p-4 rounded-xl border border-border bg-surface text-[11px] text-muted space-y-2">
           <div className="text-sm font-semibold text-text">How it works</div>
           <p>1. Back with ETH — each unit is an entry toward launch.</p>
-          <p>2. At 1,000 units, the token deploys on Base via Token Marketplace.</p>
+          <p>2. At {slots?.publicCap ?? progress.goalUnits} units, the token deploys on Base via Token Marketplace.</p>
           <p>3. Fee-right units airdrop to every backer wallet.</p>
           <p>4. This space becomes a full Bankr token space automatically.</p>
+          {tmp.petition.tmkClaimOptIn ? (
+            <p className="text-accent-hover">
+              TMK claim enabled — 1 unit reserved for @TokenMkp hybrid fee claims via X.
+            </p>
+          ) : null}
         </div>
 
         <div className="min-w-0">

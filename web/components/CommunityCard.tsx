@@ -74,6 +74,11 @@ export function CommunityCard({
                   Unverified
                 </span>
               ) : null}
+              {community.fromPetition ? (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent/15 text-accent uppercase tracking-wide">
+                  Petition
+                </span>
+              ) : null}
             </div>
             <div className="text-[15px] font-semibold mt-1 truncate">{community.name}</div>
             <MarketStats market={market ?? null} compact />

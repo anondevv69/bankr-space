@@ -9,6 +9,7 @@ import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer, Header } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
 import { FundraisersPanel } from '@/components/FundraisersPanel';
+import { PetitionBackersPanel } from '@/components/PetitionBackersPanel';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
@@ -33,6 +34,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     isDeployer: boolean;
     isTrustedDelegate: boolean;
     isFounder: boolean;
+    isPetitionFounder: boolean;
     canEditProfile: boolean;
     canEditFundraising: boolean;
     canManagePlatformAgent: boolean;
@@ -77,6 +79,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isDeployer: data.isDeployer,
         isTrustedDelegate: data.isTrustedDelegate,
         isFounder: data.isFounder,
+        isPetitionFounder: data.isPetitionFounder,
         canEditProfile: data.canEditProfile,
         canEditFundraising: data.canEditFundraising,
         canManagePlatformAgent: data.canManagePlatformAgent,
@@ -94,6 +97,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         isDeployer: false,
         isTrustedDelegate: false,
         isFounder: false,
+        isPetitionFounder: false,
         canEditProfile: false,
         canEditFundraising: false,
         canManagePlatformAgent: false,
@@ -234,24 +238,26 @@ export default function CommunityPage({ params }: { params: { address: string } 
         </div>
       ) : holder?.canPost ? (
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-600 dark:text-green-400">
-          {holder.holds
-            ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
-            : holder.isBeneficiary
-              ? `✓ You are the fee recipient — you can post and react without holding`
-              : holder.isDeployer
-                ? community.verified
-                  ? `✓ Deployer access enabled — you can post and moderate (not fundraisers)`
-                  : `✓ Token deployer — edit profile and post until the fee recipient verifies`
-                : holder.isTrustedDelegate
-                  ? `✓ Trusted delegate — you can post and moderate (not fundraisers)`
-                  : `✓ You can post and react without holding`}
+          {holder.isPetitionFounder
+            ? `✓ Petition founder — you can post, react, and edit this space`
+            : holder.holds
+              ? `✓ You hold ${holder.balance.toLocaleString()} ${community.symbol} — you can post and react`
+              : holder.isBeneficiary
+                ? `✓ You are the fee recipient — you can post and react without holding`
+                : holder.isDeployer
+                  ? community.verified
+                    ? `✓ Deployer access enabled — you can post and moderate (not fundraisers)`
+                    : `✓ Token deployer — edit profile and post until the fee recipient verifies`
+                  : holder.isTrustedDelegate
+                    ? `✓ Trusted delegate — you can post and moderate (not fundraisers)`
+                    : `✓ You can post and react without holding`}
         </div>
       ) : holder?.isDeployer && community.verified ? (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
           Deployer access is off for this verified space. The fee recipient can enable it in Edit
           profile.
         </div>
-      ) : holder?.isFounder ? (
+      ) : holder?.isFounder && !community.fromPetition ? (
         <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700 dark:text-amber-400">
           You created this space. Hold {community.symbol} to post and react — only the fee
           recipient can verify it.
@@ -263,12 +269,17 @@ export default function CommunityPage({ params }: { params: { address: string } 
       )}
 
       <div className="grid lg:grid-cols-[minmax(260px,300px)_1fr] gap-6 items-start">
-        <FundraisersPanel
-          community={community}
-          refreshKey={`${JSON.stringify(community.fundraising?.campaigns)}-${JSON.stringify(community.agentPool?.campaigns)}`}
-          canProposeCommunityGoal={!!holder?.canProposeCommunityAgentGoal}
-          onRefresh={load}
-        />
+        <div className="space-y-4">
+          {community.fromPetition ? (
+            <PetitionBackersPanel tokenAddress={tokenAddress} />
+          ) : null}
+          <FundraisersPanel
+            community={community}
+            refreshKey={`${JSON.stringify(community.fundraising?.campaigns)}-${JSON.stringify(community.agentPool?.campaigns)}`}
+            canProposeCommunityGoal={!!holder?.canProposeCommunityAgentGoal}
+            onRefresh={load}
+          />
+        </div>
 
         <div className="min-w-0">
           {canPost ? (
