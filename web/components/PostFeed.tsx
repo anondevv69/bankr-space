@@ -27,15 +27,16 @@ import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-type FeedTab = PostFilter | 'oxjobs' | 'bounties' | 'questions';
+type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs';
 
-const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
-  { id: 'all', label: 'All Posts', icon: '' },
+const POST_SUB_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
+  { id: 'all', label: 'All', icon: '' },
   { id: 'beneficiary', label: 'Beneficiary', icon: '●' },
   { id: 'pinned', label: 'Pinned', icon: '📌' },
   { id: 'community', label: 'Community', icon: '👥' },
 ];
 
+const POSTS_TAB = { id: 'posts' as const, label: 'Posts', icon: '' };
 const VOTES_TAB = { id: 'questions' as const, label: 'Votes', icon: '🗳️' };
 
 const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' };
@@ -468,11 +469,13 @@ export function PostFeed({
   canVoteOnQuestion?: boolean;
 }) {
   const { address } = useAppWallet();
-  const [filter, setFilter] = useState<FeedTab>('all');
+  const [section, setSection] = useState<FeedSection>('posts');
+  const [postFilter, setPostFilter] = useState<PostFilter>('all');
   const [hasJobs, setHasJobs] = useState(false);
-  const isOxJobs = filter === 'oxjobs';
-  const isBounties = filter === 'bounties';
-  const isQuestions = filter === 'questions';
+  const isPosts = section === 'posts';
+  const isOxJobs = section === 'oxjobs';
+  const isBounties = section === 'bounties';
+  const isQuestions = section === 'questions';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -501,27 +504,28 @@ export function PostFeed({
   }, [tokenAddress, hideExtraTabs]);
 
   useEffect(() => {
-    if (hideExtraTabs && (filter === 'oxjobs' || filter === 'bounties')) {
-      setFilter('all');
-    } else if (!hideExtraTabs && !hasJobs && filter === 'oxjobs') {
-      setFilter('all');
+    if (hideExtraTabs) {
+      if (section !== 'posts') setSection('posts');
+      return;
     }
-  }, [hideExtraTabs, filter, hasJobs]);
+    if (!hasJobs && section === 'oxjobs') {
+      setSection('posts');
+    }
+  }, [hideExtraTabs, section, hasJobs]);
 
-  const visibleFilters = useMemo(
+  const sectionTabs = useMemo(
     () =>
       hideExtraTabs
-        ? POST_FILTERS
-        : [...POST_FILTERS, VOTES_TAB, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
+        ? []
+        : [POSTS_TAB, VOTES_TAB, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
     [hasJobs, hideExtraTabs]
   );
 
   const visiblePosts = useMemo(() => {
-    if (isOxJobs || isBounties || isQuestions) return [];
-    const postFilter = filter as PostFilter;
+    if (!isPosts) return [];
     const filtered = filterPosts(posts, postFilter, pins, beneficiaryWallet, ownerWallet);
     return sortFilteredPosts(filtered, postFilter, sort, pins);
-  }, [posts, filter, sort, pins, beneficiaryWallet, ownerWallet, isOxJobs, isBounties, isQuestions]);
+  }, [posts, postFilter, sort, pins, beneficiaryWallet, ownerWallet, isPosts]);
 
   async function togglePin(postId: string) {
     if (!address || !canManage) return;
@@ -563,36 +567,58 @@ export function PostFeed({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex flex-wrap gap-1 p-1 bg-surface-2 border border-border rounded-xl">
-          {visibleFilters.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setFilter(item.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                filter === item.id
-                  ? 'bg-surface text-text shadow-sm border border-border'
-                  : 'text-muted hover:text-text'
-              }`}
-            >
-              {item.icon ? <span className="text-xs">{item.icon}</span> : null}
-              {item.label}
-            </button>
-          ))}
-        </div>
-        {!isOxJobs && !isBounties && !isQuestions ? (
-          <label className="inline-flex items-center gap-2 text-sm text-muted">
-            <span className="hidden sm:inline">Sort</span>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as PostSort)}
-              className="px-3 py-2 text-sm bg-surface border border-border rounded-lg text-text"
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-            </select>
-          </label>
+      <div className="flex flex-col gap-3 mb-4">
+        {sectionTabs.length > 0 ? (
+          <div className="flex flex-wrap gap-1 p-1 bg-surface-2 border border-border rounded-xl w-fit max-w-full">
+            {sectionTabs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSection(item.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  section === item.id
+                    ? 'bg-surface text-text shadow-sm border border-border'
+                    : 'text-muted hover:text-text'
+                }`}
+              >
+                {item.icon ? <span className="text-xs">{item.icon}</span> : null}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {isPosts ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-1">
+              {POST_SUB_FILTERS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setPostFilter(item.id)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                    postFilter === item.id
+                      ? 'bg-accent/15 text-accent border-accent/40'
+                      : 'border-border bg-surface text-muted hover:text-text'
+                  }`}
+                >
+                  {item.icon ? <span>{item.icon}</span> : null}
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm text-muted">
+              <span className="hidden sm:inline">Sort</span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as PostSort)}
+                className="px-3 py-1.5 text-sm bg-surface border border-border rounded-lg text-text"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
+            </label>
+          </div>
         ) : null}
       </div>
 
