@@ -3,7 +3,7 @@ import { holdsToken } from './holder';
 import { resolveSpacePermissions } from './community-owner';
 import { resolveAuthorProfile } from './profiles';
 import { normalizeAddr } from './utils';
-import type { Author, CommunityQuestion, QuestionOption, QuestionVote } from './types';
+import type { Author, CommunityQuestion, QuestionOption, QuestionVote, QuestionVoteType } from './types';
 
 const QUESTIONS_KEY = 'community_questions';
 export const QUESTION_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -76,11 +76,22 @@ export function settleQuestionRecord(question: CommunityQuestion): CommunityQues
   };
 }
 
+export const YES_NO_LABELS = ['Yes', 'No'] as const;
+
+export function isYesNoVote(question: CommunityQuestion): boolean {
+  if (question.voteType === 'yes_no') return true;
+  if (question.voteType === 'choice') return false;
+  if (question.options.length !== 2) return false;
+  const labels = question.options.map((o) => o.label.trim().toLowerCase());
+  return labels[0] === 'yes' && labels[1] === 'no';
+}
+
 export async function createCommunityQuestion(options: {
   tokenAddress: string;
   wallet: string;
   prompt: string;
-  optionLabels: string[];
+  voteType?: QuestionVoteType;
+  optionLabels?: string[];
   chain?: string;
 }): Promise<CommunityQuestion> {
   const token = normalizeAddr(options.tokenAddress);
@@ -90,34 +101,42 @@ export async function createCommunityQuestion(options: {
   const permissions = await resolveSpacePermissions(wallet, token, chain);
   if (!permissions.canCreateQuestion) {
     throw new Error(
-      'Only the fee recipient, deployer, delegate, or space admin can post a question'
+      'Only the fee recipient, deployer, delegate, or space admin can start a vote'
     );
   }
 
   const questions = await getQuestions(token);
   const active = questions.filter((q) => q.status === 'active' && q.endsAt > Date.now());
   if (active.length > 0) {
-    throw new Error('This space already has an active question. Wait for it to settle first.');
+    throw new Error('This space already has an active vote. Wait for it to settle first.');
   }
 
   const prompt = options.prompt.trim();
   if (prompt.length < 8) {
-    throw new Error('Question must be at least 8 characters');
+    throw new Error('Vote question must be at least 8 characters');
   }
   if (prompt.length > 500) {
-    throw new Error('Question too long (max 500 characters)');
+    throw new Error('Vote question too long (max 500 characters)');
   }
 
-  const labels = options.optionLabels.map((l) => l.trim()).filter(Boolean);
-  if (labels.length < 2) {
-    throw new Error('Add at least 2 answer options');
-  }
-  if (labels.length > 5) {
-    throw new Error('Maximum 5 answer options');
-  }
-  for (const label of labels) {
-    if (label.length > 80) {
-      throw new Error('Each option must be 80 characters or less');
+  const voteType: QuestionVoteType =
+    options.voteType === 'choice' ? 'choice' : 'yes_no';
+  const labels =
+    voteType === 'yes_no'
+      ? [...YES_NO_LABELS]
+      : (options.optionLabels || []).map((l) => l.trim()).filter(Boolean);
+
+  if (voteType === 'choice') {
+    if (labels.length < 2) {
+      throw new Error('Add at least 2 answer choices');
+    }
+    if (labels.length > 4) {
+      throw new Error('Maximum 4 answer choices');
+    }
+    for (const label of labels) {
+      if (label.length > 80) {
+        throw new Error('Each answer must be 80 characters or less');
+      }
     }
   }
 
@@ -134,6 +153,7 @@ export async function createCommunityQuestion(options: {
     wallet,
     author,
     prompt,
+    voteType,
     options: questionOptions,
     votes: [],
     createdAt: now,
@@ -161,7 +181,7 @@ export async function castQuestionVote(options: {
 
   const permissions = await resolveSpacePermissions(wallet, token, chain);
   if (!permissions.canVoteOnQuestion) {
-    throw new Error('You must hold this token to vote on questions');
+    throw new Error('You must hold this token to vote');
   }
 
   const questions = await getQuestions(token);
@@ -175,7 +195,7 @@ export async function castQuestionVote(options: {
     question = settleQuestionRecord(question);
     questions[index] = question;
     await setQuestionsForToken(token, questions);
-    throw new Error('This question has ended');
+    throw new Error('This vote has ended');
   }
 
   if (!question.options.some((o) => o.id === options.optionId)) {

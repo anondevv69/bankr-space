@@ -239,6 +239,8 @@ export interface Post {
 
 export type QuestionStatus = 'active' | 'settled';
 
+export type QuestionVoteType = 'yes_no' | 'choice';
+
 export interface QuestionOption {
   id: string;
   label: string;
@@ -257,6 +259,8 @@ export interface CommunityQuestion {
   wallet: string;
   author: Author;
   prompt: string;
+  /** yes_no = Yes/No ballot; choice = pick one answer */
+  voteType?: QuestionVoteType;
   options: QuestionOption[];
   votes: QuestionVote[];
   createdAt: number;
