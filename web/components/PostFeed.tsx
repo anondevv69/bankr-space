@@ -36,7 +36,7 @@ const POST_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'community', label: 'Community', icon: '👥' },
 ];
 
-const QUESTIONS_TAB = { id: 'questions' as const, label: 'Questions', icon: '❓' };
+const VOTES_TAB = { id: 'questions' as const, label: 'Votes', icon: '🗳️' };
 
 const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' };
 
@@ -512,7 +512,7 @@ export function PostFeed({
     () =>
       hideExtraTabs
         ? POST_FILTERS
-        : [...POST_FILTERS, QUESTIONS_TAB, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
+        : [...POST_FILTERS, VOTES_TAB, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
     [hasJobs, hideExtraTabs]
   );
 

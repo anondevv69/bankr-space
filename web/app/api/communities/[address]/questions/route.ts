@@ -45,6 +45,8 @@ export async function POST(req: Request, { params }: RouteParams) {
   const tokenAddress = normalizeAddr(address);
   const body = await req.json().catch(() => ({}));
   const prompt = String(body.prompt || '').trim();
+  const voteType =
+    body.voteType === 'choice' ? ('choice' as const) : ('yes_no' as const);
   const optionLabels = Array.isArray(body.options)
     ? body.options.map((o: unknown) => String(o || ''))
     : [];
@@ -59,7 +61,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       tokenAddress,
       wallet,
       prompt,
-      optionLabels,
+      voteType,
+      optionLabels: voteType === 'choice' ? optionLabels : undefined,
       chain: community.chain || 'base',
     });
 
