@@ -24,6 +24,8 @@
 | **fund** / **add ETH** / **seed** **$SPACE** bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz) |
 | **how do I fund** / **claim** / **vote** on a bounty | Same — GET → paste **`url`**; POIDH handles payout rules |
 | **completed** fundraisers on **$TMP**? | briefing → `fundraising.completed[]` | past goals only |
+| **active poll** / **vote** on **$TMP**? | `GET …/questions` or briefing → `holderVotes` | prompt + tallies + time left |
+| **vote result** on **$TMP** space? | `GET …/questions` → latest settled | winner label + counts |
 
 ---
 
@@ -43,6 +45,8 @@
 | **post** {inline text} in **$xxx** space (no colon) | **X-REPLY-POST-CONTENT.md** → inline text only, not parent tweet |
 | **comment** in **0x935e…** space: {text} | same as post |
 | react **👍** on post **{id}** in **TMP** | `POST /api/posts/{id}/react` `{ tokenAddress, reaction: "👍" }` |
+| **start vote** / **poll** on **$TMP** space | **`HOLDER-VOTES.md`** → `POST …/questions` `{ prompt, voteType }` |
+| **vote yes** / **vote on poll** in **$TMP** | **`HOLDER-VOTES.md`** → `GET …/questions` → `POST /api/questions/{id}/vote` |
 
 ---
 

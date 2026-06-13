@@ -60,6 +60,8 @@ install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/
 | Any **fundraising** on **$TMP**? | Open USDC goals | `GET /api/communities/{token}/fundraising` or briefing → `fundraising` |
 | **Fund** / **contribute** to a space | x402 on site | Read skill **`FUNDRAISING.md`** → reply progress + space URL |
 | **Create bounty** / **open bounty** for **$SPACE** | POIDH ETH bounty | Read **`POIDH-BOUNTIES.md`** → `POST …/poidh/request` or Bounties tab |
+| **Start holder vote** / **poll** on **$SPACE** | Yes/no or multiple choice, 24h | Read **`HOLDER-VOTES.md`** → `POST …/questions` |
+| **Vote** on **$SPACE** poll | Holders only | **`HOLDER-VOTES.md`** → `POST /api/questions/{id}/vote` |
 
 ---
 
@@ -154,6 +156,42 @@ Content-Type: application/json
 
 The site shows labels like **Posted via @bankrbot · X DM** under the post. Older posts have no `source`.
 
+### Holder votes (24h polls)
+
+Space admins start a ballot; **holders vote**; results settle after **24 hours**. Human UI: space → **Votes** tab.
+
+```http
+GET  /api/communities/{tokenAddress}/questions?wallet=0x…
+POST /api/communities/{tokenAddress}/questions
+     Body: { "prompt": "Should we…?", "voteType": "yes_no" }
+     Body: { "prompt": "Which…?", "voteType": "choice", "options": ["A", "B"] }
+POST /api/questions/{questionId}/vote
+     Body: { "tokenAddress": "0x…", "optionId": "opt…" }
+```
+
+| Action | Who |
+|--------|-----|
+| Start vote | Verified space admin — `canCreateQuestion` (fee recipient, deployer when allowed, delegate, petition founder) |
+| Cast vote | Holders only — `canVoteOnQuestion` |
+| View | Anyone |
+
+Check: `GET /api/holders/{token}?wallet=` → `canCreateQuestion`, `canVoteOnQuestion`.  
+Briefing: `holderVotes` on `GET /api/agent/briefing?symbol=TMP`.  
+Skill: **`HOLDER-VOTES.md`**.
+
+**Agent example (yes/no vote):**
+```http
+POST /api/communities/{token}/questions
+x-wallet-address: 0x…
+x-client: agent
+Content-Type: application/json
+
+{
+  "prompt": "Should we apply for a DexScreener boost this week?",
+  "voteType": "yes_no"
+}
+```
+
 ### Tokens & holders
 
 ```http
@@ -196,6 +234,8 @@ Syncs token launches from `https://api.bankr.bot/token-launches` (hourly on Verc
 |--------|-----|
 | Create space | Any connected wallet; token must be Bankr-launched |
 | Post / react | Must hold token on Base (on-chain balance > 0) |
+| Start holder vote | Verified space admin (`canCreateQuestion`) |
+| Cast vote on poll | Token holders only (`canVoteOnQuestion`) |
 | Verify | Fee recipient only |
 
 If not holder → reply: "You need to hold $SYMBOL to post" + space link.
@@ -213,6 +253,8 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 @bankrbot post hello my words in TMP space ← explicit text, not parent tweet
 @bankrbot any fundraisers on the TMP space?
 @bankrbot fund $5 to TMP space for Dex profile
+@bankrbot start a yes/no vote on TMP: should we do a Dex boost?
+@bankrbot vote yes on the TMP space poll
 ```
 
 **X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):
