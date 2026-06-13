@@ -24,6 +24,11 @@ import {
 } from '@/lib/agent-pool';
 import { bountyDescriptionForDisplay } from '@/lib/poidh-community-bounties';
 import { poidhBountyUrl } from '@/lib/poidh-api';
+import {
+  getQuestions,
+  questionVoteCounts,
+  settleExpiredQuestions,
+} from '@/lib/community-questions';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +75,28 @@ export async function GET(req: Request) {
 
     const posts = community ? await getPosts(community.tokenAddress) : [];
     const recentPosts = posts.slice(-5).reverse();
+
+    await settleExpiredQuestions();
+    const spaceQuestions = community ? await getQuestions(community.tokenAddress) : [];
+    const activeVote = spaceQuestions.find(
+      (q) => q.status === 'active' && q.endsAt > Date.now()
+    );
+    const recentVotes = spaceQuestions
+      .filter((q) => q.status === 'settled')
+      .slice(0, 3)
+      .map((q) => {
+        const tallies = questionVoteCounts(q);
+        const winner = q.options.find((o) => o.id === q.winningOptionId);
+        return {
+          id: q.id,
+          prompt: q.prompt.slice(0, 200),
+          voteType: q.voteType || (q.options.length === 2 ? 'yes_no' : 'choice'),
+          settledAt: q.settledAt,
+          winningOption: winner?.label || null,
+          totalVotes: tallies.totalVotes,
+          tallies: tallies.counts,
+        };
+      });
 
     const normalizedCommunity = community ? mergeCommunityDefaults(community) : null;
     const openFundraisers = normalizedCommunity
@@ -139,6 +166,14 @@ export async function GET(req: Request) {
       opportunities.push({
         type: 'poidh_bounty_live',
         message: `$${community!.symbol} open bounty: ${b.title} — ${b.url ?? 'see Bounties tab'}. Fund and claim on POIDH.`,
+      });
+    }
+
+    if (activeVote && community) {
+      const tallies = questionVoteCounts(activeVote);
+      opportunities.push({
+        type: 'holder_vote_active',
+        message: `$${community.symbol} — active holder vote: "${activeVote.prompt.slice(0, 100)}" — ${tallies.totalVotes} votes so far. Holders vote on Votes tab; settles in 24h.`,
       });
     }
 
@@ -250,6 +285,29 @@ export async function GET(req: Request) {
                 'Agents create via POST …/poidh/request and list via GET …/poidh. For fund/claim/vote reply with bounty url. See POIDH-BOUNTIES.md',
             }
           : null,
+      holderVotes: community
+        ? {
+            active: activeVote
+              ? {
+                  id: activeVote.id,
+                  prompt: activeVote.prompt,
+                  voteType: activeVote.voteType || 'yes_no',
+                  endsAt: activeVote.endsAt,
+                  options: activeVote.options.map((o) => ({ id: o.id, label: o.label })),
+                  tallies: questionVoteCounts(activeVote),
+                }
+              : null,
+            recent: recentVotes,
+            listVotes: `GET /api/communities/${community.tokenAddress}/questions`,
+            startVote:
+              'POST /api/communities/{token}/questions header x-wallet-address — body: { prompt, voteType: yes_no|choice, options? }',
+            castVote:
+              'POST /api/questions/{questionId}/vote header x-wallet-address — body: { tokenAddress, optionId }',
+            humanUi: 'Votes tab on space page',
+            agentNote:
+              'Verified space admin starts vote (canCreateQuestion). Holders vote (canVoteOnQuestion). One active vote per space; 24h auto-settle. See HOLDER-VOTES.md',
+          }
+        : null,
       links: {
         communityPage: pageLink,
         allCommunities: siteUrl,
@@ -268,6 +326,11 @@ export async function GET(req: Request) {
         poidhList: 'GET /api/communities/{token}/poidh',
         poidhCreate:
           'POST /api/communities/{token}/poidh/request header x-wallet-address — holder creates open bounty (ETH on Base)',
+        listVotes: 'GET /api/communities/{token}/questions',
+        startVote:
+          'POST /api/communities/{token}/questions header x-wallet-address — verified admin; yes_no or choice',
+        castVote:
+          'POST /api/questions/{questionId}/vote header x-wallet-address — holders only',
       },
     });
   } catch (err) {

@@ -137,12 +137,15 @@ WALLET=${PLATFORM_AGENT_WALLET}
 | `GET /api/communities/{token}/fundraising` | Lane A campaign detail |
 | `GET /api/communities/{token}/agent-pool` | Lane B open goals |
 | `GET /api/communities/{token}/oxwork` | Posted 0xWork tasks |
+| `GET /api/communities/{token}/questions` | Active + settled holder votes |
 
 ### Write (platform wallet headers)
 
 | Endpoint | Allowed |
 |----------|---------|
 | `POST /api/communities/{token}/posts` | ✅ Milestones, skill results |
+| `POST /api/communities/{token}/questions` | ✅ When space admin linked — start 24h holder vote |
+| `POST /api/questions/{id}/vote` | ✅ When holder wallet linked — cast vote |
 | `POST /api/communities/{token}/pin-post` | ✅ Important agent posts |
 | `POST /api/agent/pool-executed` | ✅ Mark Lane B skill done (Bearer CRON_SECRET) |
 | `PATCH /api/communities/{token}` | ❌ |

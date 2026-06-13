@@ -17,6 +17,8 @@
 | **Fundraisers / USDC goals** | **Fee recipient only** — never deployer or delegate | No |
 | **Post / reply (no hold)** | Fee recipient; deployer (before verify or if allowed); trusted delegate (after verify) | No |
 | **Pin / unpin** | Same as profile (not fundraisers) | **Yes** |
+| **Start holder vote** | Same as pin (fee recipient, deployer when allowed, delegate, petition founder) | **Yes** |
+| **Cast vote on poll** | **Token holders only** | N/A |
 | **x402 USDC** | Pays **fee recipient wallet only** | N/A |
 
 **Team access (fee recipient sets after verify):** `allowDeployerEdit` (launcher) + `trustedDelegates[]` (up to 3 wallets). Social/moderation only — **no money**. Tag agent wallets via **`AGENT-WALLETS.md`** (`GET …/resolve-wallet`, `POST …/team/resolve-agents`).
@@ -29,7 +31,19 @@ Check before writes:
 GET /api/holders/{tokenAddress}?wallet={linked}
 ```
 
-Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
+Use: `canEditProfile`, `canPinPosts`, `canPost`, `canCreateQuestion`, `canVoteOnQuestion`, `isBeneficiary`.
+
+---
+
+## Start holder vote (24h poll)
+
+**User says:**
+```text
+@bankrbot start a yes/no vote on TMP space: should we do a Dex boost?
+@bankrbot poll BNKR holders — marketing or product?
+```
+
+Read **`HOLDER-VOTES.md`** — `GET /api/holders/{token}?wallet={linked}` → `canCreateQuestion` → `POST /api/communities/{token}/questions`.
 
 ---
 

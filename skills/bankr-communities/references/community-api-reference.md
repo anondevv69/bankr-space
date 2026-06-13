@@ -89,8 +89,22 @@ POST /api/communities/{tokenAddress}/poidh/request   body: { title, description 
 **holders check before writes:**
 ```
 GET /api/holders/{tokenAddress}?wallet=0x…
-→ canPost, canEditProfile, canPinPosts, isBeneficiary
+→ canPost, canEditProfile, canPinPosts, canCreateQuestion, canVoteOnQuestion, isBeneficiary
 ```
+
+---
+
+## Holder votes (24h polls)
+
+```
+GET  /api/communities/{tokenAddress}/questions?wallet=0x…
+POST /api/communities/{tokenAddress}/questions
+     body: { prompt, voteType: "yes_no"|"choice", options?: string[] }
+POST /api/questions/{questionId}/vote
+     body: { tokenAddress, optionId }
+```
+
+**Start vote:** verified space admin (`canCreateQuestion`). **Cast vote:** holders only. One active vote per space; auto-settles after 24h. Skill: **`HOLDER-VOTES.md`**.
 
 ---
 

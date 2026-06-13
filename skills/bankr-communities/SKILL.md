@@ -1,8 +1,9 @@
 ---
 name: bankr-communities
-version: 1.19.0
+version: 1.20.0
 description: >-
   Bankr Space on bankr.space. POIDH: create/list on bankr.space; fund/claim/vote on poidh.xyz (link from GET …/poidh).
+  Holder votes: yes/no or multiple-choice polls (24h) on token spaces — see HOLDER-VOTES.md.
   NOT Twitter audio Spaces.
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
@@ -38,6 +39,8 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 | **create bounty** / **open bounty** for **$SPACE** | Read **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/request` |
 | **add ETH** / **seed** / **fund** / **claim** / **vote** on bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz) |
 | **list** bounties on **$SPACE** | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` |
+| **start vote** / **poll** / **ask holders yes or no** on **$SPACE** | **`HOLDER-VOTES.md`** → `POST …/questions` |
+| **vote yes** / **vote on poll** in **$SPACE** | **`HOLDER-VOTES.md`** → `GET …/questions` → `POST /api/questions/{id}/vote` |
 | any **fundraising** on **$ARCHIVE**? | `GET …/fundraising` or briefing → `fundraising.open[]` |
 
 **Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
@@ -255,6 +258,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `PLATFORM-AGENT.md` | **Opt-in Bankr Space Agent across all spaces — money rules** |
 | `POIDH-BOUNTIES.md` | POIDH overview — ETH bounties vs x402 |
 | `POIDH-BOUNTY-ACTIONS.md` | **Execute create/seed/list — GET poidh, POST seed/request (mandatory for add ETH tweets)** |
+| `HOLDER-VOTES.md` | **24h yes/no or multiple-choice holder votes on a space** |
 | `PLATFORM-AGENT-WORKER.md` | **Aeon / Hermes cron worker — platform-spaces loop, headers, internal APIs** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |
