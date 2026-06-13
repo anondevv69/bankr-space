@@ -1,10 +1,9 @@
 ---
 name: bankr-communities
-version: 1.15.0
+version: 1.21.0
 description: >-
-  Bankr Space on bankr.space — NOT Twitter audio Spaces. Post/verify/pin/fundraise/POIDH bounties via API.
-  add ETH to bounty → read POIDH-BOUNTY-ACTIONS.md + POST …/poidh/seed (never "no funding tool").
-  X reply post THIS = parent tweet URL. Read NOT-TWITTER-X-SPACES.md + POIDH-BOUNTY-ACTIONS.md + FUNDRAISING.md.
+  Bankr Space on bankr.space. Holder votes: yes/no or multiple-choice polls (24h) — HOLDER-VOTES.md (never say no poll feature).
+  POIDH: create/list on bankr.space; fund/claim/vote on poidh.xyz. NOT Twitter audio Spaces.
 siteUrl: https://bankr.space
 communitiesSiteUrl: https://bankr.space
 COMMUNITIES_SITE_URL: https://bankr.space
@@ -25,7 +24,27 @@ Read **`NOT-TWITTER-X-SPACES.md`** first: **"post in $PMFI space"** = **bankr.sp
 
 Read **`TERMINOLOGY.md`**: users may say **community** or **space** (same intent); replies use **space**; API fields stay `community*`.
 
-## ⚡ WRITE ACTIONS — verify, post, pin, profile (same as post-in-space)
+**`Space` ticker:** When the user says **"Space"**, **"$SPACE"**, or **"Bankr Space"** as the token (not the generic product), resolve to **`0xef703b860a6d422fa00cc67bbbb2662297cb6ba3`** — see `known-communities.json` → `SPACE`. Do **not** ask "which space?" if they named **Space** or pasted that contract.
+
+## ⚡ HOLDER VOTES — yes/no polls (mandatory — v1.21+)
+
+**User says:** start vote / yes-no vote / poll / ask holders → read **`HOLDER-VOTES.md`** → `POST /api/communities/{token}/questions`.
+
+| User says | Agent does |
+|-----------|------------|
+| **start yes/no vote on Space:** … | Token = `0xef703b…` → `POST …/questions` `{ prompt, voteType: "yes_no" }` |
+| **start vote on TMP:** … | briefing or known-communities → POST questions |
+| **vote yes** on poll | GET questions → POST `/api/questions/{id}/vote` |
+| **poll result** on **$SPACE** | GET questions or briefing → `holderVotes` |
+
+**FORBIDDEN replies (never say these):**
+- "bankr space doesn't have a native yes/no poll feature"
+- "closest option is posting and letting holders react with 👍/👎"
+- "which space?" when user already said **Space** / **$SPACE** / pasted `0xef703b…`
+
+If skill version < 1.21 or HOLDER-VOTES missing → **re-install skill from GitHub main** before answering vote tweets.
+
+---
 
 User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`X-REPLY-POST-CONTENT.md`** (X reply vs explicit text) and **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
@@ -37,8 +56,10 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
 | **fund** / **contribute** to **TMP** space fundraiser | Read **`FUNDRAISING.md`** → `GET …/fundraising` or briefing → reply progress + space URL |
 | **create bounty** / **open bounty** for **$SPACE** | Read **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/request` |
-| **add ETH** / **seed** / **fund** **$SPACE** bounty | Read **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → **`POST …/poidh/seed`** — **never** refuse as missing tool |
+| **add ETH** / **seed** / **fund** / **claim** / **vote** on bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz) |
 | **list** bounties on **$SPACE** | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` |
+| **start vote** / **poll** / **ask holders yes or no** on **$SPACE** | **`HOLDER-VOTES.md`** → `POST …/questions` |
+| **vote yes** / **vote on poll** in **$SPACE** | **`HOLDER-VOTES.md`** → `GET …/questions` → `POST /api/questions/{id}/vote` |
 | any **fundraising** on **$ARCHIVE**? | `GET …/fundraising` or briefing → `fundraising.open[]` |
 
 **Post writes:** always send `source` (`client: agent`, `trigger: x-dm` | `x-mention` | `x-reply` | `terminal`, `viaAgent: true`, `agentId: bankrbot`). See **`POST-SOURCE.md`**.
@@ -135,7 +156,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | **QRCoin** fundraiser for **SPACE** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [qrcoin skill](https://skills.bankr.bot/skills/qrcoin) |
 | **0xWork** bagwork / bounties for **TMP** | **`SKILL-LINKED-FUNDRAISERS.md`** → custom fundraiser + [0xwork skill](https://skills.bankr.bot/skills/0xwork) |
 
-**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**) · say **"I don't have a bounty-funding tool"** or offer raw POIDH contract calls when user asks **add/seed ETH to bounty** — use **POIDH-BOUNTY-ACTIONS.md** → `POST …/poidh/seed`.
+**Forbidden:** ask user for skill name · ask wallet if X↔Bankr linked · invent space data without API call · say "can't post to X spaces" or "post manually" (see **NOT-TWITTER-X-SPACES.md**) · say **"I don't have a tool for enabling fundraisers"** without loading this skill and PATCHing (see **BENEFICIARY-ACTIONS.md**) · ask for recipient **0x** to fund a bounty — use **POIDH-BOUNTY-ACTIONS.md** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz).
 
 ---
 
@@ -150,7 +171,7 @@ if message contains "link" OR "url" OR "where is" + space or community/token:
   5. If HTTP fails → known-communities.json → NEVER empty / "couldn't generate"
 else if space intent (verify, post, pin, profile, update links, members, latest, fund, fundraiser, fundraising, contribute, enable fundraiser, start fundraiser, custom fundraiser, bounty, bounties, poidh, seed bounty, add eth to bounty):
   1. use_skill("bankr-communities")     ← BEFORE swaps/deploys/transfers
-  2. add eth / seed / fund + bounty (not USDC fundraiser) → POIDH-BOUNTY-ACTIONS.md → GET poidh → POST poidh/seed
+  2. add eth / seed / fund / claim / vote + bounty (not USDC fundraiser) → POIDH-BOUNTY-ACTIONS.md → GET poidh → paste bounty url (poidh.xyz)
   3. create/open bounty → POIDH-BOUNTY-ACTIONS.md → POST poidh/request
   4. enable/start/turn on + fundraiser → BENEFICIARY-ACTIONS.md (Enable fundraiser) → PATCH fundraising
   5. Other writes → BENEFICIARY-ACTIONS.md
@@ -256,6 +277,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 | `PLATFORM-AGENT.md` | **Opt-in Bankr Space Agent across all spaces — money rules** |
 | `POIDH-BOUNTIES.md` | POIDH overview — ETH bounties vs x402 |
 | `POIDH-BOUNTY-ACTIONS.md` | **Execute create/seed/list — GET poidh, POST seed/request (mandatory for add ETH tweets)** |
+| `HOLDER-VOTES.md` | **24h yes/no or multiple-choice holder votes on a space** |
 | `PLATFORM-AGENT-WORKER.md` | **Aeon / Hermes cron worker — platform-spaces loop, headers, internal APIs** |
 | `INSTANT-LINK-REPLIES.md` | Link questions — paste URL, no HTTP (read first for links) |
 | `GET-LINK.md` | GET /api/agent/link for unknown tickers |

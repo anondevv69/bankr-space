@@ -26,6 +26,17 @@ Users often say **community** or **space** interchangeably. Treat both as the sa
 
 **When replying:** prefer **space** in your wording (API `replyText` already uses "space").
 
+## The **Space** token (ticker) vs generic "space"
+
+| User means | Signal | Token |
+|------------|--------|-------|
+| **Bankr Space** product / any token space | "post in TMP space", "holder space" | resolve via briefing / search |
+| **`Space` / `$SPACE` token** | "vote on **Space**", "TMP space" vs capitalized **Space** alone as ticker | `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` |
+
+If the user says **"Start a vote on Space:"** with a question — they mean the **$Space** token community, **not** "which space do you mean?". Use `known-communities.json` → `SPACE` or contract `0xef703b…`.
+
+---
+
 ## What stays `community` (do not rename)
 
 These are **API / code names** — use exactly as documented:

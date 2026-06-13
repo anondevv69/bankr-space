@@ -116,10 +116,13 @@ Get `questionId` and `optionId` from `GET …/questions`. One vote per wallet; c
 **User says:**
 
 ```text
+@bankrbot start a yes/no vote on Space: should we continue to push updates?
 @bankrbot start a vote on TMP space: should we do a Dex boost?
 @bankrbot ask TMP holders yes or no: list on Aerodrome?
 @bankrbot poll BNKR space — marketing or product?
 ```
+
+**`Space` ticker:** `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` — when user says **"vote on Space:"** do **not** ask which space.
 
 **Steps:**
 
