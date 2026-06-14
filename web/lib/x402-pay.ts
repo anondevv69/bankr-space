@@ -4,11 +4,10 @@ import type { Address } from 'viem';
 import { toX402Signer } from '@/lib/x402-signer';
 import {
   SPACE_FUND_X402_CREDIT_USD,
-  X402_FUND_MAX_ATOMIC,
   X402_PAYMENT_TOKEN_ADDRESS,
   X402_PAYMENT_TOKEN_SYMBOL,
-  formatX402FundPriceLabel,
 } from '@/lib/x402-config';
+import { X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
 
 /** @deprecated use SPACE_FUND_X402_CREDIT_USD */
 export const SPACE_FUND_X402_MAX_USDC = SPACE_FUND_X402_CREDIT_USD;
@@ -127,9 +126,9 @@ export async function paySpaceFund(
     );
   }
 
-  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_ATOMIC) {
+  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
     throw new Error(
-      `Payment amount exceeds maximum allowed (${formatX402FundPriceLabel()} per click)`
+      `Payment authorization exceeds configured maximum — redeploy x402 fund service`
     );
   }
 
@@ -214,9 +213,9 @@ export async function payAgentPoolFund(
     );
   }
 
-  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_ATOMIC) {
+  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
     throw new Error(
-      `Payment amount exceeds maximum allowed (${formatX402FundPriceLabel()} per click)`
+      `Payment authorization exceeds configured maximum — redeploy x402 fund service`
     );
   }
 

@@ -2,14 +2,16 @@
 
 Optional **Bankr Space ($Space)** contributions toward DexScreener or custom goals. **Posts stay free.**
 
-Payment token: `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` (18 decimals). **1 Space per click** credits **$1 USD** toward the goal bar.
+Payment token: `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` (18 decimals). Each click settles **~$1 USD worth of $Space** at the current DexScreener price (via `upto` + `X-402-Settle-Amount` in the fund handler).
+
+**Authorize cap:** `price` in `bankr.x402.json` is the max Space a wallet may authorize per click (currently **250,000 Space**). Only the DexScreener-priced amount settles on-chain. If Space dumps far enough that $1 needs more than the cap, raise `price` and redeploy.
 
 ## Architecture
 
 ```text
 Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
      → x402.bankr.bot/{wallet}/fund?token=0x…&campaign=dex-profile&amount=1
-     → Bankr verifies $Space (Permit2) → runs fund handler → settles
+     → Bankr verifies $Space (Permit2 upto) → fund handler sets X-402-Settle-Amount → settles
      → fund handler returns 200 (no outbound fetch)
      → bankr.space proxy credits KV via applyFundraisingCredit()
      → progress bar updates on space page
@@ -17,7 +19,7 @@ Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
 
 There is **no** `/fund` route on bankr.space. The handler lives in `x402/fund/index.ts` and deploys to **Bankr x402 Cloud** (`bankr x402 deploy`).
 
-**Important:** Do not use plain token `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request (1 Space).
+**Important:** Do not use plain token `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request (~$1 worth of Space at spot).
 
 $Space settles through Bankr x402 (facilitator → your configured pay-to wallet). Dashboard **Pay To** is your earnings wallet; MetaMask shows the x402 facilitator contract on signature — expected.
 
