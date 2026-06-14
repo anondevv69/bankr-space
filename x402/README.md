@@ -19,6 +19,8 @@ Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
 
 There is **no** `/fund` route on bankr.space. The handler lives in `x402/fund/index.ts` and deploys to **Bankr x402 Cloud** (`bankr x402 deploy`).
 
+**Payment URL:** the proxy submits payment to the full fund URL **with** `?token=&campaign=&amount=` so the handler can return `X-402-Settle-Amount` (DexScreener-priced $Space). Without those query params, Bankr falls back to settling the full authorize cap.
+
 **Important:** Do not use plain token `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request (~$1 worth of Space at spot).
 
 $Space settles through Bankr x402 (facilitator → your configured pay-to wallet). Dashboard **Pay To** is your earnings wallet; MetaMask shows the x402 facilitator contract on signature — expected.

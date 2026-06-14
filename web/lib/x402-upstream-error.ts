@@ -48,11 +48,7 @@ export async function parseX402UpstreamErrorDetailed(
   paymentRequiredHeader?: string | null
 ): Promise<string> {
   const base = parseX402UpstreamError(data, headers);
-  const generic =
-    base.toLowerCase().includes('verification failed') ||
-    base === 'x402 payment failed';
-
-  if (!generic || !xPayment) return base;
+  if (!xPayment) return base;
 
   const detail = await verifyX402PaymentWithFacilitator(xPayment, paymentRequiredHeader);
   return detail || base;

@@ -1,6 +1,6 @@
 {
   "network": "base",
-  "currency": "Space",
+  "currency": "BankrSpace",
   "services": {
     "fund": {
       "description": "Contribute Bankr Space ($Space) to a community fundraiser on bankr.space",
