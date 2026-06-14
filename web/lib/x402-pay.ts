@@ -27,7 +27,11 @@ type PayResult = {
 
 function formatPayError(data: unknown, status: number): string {
   if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
-    return (data as { error: string }).error;
+    const err = (data as { error: string }).error;
+    if (err.toLowerCase().includes('already used')) {
+      return 'This payment signature was already submitted. Click Contribute again to sign a fresh payment.';
+    }
+    return err;
   }
   if (Array.isArray(data)) {
     const messages = data
