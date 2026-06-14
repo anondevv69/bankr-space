@@ -129,8 +129,8 @@ export function FundraisingWidget({
     const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
     setPayHint(
       count > 1
-        ? `Authorizing ${count} × ${priceLabel} via Bankr x402 — approve each wallet signature…`
-        : `Your wallet will authorize ${priceLabel} via Bankr x402 (Permit2).`
+        ? `Authorizing ${count} × ${priceLabel} via Bankr x402 — approve each wallet prompt within 60 seconds…`
+        : `Your wallet will authorize ${priceLabel} via Bankr x402 — approve within 60 seconds.`
     );
 
     try {

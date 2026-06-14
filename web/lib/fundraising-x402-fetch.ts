@@ -76,15 +76,18 @@ export async function fetchFundraisingX402Upstream(options: {
     : { Accept: 'application/json' };
 
   // Permit2 signatures are single-use — never retry payment on another URL with the same header.
+  // Pay on the base /fund path (matches signed resource.url); bankr.space credits KV locally.
   if (options.xPayment) {
-    const fundUrl =
-      options.pinFundUrl ||
-      buildSpaceFundUrl(
-        options.pinBaseUrl || primaryBase || fallbackBase!,
-        options.tokenAddress,
-        options.campaignId,
-        options.amountUsd
-      );
+    const fundBase =
+      options.pinBaseUrl?.replace(/\/$/, '') ||
+      (options.pinFundUrl ? fundBaseFromUrl(options.pinFundUrl) : null) ||
+      (primaryBase || fallbackBase)?.replace(/\/$/, '');
+    const fundUrl = fundBase || buildSpaceFundUrl(
+      primaryBase || fallbackBase!,
+      options.tokenAddress,
+      options.campaignId,
+      options.amountUsd
+    ).split('?')[0];
     try {
       const { upstream, data } = await fetchFundUrl(fundUrl, headers);
       return buildResult(upstream, data, fundUrl, Boolean(fallbackBase && fundBaseFromUrl(fundUrl) === fallbackBase.replace(/\/$/, '')));

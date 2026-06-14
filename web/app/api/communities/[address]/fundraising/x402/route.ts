@@ -4,7 +4,7 @@ import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
-import { parseX402UpstreamError } from '@/lib/x402-upstream-error';
+import { parseX402UpstreamErrorDetailed } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     xPayment?: string;
     pinFundBase?: string;
     pinFundUrl?: string;
+    pinPaymentRequiredHeader?: string;
   };
   try {
     body = await req.json();
@@ -39,6 +40,10 @@ export async function POST(req: Request, { params }: RouteParams) {
   const xPayment = typeof body.xPayment === 'string' ? body.xPayment.trim() : '';
   const pinFundBase = typeof body.pinFundBase === 'string' ? body.pinFundBase.trim() : '';
   const pinFundUrl = typeof body.pinFundUrl === 'string' ? body.pinFundUrl.trim() : '';
+  const pinPaymentRequiredHeader =
+    typeof body.pinPaymentRequiredHeader === 'string'
+      ? body.pinPaymentRequiredHeader.trim()
+      : '';
 
   if (!isBeneficiaryCampaignId(campaignId)) {
     return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
@@ -81,7 +86,12 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     if (upstream.status >= 400) {
-      const err = parseX402UpstreamError(data, upstream.headers);
+      const err = await parseX402UpstreamErrorDetailed(
+        data,
+        upstream.headers,
+        xPayment,
+        pinPaymentRequiredHeader || paymentRequiredHeader
+      );
       console.error('x402 upstream error', upstream.status, data, err);
       return NextResponse.json({ error: err }, { status: xPayment ? 400 : upstream.status });
     }
