@@ -34,6 +34,8 @@ cd "/Volumes/X9 Pro 1/community"
 
 If you don't have this repo, run `bankr x402 init` in an empty folder, then copy in `x402/fund/` and `x402/bankr.x402.json` from this project.
 
+**Deploy note:** Keep all handler code in `x402/fund/index.ts` (single file). Bankr’s bundler returns 500 if the handler uses `./` imports from sibling files.
+
 3. Set secrets:
 
 ```bash
