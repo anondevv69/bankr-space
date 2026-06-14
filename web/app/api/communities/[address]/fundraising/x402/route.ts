@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const tokenAddress = normalizeAddr(address);
   const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
 
-  let body: { campaignId?: string; amountUsd?: number; xPayment?: string };
+  let body: { campaignId?: string; amountUsd?: number; xPayment?: string; pinFundBase?: string };
   try {
     body = await req.json();
   } catch {
@@ -29,6 +29,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const campaignId = String(body.campaignId || 'dex-profile').trim();
   const amountUsd = Number(body.amountUsd);
   const xPayment = typeof body.xPayment === 'string' ? body.xPayment.trim() : '';
+  const pinFundBase = typeof body.pinFundBase === 'string' ? body.pinFundBase.trim() : '';
 
   if (!isBeneficiaryCampaignId(campaignId)) {
     return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
@@ -44,16 +45,20 @@ export async function POST(req: Request, { params }: RouteParams) {
       campaignId,
       amountUsd,
       xPayment: xPayment || undefined,
+      pinBaseUrl: pinFundBase || undefined,
     });
 
     if ('error' in fetched) {
       return NextResponse.json({ error: fetched.error }, { status: fetched.status });
     }
 
-    const { upstream, data, usedFallback } = fetched;
+    const { upstream, data, usedFallback, fundBase } = fetched;
 
     if (!xPayment && upstream.status === 402) {
-      return NextResponse.json({ requiresPayment: true, ...data, x402UsedFallback: usedFallback }, { status: 200 });
+      return NextResponse.json(
+        { requiresPayment: true, ...data, x402UsedFallback: usedFallback, x402FundBase: fundBase },
+        { status: 200 }
+      );
     }
 
     if (!xPayment) {
@@ -66,7 +71,7 @@ export async function POST(req: Request, { params }: RouteParams) {
           ? data.error
           : `x402 payment failed (${upstream.status})`;
       console.error('x402 upstream error', upstream.status, data);
-      return NextResponse.json({ error: err }, { status: upstream.status });
+      return NextResponse.json({ error: err }, { status: xPayment ? 400 : upstream.status });
     }
 
     const handlerCredited =

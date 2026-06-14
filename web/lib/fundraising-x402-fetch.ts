@@ -10,6 +10,7 @@ export type FundraisingX402FetchResult = {
   upstream: Response;
   data: Record<string, unknown>;
   fundUrl: string;
+  fundBase: string;
   usedFallback: boolean;
 };
 
@@ -19,9 +20,11 @@ export async function fetchFundraisingX402Upstream(options: {
   campaignId: string;
   amountUsd: number;
   xPayment?: string;
+  /** When set, quote and payment must hit the same x402 base (Permit2 witness is URL-bound). */
+  pinBaseUrl?: string | null;
 }): Promise<FundraisingX402FetchResult | { error: string; status: number }> {
   const primaryBase = buildFundraisingX402BaseUrl(options.beneficiaryWallet);
-  if (!primaryBase) {
+  if (!primaryBase && !options.pinBaseUrl) {
     return {
       error: 'x402 fundraising is not available — fee recipient wallet not found',
       status: 503,
@@ -29,7 +32,12 @@ export async function fetchFundraisingX402Upstream(options: {
   }
 
   const fallbackBase = buildFundraisingX402FallbackBaseUrl();
-  const bases = [primaryBase, ...(fallbackBase && fallbackBase !== primaryBase ? [fallbackBase] : [])];
+  const bases = options.pinBaseUrl
+    ? [options.pinBaseUrl]
+    : [
+        primaryBase || fallbackBase!,
+        ...(fallbackBase && primaryBase && fallbackBase !== primaryBase ? [fallbackBase] : []),
+      ].filter(Boolean) as string[];
 
   const headers: HeadersInit = { Accept: 'application/json' };
   if (options.xPayment) {
@@ -56,22 +64,33 @@ export async function fetchFundraisingX402Upstream(options: {
         data = { error: text.slice(0, 200) || 'Non-JSON response from x402' };
       }
 
-      const usedFallback = i > 0;
+      const usedFallback = Boolean(
+        !options.pinBaseUrl && i > 0 && fallbackBase && baseUrl === fallbackBase
+      );
       const shouldRetry =
+        !options.pinBaseUrl &&
         i === 0 &&
         bases.length > 1 &&
         (isX402EndpointNotFound(upstream.status, data) ||
-          shouldRetrySpaceFundX402(upstream.status, data));
+          shouldRetrySpaceFundX402(upstream.status, data) ||
+          (options.xPayment && shouldRetryX402Payment(upstream.status, data)));
 
       if (shouldRetry) {
         console.warn(
-          'fundraising x402 primary endpoint unavailable or legacy USDC — retrying shared Space fund URL',
+          'fundraising x402 retrying shared Space fund URL',
+          options.xPayment ? 'payment mismatch' : 'legacy or missing endpoint',
           fundUrl
         );
         continue;
       }
 
-      return { upstream, data, fundUrl, usedFallback };
+      return {
+        upstream,
+        data,
+        fundUrl,
+        fundBase: baseUrl,
+        usedFallback,
+      };
     } catch (err) {
       console.error('fundraising x402 fetch', fundUrl, err);
       if (i === bases.length - 1) {
@@ -81,4 +100,15 @@ export async function fetchFundraisingX402Upstream(options: {
   }
 
   return { error: 'Failed to reach x402 fund endpoint', status: 502 };
+}
+
+function shouldRetryX402Payment(status: number, data: Record<string, unknown>): boolean {
+  if (status === 402) return true;
+  const err = String(data.error || '').toLowerCase();
+  return (
+    err.includes('already used') ||
+    err.includes('invalid payment') ||
+    err.includes('payment required') ||
+    err.includes('unexpected payment')
+  );
 }
