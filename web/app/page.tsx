@@ -148,7 +148,7 @@ export default function HomePage() {
     0;
 
   return (
-    <div className={`max-w-[1100px] mx-auto px-5 pb-16 ${embed.isEmbedded ? 'pt-4' : ''}`}>
+    <div className={`max-w-[1100px] mx-auto px-4 sm:px-5 pb-16 ${embed.isEmbedded ? 'pt-4' : ''}`}>
       <Header syncUpdatedAt={syncAt} />
 
       <section>

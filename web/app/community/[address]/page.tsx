@@ -192,7 +192,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-5 pb-16">
+    <div className="max-w-[1100px] mx-auto px-4 sm:px-5 pb-16">
       <Header backHref="/" />
 
       <CommunityProfile

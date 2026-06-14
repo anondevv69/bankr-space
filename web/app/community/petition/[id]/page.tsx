@@ -172,7 +172,7 @@ export default function PetitionSpacePage({ params }: { params: { id: string } }
     : undefined;
 
   return (
-    <div className="max-w-[1100px] mx-auto px-5 pb-16">
+    <div className="max-w-[1100px] mx-auto px-4 sm:px-5 pb-16">
       <Header backHref="/" />
 
       <div className="mb-6 p-5 rounded-xl border border-border bg-surface space-y-3">
