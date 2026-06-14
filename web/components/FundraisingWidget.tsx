@@ -139,7 +139,13 @@ export function FundraisingWidget({
         if (count > 1) {
           setPayHint(`Payment ${i + 1} of ${count} — approve ${priceLabel} in your wallet…`);
         }
-        last = await paySpaceFund(address, tokenAddress, campaignId, SPACE_FUND_X402_CREDIT_USD);
+        last = await paySpaceFund(
+          address,
+          tokenAddress,
+          campaignId,
+          SPACE_FUND_X402_CREDIT_USD,
+          setPayHint
+        );
         if (!last.success) {
           setPayHint(last.error || `Payment ${i + 1} did not complete.`);
           break;

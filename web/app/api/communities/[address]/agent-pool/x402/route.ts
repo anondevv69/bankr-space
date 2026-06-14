@@ -3,6 +3,7 @@ import { applyAgentPoolCredit } from '@/lib/apply-agent-pool-credit';
 import { agentPoolX402CampaignId, parseAgentPoolX402CampaignId } from '@/lib/agent-pool';
 import { fetchAgentPoolX402Upstream } from '@/lib/agent-pool-x402-fetch';
 import { enrichX402QuoteBody } from '@/lib/x402-quote-response';
+import { parseX402UpstreamError } from '@/lib/x402-upstream-error';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
@@ -71,11 +72,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: fetched.error }, { status: fetched.status });
   }
 
-  const { upstream, data, usedFallback, fundUrl } = fetched;
+  const { upstream, data, usedFallback, fundUrl, fundBase } = fetched;
 
   if (!xPayment && upstream.status === 402) {
     return NextResponse.json(
-      { requiresPayment: true, ...enrichX402QuoteBody(data, fundUrl) },
+      { requiresPayment: true, ...enrichX402QuoteBody(data, { fundUrl, fundBase }) },
       { status: 200 }
     );
   }
@@ -85,11 +86,8 @@ export async function POST(req: Request, { params }: RouteParams) {
   }
 
   if (upstream.status >= 400) {
-    const err =
-      typeof data.error === 'string'
-        ? data.error
-        : `x402 payment failed (${upstream.status})`;
-    console.error('agent-pool x402 upstream error', upstream.status, data);
+    const err = parseX402UpstreamError(data, upstream.headers);
+    console.error('agent-pool x402 upstream error', upstream.status, data, err);
     return NextResponse.json({ error: err }, { status: 400 });
   }
 

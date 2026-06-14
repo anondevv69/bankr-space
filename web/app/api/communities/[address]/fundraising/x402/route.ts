@@ -4,6 +4,7 @@ import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { enrichX402QuoteBody } from '@/lib/x402-quote-response';
+import { parseX402UpstreamError } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -59,7 +60,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json(
         {
           requiresPayment: true,
-          ...enrichX402QuoteBody(data, fundUrl),
+          ...enrichX402QuoteBody(data, { fundUrl, fundBase }),
           x402UsedFallback: usedFallback,
           x402FundBase: fundBase,
         },
@@ -72,11 +73,8 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     if (upstream.status >= 400) {
-      const err =
-        typeof data.error === 'string'
-          ? data.error
-          : `x402 payment failed (${upstream.status})`;
-      console.error('x402 upstream error', upstream.status, data);
+      const err = parseX402UpstreamError(data, upstream.headers);
+      console.error('x402 upstream error', upstream.status, data, err);
       return NextResponse.json({ error: err }, { status: xPayment ? 400 : upstream.status });
     }
 

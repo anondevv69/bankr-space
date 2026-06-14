@@ -12,6 +12,7 @@ export type AgentPoolX402FetchResult = {
   text: string;
   data: Record<string, unknown>;
   fundUrl: string;
+  fundBase: string;
   usedFallback: boolean;
 };
 
@@ -71,7 +72,7 @@ export async function fetchAgentPoolX402Upstream(options: {
         continue;
       }
 
-      return { upstream, text, data, fundUrl, usedFallback };
+      return { upstream, text, data, fundUrl, fundBase: baseUrl, usedFallback };
     } catch (err) {
       console.error('agent-pool x402 fetch', fundUrl, err);
       if (i === bases.length - 1) {
