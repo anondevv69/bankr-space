@@ -12,8 +12,6 @@ import { FundraisersPanel } from '@/components/FundraisersPanel';
 import { PetitionBackersPanel } from '@/components/PetitionBackersPanel';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
-import { hasVisibleFundraising } from '@/lib/fundraising';
-import { hasAgentPoolHistory, hasPublicAgentPool } from '@/lib/agent-pool';
 import { isSiteAdminWallet } from '@/lib/site-admin';
 import type { BeneficiaryInfo, Community, Post } from '@/lib/types';
 import { apiFetch } from '@/lib/wagmi';
@@ -171,17 +169,6 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const canDeleteSpace =
     isSiteAdmin && community && !isNativeSpaceCommunity(community.tokenAddress);
 
-  const showFundraisersTab =
-    hasVisibleFundraising(community.fundraising) ||
-    (community.usePlatformAgent &&
-      community.verified &&
-      (hasPublicAgentPool(community.agentPool) || hasAgentPoolHistory(community.agentPool)));
-
-  const showAgentPoolFundraisers =
-    !!community.usePlatformAgent &&
-    community.verified &&
-    (hasPublicAgentPool(community.agentPool) || hasAgentPoolHistory(community.agentPool));
-
   const fundraisersRefreshKey = `${JSON.stringify(community.fundraising?.campaigns)}-${JSON.stringify(community.agentPool?.campaigns)}`;
 
   async function deleteSpace() {
@@ -329,8 +316,6 @@ export default function CommunityPage({ params }: { params: { address: string } 
             onUpdate={load}
             canCreateQuestion={!!holder?.canCreateQuestion}
             canVoteOnQuestion={!!holder?.canVoteOnQuestion}
-            showFundraisersTab={showFundraisersTab}
-            showAgentPoolFundraisers={showAgentPoolFundraisers}
             fundraisersRefreshKey={fundraisersRefreshKey}
           />
         </div>

@@ -456,8 +456,6 @@ export function PostFeed({
   hideExtraTabs,
   canCreateQuestion,
   canVoteOnQuestion,
-  showFundraisersTab,
-  showAgentPoolFundraisers,
   fundraisersRefreshKey,
 }: {
   tokenAddress: string;
@@ -473,9 +471,6 @@ export function PostFeed({
   hideExtraTabs?: boolean;
   canCreateQuestion?: boolean;
   canVoteOnQuestion?: boolean;
-  /** Show Fundraisers tab (open or completed beneficiary goals, and/or agent pool). */
-  showFundraisersTab?: boolean;
-  showAgentPoolFundraisers?: boolean;
   fundraisersRefreshKey?: string;
 }) {
   const { address } = useAppWallet();
@@ -531,11 +526,11 @@ export function PostFeed({
         : [
             POSTS_TAB,
             VOTES_TAB,
-            ...(showFundraisersTab ? [FUNDRAISERS_TAB] : []),
+            FUNDRAISERS_TAB,
             BOUNTIES_TAB,
             ...(hasJobs ? [JOBS_TAB] : []),
           ],
-    [hasJobs, hideExtraTabs, showFundraisersTab]
+    [hasJobs, hideExtraTabs]
   );
 
   const visiblePosts = useMemo(() => {
@@ -649,7 +644,6 @@ export function PostFeed({
         <FundraisingTabPanel
           tokenAddress={tokenAddress}
           symbol={tokenSymbol}
-          showAgentPool={showAgentPoolFundraisers}
           refreshKey={fundraisersRefreshKey}
         />
       ) : isBounties ? (

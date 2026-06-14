@@ -208,6 +208,19 @@ export function hasAgentPoolHistory(state: AgentPoolState | undefined | null): b
   return state.campaigns.some((c) => c.enabled && c.raisedUsd > 0);
 }
 
+/** Agent pool goals that met target or finished execution — for Fundraisers tab history. */
+export function completedAgentPoolCampaignsForTab(
+  state: AgentPoolState | undefined | null
+): AgentPoolCampaign[] {
+  if (!state?.optedIn) return [];
+  return state.campaigns.filter(
+    (c) =>
+      AGENT_POOL_SKILL_IDS.includes(c.skillId) &&
+      c.raisedUsd > 0 &&
+      (isAgentPoolCampaignFunded(c) || Boolean(c.executedAt))
+  );
+}
+
 export function agentPoolCampaignProgress(campaign: AgentPoolCampaign): number {
   if (campaign.goalUsd <= 0) return 0;
   return Math.min(100, (campaign.raisedUsd / campaign.goalUsd) * 100);
