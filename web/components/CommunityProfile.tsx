@@ -357,7 +357,7 @@ export function CommunityProfile({
         }
         return current.map((c) => {
           if (c.id === id) return { ...c, ...patch, enabled: true };
-          if (c.enabled && !isCampaignFunded(c) && c.raisedUsd === 0) {
+          if (c.enabled && (isCampaignFunded(c) || c.raisedUsd === 0)) {
             return { ...c, enabled: false };
           }
           return c;
@@ -875,7 +875,7 @@ export function CommunityProfile({
               {canEditFundraising ? (
                 <EditSection
                   title="Fundraising campaigns"
-                  hint="Fee recipient only. One open fundraiser at a time. Once contributors pay in, the goal cannot be closed until it is met."
+                  hint="Fee recipient only. One open fundraiser at a time. Once contributors pay in, the goal cannot be closed until it is met — unless the goal is already reached."
                 >
                   <div className="space-y-3">
                     {fundraisingCampaigns.map((campaign) => (
@@ -905,9 +905,15 @@ export function CommunityProfile({
                               ${campaign.raisedUsd.toLocaleString()} raised · goal $
                               {campaign.goalUsd.toLocaleString()}
                             </span>
-                            {isBeneficiaryCampaignLocked(campaign) ? (
+                            {isCampaignFunded(campaign) ? (
+                              <span className="block text-[11px] text-green-600 dark:text-green-400 mt-1">
+                                Goal met — uncheck to close, or enable another fundraiser to replace
+                                this one.
+                              </span>
+                            ) : isBeneficiaryCampaignLocked(campaign) ? (
                               <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                                Locked — contributors have paid in; cannot close until goal is met.
+                                Locked — ${campaign.raisedUsd.toLocaleString()} raised. Lower goal to
+                                that amount to mark complete, or raise until the goal is met.
                               </span>
                             ) : null}
                           </span>

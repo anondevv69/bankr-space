@@ -16,13 +16,15 @@ export function isGoalFunded(raisedUsd: number, goalUsd: number): boolean {
   return goalUsd > 0 && raisedUsd >= goalUsd;
 }
 
-/** Active fundraiser with contributions — cannot be closed until goal is met. */
+/** Active fundraiser with contributions still below goal — cannot be closed until met. */
 export function isFundraiserLocked(
   raisedUsd: number,
   goalUsd: number,
   enabled: boolean
 ): boolean {
-  return enabled && raisedUsd > 0 && !isGoalFunded(raisedUsd, goalUsd);
+  if (!enabled) return false;
+  if (isGoalFunded(raisedUsd, goalUsd)) return false;
+  return raisedUsd > 0;
 }
 
 export function isBeneficiaryCampaignLocked(campaign: FundraisingCampaign): boolean {
