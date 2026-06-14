@@ -27,11 +27,14 @@ export function Header({
 
   if (backHref) {
     return (
-      <header className="mb-7 pt-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+      <header className="mb-4 sm:mb-7 pt-2 sm:pt-4">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <SiteLogo size={32} />
-            <Link href={backHref} className="text-sm text-muted hover:text-text">
+            <Link
+              href={backHref}
+              className="hidden sm:inline text-sm text-muted hover:text-text"
+            >
               ← Back to spaces
             </Link>
           </div>
@@ -42,25 +45,27 @@ export function Header({
   }
 
   return (
-    <header className="mb-7">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
+    <header className="mb-4 sm:mb-7">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-2 sm:gap-3 min-w-0">
           <SiteLogo size={40} />
           <div className="min-w-0">
             {!embed.isEmbedded ? (
               <>
-                <h1 className="text-[26px] font-bold tracking-tight leading-tight">Bankr Space</h1>
-                <p className="text-muted text-sm mt-1">
+                <h1 className="text-xl sm:text-[26px] font-bold tracking-tight leading-tight">
+                  Bankr Space
+                </h1>
+                <p className="hidden sm:block text-muted text-sm mt-1">
                   Token-gated spaces for Bankr-launched tokens
                 </p>
                 {syncUpdatedAt ? (
-                  <p className="text-muted text-xs mt-1">
+                  <p className="hidden sm:block text-muted text-xs mt-1">
                     Last synced: {formatTime(syncUpdatedAt)}
                   </p>
                 ) : null}
               </>
             ) : (
-              <p className="text-muted text-sm pt-2">
+              <p className="text-muted text-sm pt-1 sm:pt-2">
                 Bankr Space — wallet via Bankr sign-in
               </p>
             )}
