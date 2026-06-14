@@ -53,10 +53,10 @@ export interface PinnedPost {
   pinnedAt: number;
 }
 
-export type FundraisingCampaignId = 'dex-profile' | 'dex-boost' | 'custom';
+export type FundraisingCampaignId = 'dex-profile' | 'dex-boost' | 'custom' | (string & {});
 
 export interface FundraisingCampaign {
-  id: FundraisingCampaignId;
+  id: string;
   label: string;
   goalUsd: number;
   raisedUsd: number;

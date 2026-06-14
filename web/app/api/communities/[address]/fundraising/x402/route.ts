@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
-import { buildSpaceFundUrl, type CampaignId } from '@/lib/fundraising';
+import { buildSpaceFundUrl, isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
@@ -9,8 +9,6 @@ import { normalizeAddr } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 type RouteParams = { params: Promise<{ address: string }> };
-
-const CAMPAIGN_IDS: CampaignId[] = ['dex-profile', 'dex-boost', 'custom'];
 
 /**
  * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send X-PAYMENT
@@ -40,11 +38,11 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const campaignId = String(body.campaignId || 'dex-profile').trim() as CampaignId;
+  const campaignId = String(body.campaignId || 'dex-profile').trim();
   const amountUsd = Number(body.amountUsd);
   const xPayment = typeof body.xPayment === 'string' ? body.xPayment.trim() : '';
 
-  if (!CAMPAIGN_IDS.includes(campaignId)) {
+  if (!isBeneficiaryCampaignId(campaignId)) {
     return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
   }
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {

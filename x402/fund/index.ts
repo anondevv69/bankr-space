@@ -65,6 +65,14 @@ async function fetchSpacePriceUsd(): Promise<number | null> {
   }
 }
 
+function isValidFundCampaignId(campaignId: string): boolean {
+  if (campaignId === 'dex-profile' || campaignId === 'dex-boost' || campaignId === 'custom') {
+    return true;
+  }
+  if (/^custom-[a-z0-9-]+$/i.test(campaignId)) return true;
+  return campaignId === 'agent-qrcoin' || campaignId === 'agent-0xwork';
+}
+
 export default async function handler(req: Request): Promise<Response> {
   try {
     const url = parseRequestUrl(req);
@@ -83,7 +91,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    if (!['dex-profile', 'dex-boost', 'custom', 'agent-qrcoin', 'agent-0xwork'].includes(campaignId)) {
+    if (!isValidFundCampaignId(campaignId)) {
       return jsonResponse({
         success: false,
         token,
