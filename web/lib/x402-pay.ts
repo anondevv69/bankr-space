@@ -3,6 +3,7 @@ import type { PaymentRequired } from '@x402/core/types';
 import { ExactEvmScheme, UptoEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
+import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import {
   SPACE_FUND_X402_CREDIT_USD,
   X402_PAYMENT_TOKEN_ADDRESS,
@@ -50,7 +51,7 @@ function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
           account: walletAddress,
           domain: message.domain,
           types: message.types,
-          primaryType: message.primaryType as 'PermitTransferFrom',
+          primaryType: message.primaryType as 'PermitWitnessTransferFrom',
           message: message.message,
         }),
     },
@@ -71,8 +72,8 @@ function toPaymentRequired(data: unknown): PaymentRequired {
   const rawAccepts = body.accepts as Record<string, unknown>[];
   const firstAccept = rawAccepts[0];
   const resourceUrl =
-    typeof body.x402FundUrl === 'string'
-      ? body.x402FundUrl
+    typeof body.x402ResourceUrl === 'string'
+      ? body.x402ResourceUrl
       : body.resource &&
           typeof body.resource === 'object' &&
           'url' in (body.resource as object)
@@ -154,13 +155,31 @@ async function proxyAgentPoolX402(
 async function signAndPay(
   walletAddress: Address,
   quoteData: unknown,
-  retry: (paymentHeader: string, pinFundBase?: string) => Promise<{ status: number; data: unknown }>
+  retry: (paymentHeader: string, pinFundBase?: string) => Promise<{ status: number; data: unknown }>,
+  onProgress?: (message: string) => void
 ): Promise<PayResult> {
   const paymentRequired = assertSpacePaymentQuote(quoteData);
   const pinFundBase =
     typeof (quoteData as { x402FundBase?: string }).x402FundBase === 'string'
       ? (quoteData as { x402FundBase: string }).x402FundBase
       : undefined;
+  const selected = paymentRequired.accepts.find(
+    (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
+  );
+  const authorizeAmount = selected ? BigInt(selected.amount) : X402_FUND_MAX_AUTHORIZE_ATOMIC;
+
+  onProgress?.('Checking Permit2 allowance for $Space…');
+  const allowance = await ensurePermit2TokenAllowance(
+    walletAddress,
+    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    authorizeAmount
+  );
+  if (allowance === 'approved') {
+    onProgress?.('Permit2 approved — sign the contribution in your wallet…');
+  } else {
+    onProgress?.('Sign the Permit2 contribution in your wallet…');
+  }
+
   const httpClient = createPaymentHttpClient(walletAddress);
   const payload = await httpClient.createPaymentPayload(paymentRequired);
   const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
@@ -185,7 +204,8 @@ export async function paySpaceFund(
   walletAddress: Address,
   tokenAddress: string,
   campaignId: string,
-  amountUsd: number
+  amountUsd: number,
+  onProgress?: (message: string) => void
 ): Promise<PayResult> {
   const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
 
@@ -198,8 +218,12 @@ export async function paySpaceFund(
     return data as PayResult;
   }
 
-  return signAndPay(walletAddress, data, (xPayment, pinFundBase) =>
-    proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase)
+  return signAndPay(
+    walletAddress,
+    data,
+    (xPayment, pinFundBase) =>
+      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase),
+    onProgress
   );
 }
 
@@ -208,7 +232,8 @@ export async function payAgentPoolFund(
   walletAddress: Address,
   tokenAddress: string,
   skillId: string,
-  amountUsd: number
+  amountUsd: number,
+  onProgress?: (message: string) => void
 ): Promise<PayResult> {
   const { status, data } = await proxyAgentPoolX402(tokenAddress, skillId, amountUsd);
 
@@ -221,7 +246,10 @@ export async function payAgentPoolFund(
     return data as PayResult;
   }
 
-  return signAndPay(walletAddress, data, (xPayment) =>
-    proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment)
+  return signAndPay(
+    walletAddress,
+    data,
+    (xPayment) => proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment),
+    onProgress
   );
 }
