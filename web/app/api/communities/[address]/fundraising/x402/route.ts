@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
-import { buildSpaceFundUrl, isBeneficiaryCampaignId } from '@/lib/fundraising';
+import { isBeneficiaryCampaignId } from '@/lib/fundraising';
+import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
-import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -13,23 +13,11 @@ type RouteParams = { params: Promise<{ address: string }> };
 /**
  * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send X-PAYMENT
  * cross-origin to x402.bankr.bot (CORS preflight fails on 402).
- *
- * After x402 verifies $Space payment and the fund handler returns 200,
- * credit fundraising here (Vercel KV). The x402 Cloud handler intentionally does
- * not fetch bankr.space — that fetch crashed Bun with "fetch() did not return a Response".
  */
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
   const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
-  const x402BaseUrl = buildFundraisingX402BaseUrl(beneficiaryWallet);
-
-  if (!x402BaseUrl) {
-    return NextResponse.json(
-      { error: 'x402 fundraising is not available — fee recipient wallet not found' },
-      { status: 503 }
-    );
-  }
 
   let body: { campaignId?: string; amountUsd?: number; xPayment?: string };
   try {
@@ -49,25 +37,23 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'amountUsd must be a positive number' }, { status: 400 });
   }
 
-  const fundUrl = buildSpaceFundUrl(x402BaseUrl, tokenAddress, campaignId, amountUsd);
-  const headers: HeadersInit = { Accept: 'application/json' };
-  if (xPayment) {
-    headers['X-PAYMENT'] = xPayment;
-    headers['Access-Control-Expose-Headers'] = 'X-PAYMENT-RESPONSE';
-  }
-
   try {
-    const upstream = await fetch(fundUrl, { headers, cache: 'no-store' });
-    const text = await upstream.text();
-    let data: Record<string, unknown> = {};
-    try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch {
-      data = { error: text.slice(0, 200) || 'Non-JSON response from x402' };
+    const fetched = await fetchFundraisingX402Upstream({
+      beneficiaryWallet,
+      tokenAddress,
+      campaignId,
+      amountUsd,
+      xPayment: xPayment || undefined,
+    });
+
+    if ('error' in fetched) {
+      return NextResponse.json({ error: fetched.error }, { status: fetched.status });
     }
 
+    const { upstream, data, usedFallback } = fetched;
+
     if (!xPayment && upstream.status === 402) {
-      return NextResponse.json({ requiresPayment: true, ...data }, { status: 200 });
+      return NextResponse.json({ requiresPayment: true, ...data, x402UsedFallback: usedFallback }, { status: 200 });
     }
 
     if (!xPayment) {
@@ -83,7 +69,6 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: err }, { status: upstream.status });
     }
 
-    // Legacy handler credited KV (raisedUsd > 0). New handler returns raisedUsd: 0 — credit below.
     const handlerCredited =
       data.success === true &&
       Number(data.raisedUsd) > 0 &&
@@ -119,6 +104,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       raisedUsd: credit.raisedUsd,
       goalUsd: credit.goalUsd,
       funded: credit.funded,
+      x402UsedFallback: usedFallback,
       spaceUrl: `https://www.bankr.space/community/${tokenAddress}`,
     });
   } catch (err) {

@@ -1,35 +1,34 @@
 import { buildSpaceFundUrl } from '@/lib/fundraising';
 import {
-  buildAgentPoolX402BaseUrl,
-  buildAgentPoolX402FallbackBaseUrl,
+  buildFundraisingX402BaseUrl,
+  buildFundraisingX402FallbackBaseUrl,
   isX402EndpointNotFound,
 } from '@/lib/x402-fund-url';
 import { shouldRetrySpaceFundX402 } from '@/lib/x402-upstream';
 
-export type AgentPoolX402FetchResult = {
+export type FundraisingX402FetchResult = {
   upstream: Response;
-  text: string;
   data: Record<string, unknown>;
   fundUrl: string;
   usedFallback: boolean;
 };
 
-export async function fetchAgentPoolX402Upstream(options: {
-  platformAgentWallet: string | null;
+export async function fetchFundraisingX402Upstream(options: {
+  beneficiaryWallet: string | null;
   tokenAddress: string;
   campaignId: string;
   amountUsd: number;
   xPayment?: string;
-}): Promise<AgentPoolX402FetchResult | { error: string; status: number }> {
-  const primaryBase = buildAgentPoolX402BaseUrl(options.platformAgentWallet);
+}): Promise<FundraisingX402FetchResult | { error: string; status: number }> {
+  const primaryBase = buildFundraisingX402BaseUrl(options.beneficiaryWallet);
   if (!primaryBase) {
     return {
-      error: 'Community agent pool unavailable — x402 fund URL not configured',
+      error: 'x402 fundraising is not available — fee recipient wallet not found',
       status: 503,
     };
   }
 
-  const fallbackBase = buildAgentPoolX402FallbackBaseUrl();
+  const fallbackBase = buildFundraisingX402FallbackBaseUrl();
   const bases = [primaryBase, ...(fallbackBase && fallbackBase !== primaryBase ? [fallbackBase] : [])];
 
   const headers: HeadersInit = { Accept: 'application/json' };
@@ -66,15 +65,15 @@ export async function fetchAgentPoolX402Upstream(options: {
 
       if (shouldRetry) {
         console.warn(
-          'agent-pool x402 primary endpoint 404, retrying shared fund URL',
+          'fundraising x402 primary endpoint unavailable or legacy USDC — retrying shared Space fund URL',
           fundUrl
         );
         continue;
       }
 
-      return { upstream, text, data, fundUrl, usedFallback };
+      return { upstream, data, fundUrl, usedFallback };
     } catch (err) {
-      console.error('agent-pool x402 fetch', fundUrl, err);
+      console.error('fundraising x402 fetch', fundUrl, err);
       if (i === bases.length - 1) {
         return { error: 'Failed to reach x402 fund endpoint', status: 502 };
       }

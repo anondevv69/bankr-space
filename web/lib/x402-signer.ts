@@ -1,5 +1,5 @@
-import type { Signer } from 'x402/types';
 import {
+  createPublicClient,
   createWalletClient,
   custom,
   type Address,
@@ -29,6 +29,23 @@ export function createBrowserPaymentWalletClient(address: Address): WalletClient
     chain: base,
     transport: custom(getBrowserProvider()),
   });
+}
+
+/** Wallet + public client for @x402/evm Permit2 reads and typed-data signing. */
+export function createEvmPaymentSigner(address: Address) {
+  const provider = getBrowserProvider();
+  const transport = custom(provider);
+  return {
+    walletClient: createWalletClient({
+      account: address,
+      chain: base,
+      transport,
+    }),
+    publicClient: createPublicClient({
+      chain: base,
+      transport,
+    }),
+  };
 }
 
 type AuthorizationTypedData = {
@@ -61,12 +78,8 @@ async function signUsdcAuthorization(
   return signature as Hex;
 }
 
-/**
- * x402's isSignerWallet path expects signTypedData on a viem WalletClient prototype.
- * Wagmi clients often fail that check in production bundles, so use an account-shaped
- * signer (no chain/transport) that x402 routes through signTypedData directly.
- */
-export function toX402Signer(address: Address): Signer {
+/** @deprecated legacy x402 v1 signer — use createEvmPaymentSigner with @x402/evm instead */
+export function toX402Signer(address: Address) {
   const unsupported = async () => {
     throw new Error('Unsupported signing method');
   };
@@ -78,5 +91,5 @@ export function toX402Signer(address: Address): Signer {
     signMessage: unsupported,
     signTransaction: unsupported,
     signTypedData: (data: AuthorizationTypedData) => signUsdcAuthorization(address, data),
-  } as unknown as Signer;
+  };
 }
