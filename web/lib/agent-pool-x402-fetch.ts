@@ -5,6 +5,7 @@ import {
   isX402EndpointNotFound,
 } from '@/lib/x402-fund-url';
 import { shouldRetrySpaceFundX402 } from '@/lib/x402-upstream';
+import { x402ProxyPaymentHeaders } from '@/lib/x402-proxy-headers';
 
 export type AgentPoolX402FetchResult = {
   upstream: Response;
@@ -32,11 +33,9 @@ export async function fetchAgentPoolX402Upstream(options: {
   const fallbackBase = buildAgentPoolX402FallbackBaseUrl();
   const bases = [primaryBase, ...(fallbackBase && fallbackBase !== primaryBase ? [fallbackBase] : [])];
 
-  const headers: HeadersInit = { Accept: 'application/json' };
-  if (options.xPayment) {
-    headers['X-PAYMENT'] = options.xPayment;
-    headers['Access-Control-Expose-Headers'] = 'X-PAYMENT-RESPONSE';
-  }
+  const headers: HeadersInit = options.xPayment
+    ? x402ProxyPaymentHeaders(options.xPayment)
+    : { Accept: 'application/json' };
 
   for (let i = 0; i < bases.length; i++) {
     const baseUrl = bases[i];
