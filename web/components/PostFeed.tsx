@@ -23,11 +23,12 @@ import { PostSourceBadge } from './PostSourceBadge';
 import { CommunityJobsPanel } from '@/components/CommunityJobsPanel';
 import { TokenBountiesPanel } from '@/components/TokenBountiesPanel';
 import { QuestionsPanel } from '@/components/QuestionsPanel';
+import { FundraisingTabPanel } from '@/components/FundraisingTabPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs';
+type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs' | 'fundraisers';
 
 const POST_SUB_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'all', label: 'All', icon: '' },
@@ -40,6 +41,8 @@ const POSTS_TAB = { id: 'posts' as const, label: 'Posts', icon: '' };
 const VOTES_TAB = { id: 'questions' as const, label: 'Votes', icon: '🗳️' };
 
 const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' };
+
+const FUNDRAISERS_TAB = { id: 'fundraisers' as const, label: 'Fundraisers', icon: '💰' };
 
 const JOBS_TAB = { id: 'oxjobs' as const, label: 'Jobs', icon: '💼' };
 
@@ -453,6 +456,9 @@ export function PostFeed({
   hideExtraTabs,
   canCreateQuestion,
   canVoteOnQuestion,
+  showFundraisersTab,
+  showAgentPoolFundraisers,
+  fundraisersRefreshKey,
 }: {
   tokenAddress: string;
   tokenSymbol: string;
@@ -467,6 +473,10 @@ export function PostFeed({
   hideExtraTabs?: boolean;
   canCreateQuestion?: boolean;
   canVoteOnQuestion?: boolean;
+  /** Show Fundraisers tab (open or completed beneficiary goals, and/or agent pool). */
+  showFundraisersTab?: boolean;
+  showAgentPoolFundraisers?: boolean;
+  fundraisersRefreshKey?: string;
 }) {
   const { address } = useAppWallet();
   const [section, setSection] = useState<FeedSection>('posts');
@@ -475,6 +485,7 @@ export function PostFeed({
   const isPosts = section === 'posts';
   const isOxJobs = section === 'oxjobs';
   const isBounties = section === 'bounties';
+  const isFundraisers = section === 'fundraisers';
   const isQuestions = section === 'questions';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -517,8 +528,14 @@ export function PostFeed({
     () =>
       hideExtraTabs
         ? []
-        : [POSTS_TAB, VOTES_TAB, BOUNTIES_TAB, ...(hasJobs ? [JOBS_TAB] : [])],
-    [hasJobs, hideExtraTabs]
+        : [
+            POSTS_TAB,
+            VOTES_TAB,
+            ...(showFundraisersTab ? [FUNDRAISERS_TAB] : []),
+            BOUNTIES_TAB,
+            ...(hasJobs ? [JOBS_TAB] : []),
+          ],
+    [hasJobs, hideExtraTabs, showFundraisersTab]
   );
 
   const visiblePosts = useMemo(() => {
@@ -627,6 +644,13 @@ export function PostFeed({
           tokenAddress={tokenAddress}
           canCreate={!!canCreateQuestion}
           canVote={!!canVoteOnQuestion}
+        />
+      ) : isFundraisers ? (
+        <FundraisingTabPanel
+          tokenAddress={tokenAddress}
+          symbol={tokenSymbol}
+          showAgentPool={showAgentPoolFundraisers}
+          refreshKey={fundraisersRefreshKey}
         />
       ) : isBounties ? (
         <TokenBountiesPanel
