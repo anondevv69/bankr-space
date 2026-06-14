@@ -621,7 +621,7 @@ export function CommunityProfile({
         </div>
       ) : null}
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div className="space-y-4">
         <div className="bg-surface border border-border rounded-xl p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
@@ -1317,7 +1317,7 @@ export function CommunityProfile({
         <VerifiedBeneficiarySection
           community={community}
           beneficiary={beneficiary}
-          layout="sidebar"
+          layout="stacked"
         />
       </div>
 
