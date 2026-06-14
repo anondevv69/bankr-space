@@ -5,11 +5,9 @@ import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { campaignProgress } from '@/lib/fundraising';
 import { paySpaceFund } from '@/lib/x402-pay';
-import {
-  SPACE_FUND_X402_CREDIT_USD,
-  formatX402FundPriceLabel,
-  X402_PAYMENT_TOKEN_SYMBOL,
-} from '@/lib/x402-config';
+import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
+import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
+import { formatX402FundPriceLabel } from '@/lib/space-x402-price';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
@@ -44,6 +42,7 @@ export function FundraisingWidget({
   const [activeCampaignId, setActiveCampaignId] = useState<string>('dex-profile');
   const [payHint, setPayHint] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [spacePriceUsd, setSpacePriceUsd] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +66,24 @@ export function FundraisingWidget({
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/market/${NATIVE_SPACE_TOKEN_ADDRESS}`);
+        const data = await res.json();
+        if (!cancelled && res.ok && data.market?.priceUsd > 0) {
+          setSpacePriceUsd(Number(data.market.priceUsd));
+        }
+      } catch {
+        /* optional display hint */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function contribute(paymentCount: number) {
     const campaignId = activeCampaignId;
@@ -104,7 +121,7 @@ export function FundraisingWidget({
     }
 
     setPaying(true);
-    const priceLabel = formatX402FundPriceLabel();
+    const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
     setPayHint(
       count > 1
         ? `Authorizing ${count} × ${priceLabel} via Bankr x402 — approve each wallet signature…`
@@ -211,7 +228,7 @@ export function FundraisingWidget({
           disabled={paying}
           onClick={() => void contribute(count)}
           className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
-          title={`${count}× ${formatX402FundPriceLabel()} via x402`}
+          title={`${count}× ${formatX402FundPriceLabel(spacePriceUsd)} via x402`}
         >
           +${count * SPACE_FUND_X402_CREDIT_USD}
         </button>
@@ -277,7 +294,7 @@ export function FundraisingWidget({
         <p className="text-xs text-muted border-t border-border mt-4 pt-3">{payHint}</p>
       ) : (
         <p className="text-[11px] text-muted mt-3 xl:mt-2 leading-snug">
-          {formatX402FundPriceLabel()} per click via{' '}
+          {formatX402FundPriceLabel(spacePriceUsd)} per click via{' '}
           <a
             href="https://docs.bankr.bot/x402-cloud/overview/"
             target="_blank"

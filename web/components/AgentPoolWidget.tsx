@@ -4,11 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { payAgentPoolFund } from '@/lib/x402-pay';
-import {
-  SPACE_FUND_X402_CREDIT_USD,
-  formatX402FundPriceLabel,
-  X402_PAYMENT_TOKEN_SYMBOL,
-} from '@/lib/x402-config';
+import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
+import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
+import { formatX402FundPriceLabel } from '@/lib/space-x402-price';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { AgentPoolSkillId } from '@/lib/types';
@@ -48,6 +46,7 @@ export function AgentPoolWidget({
   const [activeSkillId, setActiveSkillId] = useState<AgentPoolSkillId>('qrcoin');
   const [payHint, setPayHint] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [spacePriceUsd, setSpacePriceUsd] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +72,24 @@ export function AgentPoolWidget({
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/market/${NATIVE_SPACE_TOKEN_ADDRESS}`);
+        const data = await res.json();
+        if (!cancelled && res.ok && data.market?.priceUsd > 0) {
+          setSpacePriceUsd(Number(data.market.priceUsd));
+        }
+      } catch {
+        /* optional display hint */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function contribute(paymentCount: number) {
     const skillId = activeSkillId;
@@ -107,7 +124,7 @@ export function AgentPoolWidget({
     }
 
     setPaying(true);
-    const priceLabel = formatX402FundPriceLabel();
+    const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
     setPayHint(
       count > 1
         ? `Authorizing ${count} × ${priceLabel} to the community agent pool…`
@@ -172,7 +189,7 @@ export function AgentPoolWidget({
           <div className="text-sm font-semibold">Fund this task</div>
           <p className="text-xs text-muted mt-1">
             {layout === 'sidebar'
-              ? `${formatX402FundPriceLabel()} per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
+              ? `${formatX402FundPriceLabel(spacePriceUsd)} per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
               : `Holders chip in so the Bankr Space Agent can run 0xWork or QRCoin tasks for $${symbol}.`}
           </p>
         </div>
@@ -262,7 +279,7 @@ export function AgentPoolWidget({
           <p className="text-xs text-muted border-t border-border pt-3">{payHint}</p>
         ) : (
           <p className="text-[11px] text-muted leading-snug">
-            {formatX402FundPriceLabel()} per click via x402 on Base (~$1 toward goal).
+            {formatX402FundPriceLabel(spacePriceUsd)} per click via x402 on Base.
           </p>
         )}
       </div>
