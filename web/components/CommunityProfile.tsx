@@ -898,14 +898,35 @@ export function CommunityProfile({
               {canEditFundraising ? (
                 <EditSection
                   title="Fundraising campaigns"
-                  hint="Fee recipient only. Enable any combination of fundraisers — each has its own name and goal. Once contributors pay in, a goal stays open until met; completed goals stay in history until you uncheck them."
+                  hint="Fee recipient only. Enable any combination of fundraisers — each has its own name and goal. Completed goals stay in history; add a new fundraiser to start another."
                 >
                   <div className="space-y-3">
-                    {fundraisingCampaigns.map((campaign) => (
+                    {fundraisingCampaigns.map((campaign) => {
+                      const completed = isCampaignFunded(campaign);
+                      return (
                       <div
                         key={campaign.id}
-                        className="p-3 border border-border rounded-lg bg-bg/40 space-y-2"
+                        className={`p-3 border rounded-lg space-y-2 ${
+                          completed
+                            ? 'border-green-500/25 bg-green-500/[0.04] opacity-70'
+                            : 'border-border bg-bg/40'
+                        }`}
                       >
+                        {completed ? (
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-muted">{campaign.label}</div>
+                              <div className="text-xs text-muted mt-0.5 tabular-nums">
+                                ${campaign.raisedUsd.toLocaleString()} raised · goal $
+                                {campaign.goalUsd.toLocaleString()}
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
+                              Completed
+                            </span>
+                          </div>
+                        ) : (
+                        <>
                         <div className="flex items-start gap-2">
                           <label
                             className={`flex flex-1 items-start gap-2 text-sm min-w-0 ${
@@ -929,12 +950,7 @@ export function CommunityProfile({
                                 ${campaign.raisedUsd.toLocaleString()} raised · goal $
                                 {campaign.goalUsd.toLocaleString()}
                               </span>
-                              {isCampaignFunded(campaign) ? (
-                                <span className="block text-[11px] text-green-600 dark:text-green-400 mt-1">
-                                  Completed — uncheck to archive, or check again to start fresh at
-                                  $0.
-                                </span>
-                              ) : isBeneficiaryCampaignLocked(campaign) ? (
+                              {isBeneficiaryCampaignLocked(campaign) ? (
                                 <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-1">
                                   Locked — ${campaign.raisedUsd.toLocaleString()} raised. Lower goal
                                   to that amount to mark complete, or raise until the goal is met.
@@ -976,8 +992,11 @@ export function CommunityProfile({
                             }
                           />
                         </div>
+                        </>
+                        )}
                       </div>
-                    ))}
+                    );
+                    })}
                     <button
                       type="button"
                       onClick={addFundraiser}
