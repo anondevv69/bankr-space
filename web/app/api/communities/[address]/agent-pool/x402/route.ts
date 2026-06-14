@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { applyAgentPoolCredit } from '@/lib/apply-agent-pool-credit';
 import { agentPoolX402CampaignId, parseAgentPoolX402CampaignId } from '@/lib/agent-pool';
 import { fetchAgentPoolX402Upstream } from '@/lib/agent-pool-x402-fetch';
-import { enrichX402QuoteBody } from '@/lib/x402-quote-response';
+import { attachX402FundMeta } from '@/lib/x402-quote-response';
 import { parseX402UpstreamError } from '@/lib/x402-upstream-error';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
@@ -72,11 +72,14 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: fetched.error }, { status: fetched.status });
   }
 
-  const { upstream, data, usedFallback, fundUrl, fundBase } = fetched;
+  const { upstream, data, usedFallback, fundUrl, fundBase, paymentRequiredHeader } = fetched;
 
   if (!xPayment && upstream.status === 402) {
     return NextResponse.json(
-      { requiresPayment: true, ...enrichX402QuoteBody(data, { fundUrl, fundBase }) },
+      {
+        requiresPayment: true,
+        ...attachX402FundMeta(data, { fundUrl, fundBase, paymentRequiredHeader }),
+      },
       { status: 200 }
     );
   }
