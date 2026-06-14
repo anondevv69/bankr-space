@@ -14,7 +14,7 @@ import type {
   AgentPoolCampaign,
   TrustedDelegateEntry,
 } from '@/lib/types';
-import { DEFAULT_CAMPAIGNS, createCustomCampaignId, isCampaignFunded, isRemovableCustomCampaign } from '@/lib/fundraising';
+import { DEFAULT_CAMPAIGNS, createCustomCampaignId, isCampaignCancelled, isCampaignFunded, isRemovableCustomCampaign } from '@/lib/fundraising';
 import {
   isAgentPoolCampaignLocked,
   isBeneficiaryCampaignLocked,
@@ -338,10 +338,13 @@ export function CommunityProfile({
       if (!target) return current;
 
       if (patch.enabled === false && isBeneficiaryCampaignLocked(target)) {
-        alert(
-          'This fundraiser cannot be closed while contributors have paid in. It stays open until the goal is met.'
-        );
-        return current;
+        if (
+          !window.confirm(
+            `"${target.label}" has $${target.raisedUsd.toLocaleString()} in contributions. Cancelling will show this publicly as closed before the goal was met. Continue?`
+          )
+        ) {
+          return current;
+        }
       }
 
       if (patch.enabled === true) {
@@ -903,13 +906,16 @@ export function CommunityProfile({
                   <div className="space-y-3">
                     {fundraisingCampaigns.map((campaign) => {
                       const completed = isCampaignFunded(campaign);
+                      const cancelled = isCampaignCancelled(campaign);
                       return (
                       <div
                         key={campaign.id}
                         className={`p-3 border rounded-lg space-y-2 ${
-                          completed
-                            ? 'border-green-500/25 bg-green-500/[0.04] opacity-70'
-                            : 'border-border bg-bg/40'
+                          cancelled
+                            ? 'border-amber-500/40 bg-amber-500/[0.04] opacity-80'
+                            : completed
+                              ? 'border-green-500/25 bg-green-500/[0.04] opacity-70'
+                              : 'border-border bg-bg/40'
                         }`}
                       >
                         {completed ? (
@@ -925,6 +931,32 @@ export function CommunityProfile({
                               Completed
                             </span>
                           </div>
+                        ) : cancelled ? (
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-muted">{campaign.label}</div>
+                                <div className="text-xs text-muted mt-0.5 tabular-nums">
+                                  ${campaign.raisedUsd.toLocaleString()} raised · goal $
+                                  {campaign.goalUsd.toLocaleString()}
+                                </div>
+                              </div>
+                              <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                Cancelled
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
+                              Shown publicly in the Fundraisers tab. Unchecking does not refund
+                              contributors.
+                            </p>
+                            <button
+                              type="button"
+                              className="text-xs text-accent hover:underline"
+                              onClick={() => updateCampaign(campaign.id, { enabled: true })}
+                            >
+                              Re-open fundraiser
+                            </button>
+                          </div>
                         ) : (
                         <>
                         <div className="flex items-start gap-2">
@@ -939,7 +971,6 @@ export function CommunityProfile({
                               type="checkbox"
                               className="mt-0.5"
                               checked={campaign.enabled}
-                              disabled={isBeneficiaryCampaignLocked(campaign)}
                               onChange={(e) =>
                                 updateCampaign(campaign.id, { enabled: e.target.checked })
                               }
@@ -952,8 +983,8 @@ export function CommunityProfile({
                               </span>
                               {isBeneficiaryCampaignLocked(campaign) ? (
                                 <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                                  Locked — ${campaign.raisedUsd.toLocaleString()} raised. Lower goal
-                                  to that amount to mark complete, or raise until the goal is met.
+                                  ${campaign.raisedUsd.toLocaleString()} raised — unchecking cancels
+                                  and shows this publicly. Goal cannot go below amount raised.
                                 </span>
                               ) : null}
                             </span>

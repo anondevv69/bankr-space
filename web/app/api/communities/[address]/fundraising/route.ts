@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import { openCampaigns, completedCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
+import { openCampaigns, completedCampaigns, cancelledCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
     const normalized = mergeCommunityDefaults(community);
     const campaigns = openCampaigns(normalized.fundraising!);
     const completed = completedCampaigns(normalized.fundraising!);
+    const cancelled = cancelledCampaigns(normalized.fundraising!);
     const mapCampaign = (c: (typeof campaigns)[number]) => ({
       ...c,
       progressPct: campaignProgress(c),
@@ -40,6 +41,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
       campaigns: campaigns.map(mapCampaign),
       open: campaigns.map(mapCampaign),
       completed: completed.map(mapCampaign),
+      cancelled: cancelled.map(mapCampaign),
     });
   } catch (err) {
     console.error('GET fundraising', err);

@@ -83,15 +83,7 @@ export function applyBeneficiaryFundraisingSave(
       raisedUsd = 0;
     }
 
-    if (isFundraiserLocked(was.raisedUsd, was.goalUsd, was.enabled)) {
-      if (!enabled) {
-        return {
-          ok: false,
-          error: `Cannot close "${was.label}" — $${was.raisedUsd.toLocaleString()} USDC already contributed. Finish the goal or wait until it is met.`,
-          status: 400,
-        };
-      }
-      enabled = true;
+    if (isFundraiserLocked(was.raisedUsd, was.goalUsd, was.enabled) && enabled) {
       if (!Number.isFinite(goalUsd) || goalUsd < was.raisedUsd) {
         return {
           ok: false,
