@@ -46,10 +46,19 @@ export function FundraisersPanel({
             <h2 className="text-sm font-semibold">Beneficiary programs</h2>
             <p className="text-[11px] text-muted mt-1 leading-snug">
               Optional goals set by the token&apos;s fee recipient — for example DexScreener boosts
-              or promos they run on their own. USDC goes to them, not the community agent.
+              or promos they run on their own. $Space via x402 goes to them, not the community agent.
               {beneficiaryOpen ? ' Contribute below if a program is open.' : null}
             </p>
           </div>
+          {beneficiaryOpen ? (
+            <p className="text-[11px] text-muted px-1">
+              Open and completed fundraisers also appear in the Fundraisers tab.
+            </p>
+          ) : hasCompletedFundraising(community.fundraising) ? (
+            <p className="text-[11px] text-muted px-1">
+              Completed fundraisers are in the Fundraisers tab.
+            </p>
+          ) : null}
           {beneficiaryOpen ? (
             <FundraisingWidget
               tokenAddress={community.tokenAddress}

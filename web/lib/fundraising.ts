@@ -133,6 +133,12 @@ export function hasCompletedFundraising(state: FundraisingState | undefined | nu
   return completedCampaigns(state).length > 0;
 }
 
+/** Any enabled beneficiary fundraiser (open or completed) — show Fundraisers tab. */
+export function hasVisibleFundraising(state: FundraisingState | undefined | null): boolean {
+  if (!state?.optedIn) return false;
+  return state.campaigns.some((c) => c.enabled);
+}
+
 export function fundraiserTypeLabel(id: string): string {
   if (id === 'dex-profile') return 'Dex profile';
   if (id === 'dex-boost') return 'Dex boost';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
-import { openCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
+import { openCampaigns, completedCampaigns, campaignProgress, isCampaignFunded } from '@/lib/fundraising';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
 import { normalizeAddr } from '@/lib/utils';
@@ -22,6 +22,13 @@ export async function GET(_req: Request, { params }: RouteParams) {
 
     const normalized = mergeCommunityDefaults(community);
     const campaigns = openCampaigns(normalized.fundraising!);
+    const completed = completedCampaigns(normalized.fundraising!);
+    const mapCampaign = (c: (typeof campaigns)[number]) => ({
+      ...c,
+      progressPct: campaignProgress(c),
+      remainingUsd: Math.max(0, Math.round((c.goalUsd - c.raisedUsd) * 100) / 100),
+      funded: isCampaignFunded(c),
+    });
     const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
     const x402BaseUrl = buildFundraisingX402BaseUrl(beneficiaryWallet);
 
@@ -30,12 +37,9 @@ export async function GET(_req: Request, { params }: RouteParams) {
       symbol: normalized.symbol,
       beneficiaryWallet,
       x402BaseUrl,
-      campaigns: campaigns.map((c) => ({
-        ...c,
-        progressPct: campaignProgress(c),
-        remainingUsd: Math.max(0, Math.round((c.goalUsd - c.raisedUsd) * 100) / 100),
-        funded: isCampaignFunded(c),
-      })),
+      campaigns: campaigns.map(mapCampaign),
+      open: campaigns.map(mapCampaign),
+      completed: completed.map(mapCampaign),
     });
   } catch (err) {
     console.error('GET fundraising', err);
