@@ -221,16 +221,12 @@ export function FundraisingTabPanel({
             Fee-recipient programs — optional $Space contributions via x402 (~$1 toward the goal
             per click).
           </p>
-          <div className="space-y-3 mb-4">
-            {beneficiaryOpen.map((c) => (
-              <BeneficiaryCampaignCard key={c.id} campaign={c} status="open" />
-            ))}
-          </div>
           <FundraisingWidget
             tokenAddress={tokenAddress}
             symbol={symbol}
             refreshKey={refreshKey}
             layout="horizontal"
+            showHeader={false}
           />
         </section>
       ) : null}
@@ -241,19 +237,21 @@ export function FundraisingTabPanel({
           <p className="text-xs text-muted mb-3 leading-snug">
             Holders fund QRCoin or 0xWork tasks for the Bankr Space Agent.
           </p>
-          <div className="space-y-3 mb-4">
-            {agentOpen.map((c) => (
-              <AgentCampaignCard key={c.skillId} campaign={c} />
-            ))}
-          </div>
           {agentConfigured ? (
             <AgentPoolWidget
               tokenAddress={tokenAddress}
               symbol={symbol}
               refreshKey={refreshKey}
               layout="horizontal"
+              showHeader={false}
             />
-          ) : null}
+          ) : (
+            <div className="space-y-3">
+              {agentOpen.map((c) => (
+                <AgentCampaignCard key={c.skillId} campaign={c} />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 type RouteParams = { params: Promise<{ address: string }> };
 
 /**
- * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send X-PAYMENT
+ * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send PAYMENT-SIGNATURE
  * cross-origin to x402.bankr.bot (CORS preflight fails on 402).
  */
 export async function POST(req: Request, { params }: RouteParams) {

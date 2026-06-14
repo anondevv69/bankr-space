@@ -5,6 +5,7 @@ import {
   isX402EndpointNotFound,
 } from '@/lib/x402-fund-url';
 import { shouldRetrySpaceFundX402 } from '@/lib/x402-upstream';
+import { x402ProxyPaymentHeaders } from '@/lib/x402-proxy-headers';
 
 export type FundraisingX402FetchResult = {
   upstream: Response;
@@ -39,11 +40,9 @@ export async function fetchFundraisingX402Upstream(options: {
         ...(fallbackBase && primaryBase && fallbackBase !== primaryBase ? [fallbackBase] : []),
       ].filter(Boolean) as string[];
 
-  const headers: HeadersInit = { Accept: 'application/json' };
-  if (options.xPayment) {
-    headers['X-PAYMENT'] = options.xPayment;
-    headers['Access-Control-Expose-Headers'] = 'X-PAYMENT-RESPONSE';
-  }
+  const headers: HeadersInit = options.xPayment
+    ? x402ProxyPaymentHeaders(options.xPayment)
+    : { Accept: 'application/json' };
 
   for (let i = 0; i < bases.length; i++) {
     const baseUrl = bases[i];

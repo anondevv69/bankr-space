@@ -26,11 +26,14 @@ export function FundraisingWidget({
   symbol,
   refreshKey,
   layout = 'horizontal',
+  showHeader = true,
 }: {
   tokenAddress: string;
   symbol: string;
   refreshKey?: string;
   layout?: 'horizontal' | 'sidebar';
+  /** When false, omit duplicate "Fund this space" heading (e.g. inside Fundraisers tab). */
+  showHeader?: boolean;
 }) {
   const { isEmbedded, connectWallet } = useAppWallet();
   const { address, isConnected, onBase } = usePaymentWalletClient();
@@ -277,15 +280,19 @@ export function FundraisingWidget({
   }
 
   return (
-    <div className="mt-4 p-4 md:p-5 rounded-xl border border-border bg-surface">
+    <div className={`${showHeader ? 'mt-4 ' : ''}p-4 md:p-5 rounded-xl border border-border bg-surface`}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-6">
-        <div className="shrink-0 xl:w-[168px]">
-          <div className="text-sm font-semibold">Fund this space</div>
-          <p className="text-[11px] text-muted mt-0.5 leading-snug">
-            ${X402_PAYMENT_TOKEN_SYMBOL} on Base · posts stay free
-          </p>
-          {campaignTabs ? <div className="mt-2">{campaignTabs}</div> : null}
-        </div>
+        {showHeader ? (
+          <div className="shrink-0 xl:w-[168px]">
+            <div className="text-sm font-semibold">Fund this space</div>
+            <p className="text-[11px] text-muted mt-0.5 leading-snug">
+              ${X402_PAYMENT_TOKEN_SYMBOL} on Base · posts stay free
+            </p>
+            {campaignTabs ? <div className="mt-2">{campaignTabs}</div> : null}
+          </div>
+        ) : campaignTabs ? (
+          <div className="shrink-0">{campaignTabs}</div>
+        ) : null}
 
         {progressBlock}
 

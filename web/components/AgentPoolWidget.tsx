@@ -30,11 +30,13 @@ export function AgentPoolWidget({
   symbol,
   refreshKey,
   layout = 'horizontal',
+  showHeader = true,
 }: {
   tokenAddress: string;
   symbol: string;
   refreshKey?: string;
   layout?: 'horizontal' | 'sidebar';
+  showHeader?: boolean;
 }) {
   const { isEmbedded, connectWallet } = useAppWallet();
   const { address, isConnected, onBase } = usePaymentWalletClient();
@@ -180,19 +182,21 @@ export function AgentPoolWidget({
   const shellClass =
     layout === 'sidebar'
       ? 'p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10'
-      : 'mt-4 p-4 md:p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10';
+      : `${showHeader ? 'mt-4 ' : ''}p-4 md:p-5 rounded-xl border border-accent/40 bg-surface ring-1 ring-accent/10`;
 
   return (
     <div className={shellClass}>
       <div className="flex flex-col gap-4">
-        <div>
-          <div className="text-sm font-semibold">Fund this task</div>
-          <p className="text-xs text-muted mt-1">
-            {layout === 'sidebar'
-              ? `${formatX402FundPriceLabel(spacePriceUsd)} per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
-              : `Holders chip in so the Bankr Space Agent can run 0xWork or QRCoin tasks for $${symbol}.`}
-          </p>
-        </div>
+        {showHeader ? (
+          <div>
+            <div className="text-sm font-semibold">Fund this task</div>
+            <p className="text-xs text-muted mt-1">
+              {layout === 'sidebar'
+                ? `${formatX402FundPriceLabel(spacePriceUsd)} per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
+                : `Holders chip in so the Bankr Space Agent can run 0xWork or QRCoin tasks for $${symbol}.`}
+            </p>
+          </div>
+        ) : null}
 
         {campaigns.length > 1 ? (
           <div className="flex flex-wrap gap-1">
