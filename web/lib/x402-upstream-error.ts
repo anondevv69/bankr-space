@@ -1,3 +1,8 @@
+import {
+  formatFacilitatorInvalidReason,
+  verifyX402PaymentWithFacilitator,
+} from '@/lib/x402-facilitator-verify';
+
 /** Parse Bankr x402 upstream error bodies and PAYMENT-RESPONSE headers (server-side). */
 export function parseX402UpstreamError(
   data: Record<string, unknown>,
@@ -26,6 +31,29 @@ export function parseX402UpstreamError(
     }
   }
 
-  if (typeof data.error === 'string') return data.error;
+  if (typeof data.error === 'string') {
+    if (data.error.toLowerCase().includes('already used')) {
+      return formatFacilitatorInvalidReason('payment_already_used');
+    }
+    return data.error;
+  }
   return 'x402 payment failed';
+}
+
+/** Enrich generic upstream errors with facilitator invalidReason when available. */
+export async function parseX402UpstreamErrorDetailed(
+  data: Record<string, unknown>,
+  headers: Headers,
+  xPayment?: string,
+  paymentRequiredHeader?: string | null
+): Promise<string> {
+  const base = parseX402UpstreamError(data, headers);
+  const generic =
+    base.toLowerCase().includes('verification failed') ||
+    base === 'x402 payment failed';
+
+  if (!generic || !xPayment) return base;
+
+  const detail = await verifyX402PaymentWithFacilitator(xPayment, paymentRequiredHeader);
+  return detail || base;
 }

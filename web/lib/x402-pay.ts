@@ -5,6 +5,7 @@ import { ExactEvmScheme, UptoEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
+import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
 import { normalizeBankrPaymentRequired } from '@/lib/x402-normalize-quote';
 import {
   SPACE_FUND_X402_CREDIT_USD,
@@ -28,8 +29,15 @@ type PayResult = {
 function formatPayError(data: unknown, status: number): string {
   if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
     const err = (data as { error: string }).error;
-    if (err.toLowerCase().includes('already used')) {
-      return 'This payment signature was already submitted. Click Contribute again to sign a fresh payment.';
+    const lower = err.toLowerCase();
+    if (lower.includes('already used')) {
+      return formatFacilitatorInvalidReason('payment_already_used');
+    }
+    if (lower.includes('deadline') && lower.includes('expir')) {
+      return formatFacilitatorInvalidReason('permit2_deadline_expired');
+    }
+    if (lower.includes('verification failed')) {
+      return `${err} — click Contribute again and approve in your wallet within 60 seconds.`;
     }
     return err;
   }
@@ -103,12 +111,20 @@ async function proxyX402(
   amountUsd: number,
   xPayment?: string,
   pinFundBase?: string,
-  pinFundUrl?: string
+  pinFundUrl?: string,
+  pinPaymentRequiredHeader?: string
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`/api/communities/${tokenAddress}/fundraising/x402`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl }),
+    body: JSON.stringify({
+      campaignId,
+      amountUsd,
+      xPayment,
+      pinFundBase,
+      pinFundUrl,
+      pinPaymentRequiredHeader,
+    }),
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, data };
@@ -135,7 +151,8 @@ async function signAndPay(
   retry: (
     paymentHeader: string,
     pinFundBase?: string,
-    pinFundUrl?: string
+    pinFundUrl?: string,
+    pinPaymentRequiredHeader?: string
   ) => Promise<{ status: number; data: unknown }>,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
@@ -148,22 +165,12 @@ async function signAndPay(
     typeof (quoteData as { x402FundUrl?: string }).x402FundUrl === 'string'
       ? (quoteData as { x402FundUrl: string }).x402FundUrl
       : undefined;
-  const selected = paymentRequired.accepts.find(
-    (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
-  );
-  const authorizeAmount = selected ? BigInt(selected.amount) : X402_FUND_MAX_AUTHORIZE_ATOMIC;
+  const pinPaymentRequiredHeader =
+    typeof (quoteData as { paymentRequiredHeader?: string }).paymentRequiredHeader === 'string'
+      ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
+      : undefined;
 
-  onProgress?.('Checking Permit2 allowance for $Space…');
-  const allowance = await ensurePermit2TokenAllowance(
-    walletAddress,
-    X402_PAYMENT_TOKEN_ADDRESS as Address,
-    authorizeAmount
-  );
-  if (allowance === 'approved') {
-    onProgress?.('Permit2 approved — sign the contribution in your wallet…');
-  } else {
-    onProgress?.('Sign the Permit2 contribution in your wallet…');
-  }
+  onProgress?.('Sign the Permit2 contribution in your wallet (within 60 seconds)…');
 
   const httpClient = createPaymentHttpClient(walletAddress);
   const payload = await httpClient.createPaymentPayload(paymentRequired);
@@ -178,7 +185,7 @@ async function signAndPay(
     throw new Error('Failed to build x402 payment header');
   }
 
-  const paid = await retry(xPayment, pinFundBase, pinFundUrl);
+  const paid = await retry(xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader);
   if (paid.status >= 400) {
     throw new Error(formatPayError(paid.data, paid.status));
   }
@@ -192,6 +199,16 @@ export async function paySpaceFund(
   amountUsd: number,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
+  onProgress?.('Checking Permit2 allowance for $Space…');
+  const allowance = await ensurePermit2TokenAllowance(
+    walletAddress,
+    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    X402_FUND_MAX_AUTHORIZE_ATOMIC
+  );
+  if (allowance === 'approved') {
+    onProgress?.('Permit2 approved — fetching payment quote…');
+  }
+
   const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
 
   const body = data as { requiresPayment?: boolean };
@@ -206,8 +223,16 @@ export async function paySpaceFund(
   return signAndPay(
     walletAddress,
     data,
-    (xPayment, pinFundBase, pinFundUrl) =>
-      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl),
+    (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
+      proxyX402(
+        tokenAddress,
+        campaignId,
+        amountUsd,
+        xPayment,
+        pinFundBase,
+        pinFundUrl,
+        pinPaymentRequiredHeader
+      ),
     onProgress
   );
 }
@@ -220,6 +245,13 @@ export async function payAgentPoolFund(
   amountUsd: number,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
+  onProgress?.('Checking Permit2 allowance for $Space…');
+  await ensurePermit2TokenAllowance(
+    walletAddress,
+    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    X402_FUND_MAX_AUTHORIZE_ATOMIC
+  );
+
   const { status, data } = await proxyAgentPoolX402(tokenAddress, skillId, amountUsd);
 
   const body = data as { requiresPayment?: boolean };
