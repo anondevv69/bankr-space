@@ -71,11 +71,13 @@ function toPaymentRequired(data: unknown): PaymentRequired {
   const rawAccepts = body.accepts as Record<string, unknown>[];
   const firstAccept = rawAccepts[0];
   const resourceUrl =
-    body.resource &&
-    typeof body.resource === 'object' &&
-    'url' in (body.resource as object)
-      ? String((body.resource as { url: string }).url)
-      : String(firstAccept.resource || 'https://x402.bankr.bot/fund');
+    typeof body.x402FundUrl === 'string'
+      ? body.x402FundUrl
+      : body.resource &&
+          typeof body.resource === 'object' &&
+          'url' in (body.resource as object)
+        ? String((body.resource as { url: string }).url)
+        : String(firstAccept.resource || 'https://x402.bankr.bot/fund');
 
   const accepts = rawAccepts.map((item) => ({
     scheme: String(item.scheme),
@@ -85,6 +87,7 @@ function toPaymentRequired(data: unknown): PaymentRequired {
     payTo: String(item.payTo),
     maxTimeoutSeconds: Number(item.maxTimeoutSeconds ?? 60),
     extra: (item.extra as Record<string, unknown>) || {},
+    resource: resourceUrl,
   }));
 
   return {

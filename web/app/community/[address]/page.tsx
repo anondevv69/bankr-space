@@ -8,7 +8,6 @@ import { useAppWallet } from '@/hooks/useAppWallet';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
 import { Footer, Header } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
-import { FundraisersPanel } from '@/components/FundraisersPanel';
 import { PetitionBackersPanel } from '@/components/PetitionBackersPanel';
 import { PostFeed, PostForm } from '@/components/PostFeed';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
@@ -140,13 +139,13 @@ export default function CommunityPage({ params }: { params: { address: string } 
 
   if (loading) {
     return (
-      <div className="max-w-[1100px] mx-auto px-5 py-12 text-muted">Loading space…</div>
+      <div className="max-w-3xl mx-auto px-5 py-12 text-muted">Loading space…</div>
     );
   }
 
   if (!community) {
     return (
-      <div className="max-w-[1100px] mx-auto px-5 py-12">
+      <div className="max-w-3xl mx-auto px-5 py-12">
         <p className="text-red-400">Space not found.</p>
         <Link href="/" className="text-accent-hover text-sm mt-4 inline-block">
           ← Back to spaces
@@ -194,7 +193,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-5 pb-16">
+    <div className="max-w-3xl mx-auto px-4 sm:px-5 pb-16">
       <Header backHref="/" />
 
       <CommunityProfile
@@ -279,47 +278,37 @@ export default function CommunityPage({ params }: { params: { address: string } 
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[minmax(260px,300px)_1fr] gap-6 items-start">
-        <div className="space-y-4">
-          {community.fromPetition ? (
-            <PetitionBackersPanel tokenAddress={tokenAddress} />
-          ) : null}
-          <FundraisersPanel
-            community={community}
-            refreshKey={`${JSON.stringify(community.fundraising?.campaigns)}-${JSON.stringify(community.agentPool?.campaigns)}`}
-            canProposeCommunityGoal={!!holder?.canProposeCommunityAgentGoal}
-            onRefresh={load}
-          />
+      {community.fromPetition ? (
+        <div className="mb-6">
+          <PetitionBackersPanel tokenAddress={tokenAddress} />
         </div>
+      ) : null}
 
-        <div className="min-w-0">
-          {canPost ? (
-            <PostForm tokenAddress={tokenAddress} onPosted={load} />
-          ) : isConnected ? null : (
-            <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
-              👀 View-only mode —{' '}
-              {isEmbedded
-                ? 'sign in with Bankr and hold this token to post and react.'
-                : 'connect wallet and hold this token to post and react.'}
-            </div>
-          )}
-
-          <PostFeed
-            tokenAddress={tokenAddress}
-            tokenSymbol={community.symbol}
-            posts={posts}
-            canInteract={!!canPost}
-            canManage={canPinPosts}
-            pinnedPosts={community.pinnedPosts}
-            beneficiaryWallet={beneficiary?.wallet}
-            ownerWallet={community.ownerWallet}
-            onUpdate={load}
-            canCreateQuestion={!!holder?.canCreateQuestion}
-            canVoteOnQuestion={!!holder?.canVoteOnQuestion}
-            fundraisersRefreshKey={fundraisersRefreshKey}
-          />
+      {canPost ? (
+        <PostForm tokenAddress={tokenAddress} onPosted={load} />
+      ) : isConnected ? null : (
+        <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
+          👀 View-only mode —{' '}
+          {isEmbedded
+            ? 'sign in with Bankr and hold this token to post and react.'
+            : 'connect wallet and hold this token to post and react.'}
         </div>
-      </div>
+      )}
+
+      <PostFeed
+        tokenAddress={tokenAddress}
+        tokenSymbol={community.symbol}
+        posts={posts}
+        canInteract={!!canPost}
+        canManage={canPinPosts}
+        pinnedPosts={community.pinnedPosts}
+        beneficiaryWallet={beneficiary?.wallet}
+        ownerWallet={community.ownerWallet}
+        onUpdate={load}
+        canCreateQuestion={!!holder?.canCreateQuestion}
+        canVoteOnQuestion={!!holder?.canVoteOnQuestion}
+        fundraisersRefreshKey={fundraisersRefreshKey}
+      />
       <Footer />
     </div>
   );

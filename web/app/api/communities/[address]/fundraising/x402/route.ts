@@ -3,6 +3,7 @@ import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
+import { enrichX402QuoteBody } from '@/lib/x402-quote-response';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -52,11 +53,16 @@ export async function POST(req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: fetched.error }, { status: fetched.status });
     }
 
-    const { upstream, data, usedFallback, fundBase } = fetched;
+    const { upstream, data, usedFallback, fundBase, fundUrl } = fetched;
 
     if (!xPayment && upstream.status === 402) {
       return NextResponse.json(
-        { requiresPayment: true, ...data, x402UsedFallback: usedFallback, x402FundBase: fundBase },
+        {
+          requiresPayment: true,
+          ...enrichX402QuoteBody(data, fundUrl),
+          x402UsedFallback: usedFallback,
+          x402FundBase: fundBase,
+        },
         { status: 200 }
       );
     }
