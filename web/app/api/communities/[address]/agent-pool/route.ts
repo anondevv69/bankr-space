@@ -3,6 +3,7 @@ import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import {
   agentPoolCampaignProgress,
+  completedAgentPoolCampaignsForTab,
   isAgentPoolCampaignFunded,
   openAgentPoolCampaigns,
   readStoredAgentPool,
@@ -28,18 +29,24 @@ export async function GET(_req: Request, { params }: RouteParams) {
 
     const merged = mergeCommunityDefaults(community);
     const pool = readStoredAgentPool(merged.agentPool);
-    const open = openAgentPoolCampaigns(pool).filter((c) => isActiveAgentPoolSkill(c.skillId));
+    const openRaw = openAgentPoolCampaigns(pool).filter((c) => isActiveAgentPoolSkill(c.skillId));
+    const completedRaw = completedAgentPoolCampaignsForTab(pool).filter((c) =>
+      isActiveAgentPoolSkill(c.skillId)
+    );
     const platformWallet = getPlatformAgentWallet();
     const x402BaseUrl = buildAgentPoolX402BaseUrl(platformWallet);
 
-    const campaigns = open.map((c) => ({
+    const mapCampaign = (c: (typeof openRaw)[number]) => ({
       ...c,
       skillId: c.skillId,
       progressPct: agentPoolCampaignProgress(c),
       remainingUsd: Math.max(0, Math.round((c.goalUsd - c.raisedUsd) * 100) / 100),
       funded: isAgentPoolCampaignFunded(c),
       x402CampaignId: `agent-${c.skillId}`,
-    }));
+    });
+
+    const open = openRaw.map(mapCampaign);
+    const completed = completedRaw.map(mapCampaign);
 
     return NextResponse.json({
       tokenAddress,
@@ -49,8 +56,10 @@ export async function GET(_req: Request, { params }: RouteParams) {
       platformAgentWallet: platformWallet,
       x402BaseUrl,
       x402PayTo: 'platform-agent',
-      campaigns,
-      count: campaigns.length,
+      campaigns: open,
+      open,
+      completed,
+      count: open.length,
     });
   } catch (err) {
     console.error('GET agent-pool', err);

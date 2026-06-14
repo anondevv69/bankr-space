@@ -139,6 +139,14 @@ export function hasVisibleFundraising(state: FundraisingState | undefined | null
   return state.campaigns.some((c) => c.enabled);
 }
 
+/** Any beneficiary fundraiser activity — open, completed, or closed with progress. */
+export function hasBeneficiaryFundraiserHistory(
+  state: FundraisingState | undefined | null
+): boolean {
+  if (!state?.optedIn) return false;
+  return state.campaigns.some((c) => c.raisedUsd > 0 || c.enabled);
+}
+
 export function fundraiserTypeLabel(id: string): string {
   if (id === 'dex-profile') return 'Dex profile';
   if (id === 'dex-boost') return 'Dex boost';
