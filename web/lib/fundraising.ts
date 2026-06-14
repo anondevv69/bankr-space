@@ -152,6 +152,22 @@ export function completedCampaigns(
   return state.campaigns.filter((c) => c.raisedUsd > 0 && isCampaignFunded(c));
 }
 
+/** Closed by fee recipient before the goal was met — public accountability record. */
+export function isCampaignCancelled(campaign: FundraisingCampaign): boolean {
+  return !campaign.enabled && campaign.raisedUsd > 0 && !isCampaignFunded(campaign);
+}
+
+export function cancelledCampaigns(
+  state: FundraisingState | undefined | null
+): FundraisingCampaign[] {
+  if (!state?.optedIn) return [];
+  return state.campaigns.filter((c) => isCampaignCancelled(c));
+}
+
+export function hasCancelledFundraising(state: FundraisingState | undefined | null): boolean {
+  return cancelledCampaigns(state).length > 0;
+}
+
 export function hasPublicFundraising(state: FundraisingState | undefined | null): boolean {
   return openCampaigns(state).length > 0;
 }
@@ -166,12 +182,14 @@ export function hasVisibleFundraising(state: FundraisingState | undefined | null
   return state.campaigns.some((c) => c.enabled);
 }
 
-/** Any beneficiary fundraiser activity — open, completed, or closed with progress. */
+/** Any beneficiary fundraiser activity — open, completed, cancelled, or closed with progress. */
 export function hasBeneficiaryFundraiserHistory(
   state: FundraisingState | undefined | null
 ): boolean {
   if (!state?.optedIn) return false;
-  return state.campaigns.some((c) => c.raisedUsd > 0 || c.enabled);
+  return state.campaigns.some(
+    (c) => c.raisedUsd > 0 || c.enabled || isCampaignCancelled(c)
+  );
 }
 
 export function fundraiserTypeLabel(id: string): string {

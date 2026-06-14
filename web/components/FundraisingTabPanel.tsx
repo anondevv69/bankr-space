@@ -24,13 +24,24 @@ type AgentCampaignView = {
 
 function BeneficiaryCampaignCard({
   campaign,
-  completed = false,
+  status = 'open',
 }: {
   campaign: BeneficiaryCampaignView;
-  completed?: boolean;
+  status?: 'open' | 'completed' | 'cancelled';
 }) {
+  const completed = status === 'completed';
+  const cancelled = status === 'cancelled';
+
   return (
-    <div className="p-4 rounded-xl border border-border bg-surface">
+    <div
+      className={`p-4 rounded-xl border bg-surface ${
+        cancelled
+          ? 'border-amber-500/40 bg-amber-500/[0.04]'
+          : completed
+            ? 'border-green-500/25'
+            : 'border-border'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">
           <div className="text-sm font-semibold">{campaign.label}</div>
@@ -38,7 +49,11 @@ function BeneficiaryCampaignCard({
             ${campaign.raisedUsd.toLocaleString()} raised · goal ${campaign.goalUsd.toLocaleString()}
           </div>
         </div>
-        {completed ? (
+        {cancelled ? (
+          <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            Cancelled
+          </span>
+        ) : completed ? (
           <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
             Completed
           </span>
@@ -50,13 +65,21 @@ function BeneficiaryCampaignCard({
       </div>
       <div className="h-2 rounded-full bg-surface-2 border border-border overflow-hidden">
         <div
-          className={`h-full transition-all ${completed ? 'bg-green-500' : 'bg-accent'}`}
+          className={`h-full transition-all ${
+            cancelled ? 'bg-amber-500' : completed ? 'bg-green-500' : 'bg-accent'
+          }`}
           style={{ width: `${campaign.progressPct}%` }}
         />
       </div>
-      {!completed && campaign.remainingUsd > 0 ? (
+      {!completed && !cancelled && campaign.remainingUsd > 0 ? (
         <p className="text-[11px] text-muted mt-1.5">
           ${campaign.remainingUsd.toLocaleString()} remaining
+        </p>
+      ) : null}
+      {cancelled ? (
+        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2 leading-snug">
+          Closed by the fee recipient before the goal was met. ${campaign.raisedUsd.toLocaleString()}{' '}
+          was contributed — bankr.space does not verify how these funds were used.
         </p>
       ) : null}
     </div>
@@ -116,6 +139,7 @@ export function FundraisingTabPanel({
 }) {
   const [beneficiaryOpen, setBeneficiaryOpen] = useState<BeneficiaryCampaignView[]>([]);
   const [beneficiaryCompleted, setBeneficiaryCompleted] = useState<BeneficiaryCampaignView[]>([]);
+  const [beneficiaryCancelled, setBeneficiaryCancelled] = useState<BeneficiaryCampaignView[]>([]);
   const [agentOpen, setAgentOpen] = useState<AgentCampaignView[]>([]);
   const [agentCompleted, setAgentCompleted] = useState<AgentCampaignView[]>([]);
   const [agentConfigured, setAgentConfigured] = useState(false);
@@ -134,9 +158,11 @@ export function FundraisingTabPanel({
       if (fundRes.ok) {
         setBeneficiaryOpen(fundData.open || fundData.campaigns || []);
         setBeneficiaryCompleted(fundData.completed || []);
+        setBeneficiaryCancelled(fundData.cancelled || []);
       } else {
         setBeneficiaryOpen([]);
         setBeneficiaryCompleted([]);
+        setBeneficiaryCancelled([]);
       }
 
       if (agentRes.ok) {
@@ -151,6 +177,7 @@ export function FundraisingTabPanel({
     } catch {
       setBeneficiaryOpen([]);
       setBeneficiaryCompleted([]);
+      setBeneficiaryCancelled([]);
       setAgentOpen([]);
       setAgentCompleted([]);
       setAgentConfigured(false);
@@ -171,7 +198,10 @@ export function FundraisingTabPanel({
     );
   }
 
-  const hasBeneficiary = beneficiaryOpen.length > 0 || beneficiaryCompleted.length > 0;
+  const hasBeneficiary =
+    beneficiaryOpen.length > 0 ||
+    beneficiaryCompleted.length > 0 ||
+    beneficiaryCancelled.length > 0;
   const hasAgent = agentOpen.length > 0 || agentCompleted.length > 0;
 
   if (!hasBeneficiary && !hasAgent) {
@@ -184,6 +214,27 @@ export function FundraisingTabPanel({
 
   return (
     <div className="space-y-8">
+      {beneficiaryOpen.length > 0 ? (
+        <section>
+          <h2 className="text-sm font-semibold mb-1">Open fundraisers</h2>
+          <p className="text-xs text-muted mb-3 leading-snug">
+            Fee-recipient programs — optional $Space contributions via x402 (~$1 toward the goal
+            per click).
+          </p>
+          <div className="space-y-3 mb-4">
+            {beneficiaryOpen.map((c) => (
+              <BeneficiaryCampaignCard key={c.id} campaign={c} status="open" />
+            ))}
+          </div>
+          <FundraisingWidget
+            tokenAddress={tokenAddress}
+            symbol={symbol}
+            refreshKey={refreshKey}
+            layout="horizontal"
+          />
+        </section>
+      ) : null}
+
       {agentOpen.length > 0 ? (
         <section>
           <h2 className="text-sm font-semibold mb-1">Community agent goals</h2>
@@ -206,24 +257,32 @@ export function FundraisingTabPanel({
         </section>
       ) : null}
 
-      {beneficiaryOpen.length > 0 ? (
+      {beneficiaryCancelled.length > 0 ? (
         <section>
-          <h2 className="text-sm font-semibold mb-1">Open fundraisers</h2>
+          <h2 className="text-sm font-semibold mb-1">Cancelled fundraisers</h2>
           <p className="text-xs text-muted mb-3 leading-snug">
-            Fee-recipient programs — optional $Space contributions via x402 (~$1 toward the goal
-            per click).
+            These goals were closed by the fee recipient before reaching their target. Funds may
+            have been collected — bankr.space cannot confirm how they were used.
           </p>
-          <div className="space-y-3 mb-4">
-            {beneficiaryOpen.map((c) => (
-              <BeneficiaryCampaignCard key={c.id} campaign={c} />
+          <div className="space-y-3">
+            {beneficiaryCancelled.map((c) => (
+              <BeneficiaryCampaignCard key={c.id} campaign={c} status="cancelled" />
             ))}
           </div>
-          <FundraisingWidget
-            tokenAddress={tokenAddress}
-            symbol={symbol}
-            refreshKey={refreshKey}
-            layout="horizontal"
-          />
+        </section>
+      ) : null}
+
+      {beneficiaryCompleted.length > 0 ? (
+        <section>
+          <h2 className="text-sm font-semibold mb-1">Completed fundraisers</h2>
+          <p className="text-xs text-muted mb-3 leading-snug">
+            Past fee-recipient goals that reached their target.
+          </p>
+          <div className="space-y-3">
+            {beneficiaryCompleted.map((c) => (
+              <BeneficiaryCampaignCard key={c.id} campaign={c} status="completed" />
+            ))}
+          </div>
         </section>
       ) : null}
 
@@ -236,24 +295,6 @@ export function FundraisingTabPanel({
           <div className="space-y-3">
             {agentCompleted.map((c) => (
               <AgentCampaignCard key={c.skillId} campaign={c} completed />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {beneficiaryCompleted.length > 0 ? (
-        <section>
-          <h2 className="text-sm font-semibold mb-1">
-            {beneficiaryOpen.length > 0 ? 'Completed fundraisers' : 'Fundraisers'}
-          </h2>
-          {beneficiaryOpen.length === 0 ? (
-            <p className="text-xs text-muted mb-3 leading-snug">
-              Past fee-recipient goals that reached their target.
-            </p>
-          ) : null}
-          <div className="space-y-3">
-            {beneficiaryCompleted.map((c) => (
-              <BeneficiaryCampaignCard key={c.id} campaign={c} completed />
             ))}
           </div>
         </section>
