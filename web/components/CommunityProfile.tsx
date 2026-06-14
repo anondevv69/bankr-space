@@ -356,12 +356,29 @@ export function CommunityProfile({
           return current;
         }
         return current.map((c) => {
-          if (c.id === id) return { ...c, ...patch, enabled: true };
+          if (c.id === id) {
+            const freshStart =
+              !target.enabled && isCampaignFunded(target)
+                ? { raisedUsd: 0 }
+                : {};
+            return { ...c, ...patch, ...freshStart, enabled: true };
+          }
           if (c.enabled && (isCampaignFunded(c) || c.raisedUsd === 0)) {
             return { ...c, enabled: false };
           }
           return c;
         });
+      }
+
+      if (
+        patch.goalUsd !== undefined &&
+        isCampaignFunded(target) &&
+        patch.goalUsd > target.goalUsd
+      ) {
+        alert(
+          `Goal already met at $${target.goalUsd.toLocaleString()}. Uncheck this fundraiser to close it, then check it again to start fresh at $0 — or lower the goal instead of raising it.`
+        );
+        return current;
       }
 
       if (

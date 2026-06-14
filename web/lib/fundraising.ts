@@ -122,7 +122,7 @@ export function completedCampaigns(
   state: FundraisingState | undefined | null
 ): FundraisingCampaign[] {
   if (!state?.optedIn) return [];
-  return state.campaigns.filter((c) => c.enabled && isCampaignFunded(c));
+  return state.campaigns.filter((c) => c.raisedUsd > 0 && isCampaignFunded(c));
 }
 
 export function hasPublicFundraising(state: FundraisingState | undefined | null): boolean {

@@ -53,7 +53,16 @@ export function applyBeneficiaryFundraisingSave(
     let enabled = Boolean(inc.enabled);
     const goalUsd = Number(inc.goalUsd);
     const label = String(inc.label || was.label).slice(0, 80);
-    const raisedUsd = was.raisedUsd;
+    let raisedUsd = was.raisedUsd;
+
+    // Re-open after a completed goal was closed → fresh fundraiser (same slot, $0 raised).
+    if (
+      enabled &&
+      !was.enabled &&
+      isGoalFunded(was.raisedUsd, was.goalUsd)
+    ) {
+      raisedUsd = 0;
+    }
 
     if (isFundraiserLocked(was.raisedUsd, was.goalUsd, was.enabled)) {
       if (!enabled) {
