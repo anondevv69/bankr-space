@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { campaignProgress } from '@/lib/fundraising';
-import { paySpaceFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
+import { paySpaceFund } from '@/lib/x402-pay';
+import {
+  SPACE_FUND_X402_CREDIT_USD,
+  formatX402FundPriceLabel,
+  X402_PAYMENT_TOKEN_SYMBOL,
+} from '@/lib/x402-config';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
@@ -15,7 +20,7 @@ type FundraisingView = FundraisingCampaign & {
   funded: boolean;
 };
 
-/** Number of $1 x402 payments per preset. */
+/** Number of x402 payments per preset (each credits $1 toward USD goal). */
 const PRESET_PAYMENTS = [1, 5, 10];
 
 export function FundraisingWidget({
@@ -75,13 +80,13 @@ export function FundraisingWidget({
 
     if (isEmbedded) {
       setPayHint(
-        `In the Bankr app, pay via @bankrbot: fund $${count} to ${symbol} space for Dex. On bankr.space, connect a Base wallet with USDC and try again.`
+        `In the Bankr app, pay via @bankrbot: fund $${count} to ${symbol} space for Dex. On bankr.space, connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} and try again.`
       );
       return;
     }
 
     if (!isConnected) {
-      setPayHint('Connect a Base wallet with USDC to pay.');
+      setPayHint(`Connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to pay.`);
       connectWallet();
       return;
     }
@@ -93,25 +98,26 @@ export function FundraisingWidget({
     }
 
     if (!address) {
-      setPayHint('Connect a Base wallet with USDC to pay.');
+      setPayHint(`Connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to pay.`);
       connectWallet();
       return;
     }
 
     setPaying(true);
+    const priceLabel = formatX402FundPriceLabel();
     setPayHint(
       count > 1
-        ? `Authorizing ${count} × $${SPACE_FUND_X402_MAX_USDC} USDC via Bankr x402 — approve each MetaMask signature…`
-        : `MetaMask will ask you to authorize $${SPACE_FUND_X402_MAX_USDC} USDC via Bankr x402 (EIP-3009 signature).`
+        ? `Authorizing ${count} × ${priceLabel} via Bankr x402 — approve each wallet signature…`
+        : `Your wallet will authorize ${priceLabel} via Bankr x402 (Permit2).`
     );
 
     try {
       let last: Awaited<ReturnType<typeof paySpaceFund>> | null = null;
       for (let i = 0; i < count; i++) {
         if (count > 1) {
-          setPayHint(`Payment ${i + 1} of ${count} — approve $${SPACE_FUND_X402_MAX_USDC} USDC in MetaMask…`);
+          setPayHint(`Payment ${i + 1} of ${count} — approve ${priceLabel} in your wallet…`);
         }
-        last = await paySpaceFund(address, tokenAddress, campaignId, SPACE_FUND_X402_MAX_USDC);
+        last = await paySpaceFund(address, tokenAddress, campaignId, SPACE_FUND_X402_CREDIT_USD);
         if (!last.success) {
           setPayHint(last.error || `Payment ${i + 1} did not complete.`);
           break;
@@ -119,10 +125,10 @@ export function FundraisingWidget({
       }
 
       if (last?.success) {
-        const totalUsd = count * SPACE_FUND_X402_MAX_USDC;
+        const totalUsd = count * SPACE_FUND_X402_CREDIT_USD;
         setPayHint(
           last.message ||
-            `Thank you — $${totalUsd} credited (${count}×$${SPACE_FUND_X402_MAX_USDC}). Progress: $${last.raisedUsd ?? '?'} / $${last.goalUsd ?? '?'}.`
+            `Thank you — $${totalUsd} credited toward the goal (${count}× ${priceLabel}). Progress: $${last.raisedUsd ?? '?'} / $${last.goalUsd ?? '?'}.`
         );
         await load();
       }
@@ -205,9 +211,9 @@ export function FundraisingWidget({
           disabled={paying}
           onClick={() => void contribute(count)}
           className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
-          title={`${count}× $${SPACE_FUND_X402_MAX_USDC} USDC via x402`}
+          title={`${count}× ${formatX402FundPriceLabel()} via x402`}
         >
-          +${count * SPACE_FUND_X402_MAX_USDC}
+          +${count * SPACE_FUND_X402_CREDIT_USD}
         </button>
       ))}
       <input
@@ -238,7 +244,7 @@ export function FundraisingWidget({
         <div>
           <div className="text-sm font-semibold">Fund this space</div>
           <p className="text-xs text-muted mt-1">
-            Optional USDC toward DexScreener or community goals.
+            Optional ${X402_PAYMENT_TOKEN_SYMBOL} toward DexScreener or community goals.
           </p>
         </div>
         {campaignTabs}
@@ -257,7 +263,7 @@ export function FundraisingWidget({
         <div className="shrink-0 xl:w-[168px]">
           <div className="text-sm font-semibold">Fund this space</div>
           <p className="text-[11px] text-muted mt-0.5 leading-snug">
-            USDC on Base · posts stay free
+            ${X402_PAYMENT_TOKEN_SYMBOL} on Base · posts stay free
           </p>
           {campaignTabs ? <div className="mt-2">{campaignTabs}</div> : null}
         </div>
@@ -271,7 +277,7 @@ export function FundraisingWidget({
         <p className="text-xs text-muted border-t border-border mt-4 pt-3">{payHint}</p>
       ) : (
         <p className="text-[11px] text-muted mt-3 xl:mt-2 leading-snug">
-          ${SPACE_FUND_X402_MAX_USDC} USDC per click via{' '}
+          {formatX402FundPriceLabel()} per click via{' '}
           <a
             href="https://docs.bankr.bot/x402-cloud/overview/"
             target="_blank"
@@ -280,7 +286,7 @@ export function FundraisingWidget({
           >
             Bankr x402
           </a>
-          . Preset buttons repeat the payment — each successful click adds ${SPACE_FUND_X402_MAX_USDC} to the goal.
+          . Each successful click adds ${SPACE_FUND_X402_CREDIT_USD} toward the USD goal.
         </p>
       )}
     </div>

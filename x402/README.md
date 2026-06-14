@@ -1,13 +1,15 @@
 # Bankr Space — x402 fundraising (Model B)
 
-Optional USDC contributions toward DexScreener or custom goals. **Posts stay free.**
+Optional **Bankr Space ($Space)** contributions toward DexScreener or custom goals. **Posts stay free.**
+
+Payment token: `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` (18 decimals). **1 Space per click** credits **$1 USD** toward the goal bar.
 
 ## Architecture
 
 ```text
 Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
      → x402.bankr.bot/{wallet}/fund?token=0x…&campaign=dex-profile&amount=1
-     → Bankr verifies USDC ($1/request) via EIP-3009 → runs fund handler → settles
+     → Bankr verifies $Space (Permit2) → runs fund handler → settles
      → fund handler returns 200 (no outbound fetch)
      → bankr.space proxy credits KV via applyFundraisingCredit()
      → progress bar updates on space page
@@ -15,9 +17,9 @@ Donor → bankr.space Contribute (POST …/fundraising/x402 proxy)
 
 There is **no** `/fund` route on bankr.space. The handler lives in `x402/fund/index.ts` and deploys to **Bankr x402 Cloud** (`bankr x402 deploy`).
 
-**Important:** Do not use plain USDC `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request ($1 USDC).
+**Important:** Do not use plain token `transfer()` to the beneficiary for fundraising — that bypasses x402 and will not appear in the x402 dashboard. Each Contribute click is one x402 request (1 Space).
 
-USDC settles through Bankr x402 (facilitator → your configured pay-to wallet). Dashboard **Pay To** is your earnings wallet; MetaMask shows the x402 facilitator contract on signature — expected.
+$Space settles through Bankr x402 (facilitator → your configured pay-to wallet). Dashboard **Pay To** is your earnings wallet; MetaMask shows the x402 facilitator contract on signature — expected.
 
 ## Deploy the x402 handler
 
@@ -95,7 +97,7 @@ Optional override:
 NEXT_PUBLIC_X402_AGENT_POOL_FUND_URL=https://x402.bankr.bot/0xYourWallet/fund
 ```
 
-For USDC to land in the platform agent wallet, deploy x402 logged in as that wallet (`bankr x402 deploy` from repo root) **or** set `NEXT_PUBLIC_X402_AGENT_POOL_FUND_URL` to a service whose pay-to is the platform agent.
+For $Space to land in the platform agent wallet, deploy x402 logged in as that wallet (`bankr x402 deploy` from repo root) **or** set `NEXT_PUBLIC_X402_AGENT_POOL_FUND_URL` to a service whose pay-to is the platform agent.
 
 After changing `x402/fund/index.ts` or `bankr.x402.json`, redeploy:
 

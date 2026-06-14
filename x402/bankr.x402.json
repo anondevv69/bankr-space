@@ -1,20 +1,22 @@
 {
   "network": "base",
-  "currency": "USDC",
+  "currency": "Space",
   "services": {
     "fund": {
-      "description": "Contribute USDC to a Bankr community fundraiser",
+      "description": "Contribute Bankr Space ($Space) to a community fundraiser on bankr.space",
       "price": "1",
+      "tokenAddress": "0xef703b860a6d422fa00cc67bbbb2662297cb6ba3",
+      "paymentScheme": "exact",
       "methods": ["GET"],
       "category": "payments",
-      "tags": ["fundraiser", "community", "bankr"],
+      "tags": ["fundraiser", "community", "bankr", "space"],
       "schema": {
         "input": {
           "type": "object",
           "properties": {
             "token": {
               "type": "string",
-              "description": "Community token contract address (0x...)"
+              "description": "Community token contract address (0x...) — which space gets credit"
             },
             "campaign": {
               "type": "string",
@@ -23,7 +25,7 @@
             },
             "amount": {
               "type": "string",
-              "description": "Contribution amount in USD (USDC)"
+              "description": "USD credit amount toward the goal (display)"
             }
           },
           "required": ["token", "campaign", "amount"]

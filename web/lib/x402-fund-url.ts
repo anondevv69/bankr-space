@@ -17,7 +17,7 @@ function walletPathFundUrl(base: URL, wallet: string): string {
   return base.toString().replace(/\/$/, '');
 }
 
-/** x402 USDC always settles to the token fee recipient — never the deployer. */
+/** x402 $Space always settles to the token fee recipient — never the deployer. */
 export function buildFundraisingX402BaseUrl(beneficiaryWallet: string | null): string | null {
   const w = beneficiaryWallet?.trim().toLowerCase();
   if (!w || !/^0x[a-f0-9]{40}$/.test(w)) return null;

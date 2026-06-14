@@ -3,7 +3,7 @@ import { applyAgentPoolCredit } from '@/lib/apply-agent-pool-credit';
 import { agentPoolX402CampaignId, parseAgentPoolX402CampaignId } from '@/lib/agent-pool';
 import { fetchAgentPoolX402Upstream } from '@/lib/agent-pool-x402-fetch';
 import { getPlatformAgentWallet } from '@/lib/platform-agent';
-import { SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
+import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 import type { AgentPoolSkillId } from '@/lib/types';
 import { isActiveAgentPoolSkill } from '@/lib/agent-pool-legacy-poidh';
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 type RouteParams = { params: Promise<{ address: string }> };
 
 /**
- * Lane B x402 — USDC settles via Bankr x402; credits agentPool on bankr.space.
+ * Lane B x402 — $Space settles via Bankr x402; credits agentPool on bankr.space.
  */
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
@@ -92,7 +92,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const credit = await applyAgentPoolCredit(
     tokenAddress,
     skillId,
-    SPACE_FUND_X402_MAX_USDC
+    SPACE_FUND_X402_CREDIT_USD
   );
 
   if (!credit.success) {
@@ -101,7 +101,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       {
         error:
           credit.error ||
-          'USDC payment succeeded but crediting the agent pool failed. Contact support.',
+          '$Space payment succeeded but crediting the agent pool failed. Contact support.',
         paymentTaken: true,
       },
       { status: credit.status >= 500 ? 502 : credit.status }
@@ -110,7 +110,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
   return NextResponse.json({
     success: true,
-    message: `Thank you — $${SPACE_FUND_X402_MAX_USDC} USDC credited toward community agent ${skillId}`,
+    message: `Thank you — $${SPACE_FUND_X402_CREDIT_USD} credited toward community agent ${skillId} ($Space via x402)`,
     token: tokenAddress,
     skillId,
     raisedUsd: credit.raisedUsd,
