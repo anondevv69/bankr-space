@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { buildSpaceFundUrl, type CampaignId } from '@/lib/fundraising';
+import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { buildFundraisingX402BaseUrl } from '@/lib/x402-fund-url';
-import { SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
 import { normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ const CAMPAIGN_IDS: CampaignId[] = ['dex-profile', 'dex-boost', 'custom'];
  * Same-origin proxy for the shared Bankr x402 fund endpoint. Browsers cannot send X-PAYMENT
  * cross-origin to x402.bankr.bot (CORS preflight fails on 402).
  *
- * After x402 verifies USDC payment and the fund handler returns 200,
+ * After x402 verifies $Space payment and the fund handler returns 200,
  * credit fundraising here (Vercel KV). The x402 Cloud handler intentionally does
  * not fetch bankr.space — that fetch crashed Bun with "fetch() did not return a Response".
  */
@@ -97,7 +97,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const credit = await applyFundraisingCredit(
       tokenAddress,
       campaignId,
-      SPACE_FUND_X402_MAX_USDC
+      SPACE_FUND_X402_CREDIT_USD
     );
 
     if (!credit.success) {
@@ -106,7 +106,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         {
           error:
             credit.error ||
-            'USDC payment succeeded but crediting the goal failed. Contact the space operator.',
+            '$Space payment succeeded but crediting the goal failed. Contact the space operator.',
           paymentTaken: true,
         },
         { status: credit.status >= 500 ? 502 : credit.status }
@@ -115,7 +115,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: `Thank you — $${SPACE_FUND_X402_MAX_USDC} USDC credited toward ${campaignId}`,
+      message: `Thank you — $${SPACE_FUND_X402_CREDIT_USD} credited toward ${campaignId} ($Space via x402)`,
       token: tokenAddress,
       campaignId,
       raisedUsd: credit.raisedUsd,

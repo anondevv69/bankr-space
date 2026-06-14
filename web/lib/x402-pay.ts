@@ -2,10 +2,16 @@ import { ChainIdToNetwork, PaymentRequirementsSchema } from 'x402/types';
 import { createPaymentHeader, selectPaymentRequirements } from 'x402/client';
 import type { Address } from 'viem';
 import { toX402Signer } from '@/lib/x402-signer';
+import {
+  SPACE_FUND_X402_CREDIT_USD,
+  X402_FUND_MAX_ATOMIC,
+  X402_PAYMENT_TOKEN_ADDRESS,
+  X402_PAYMENT_TOKEN_SYMBOL,
+  formatX402FundPriceLabel,
+} from '@/lib/x402-config';
 
-/** Matches bankr.x402.json price for the shared fund service ($1 USDC per request). */
-export const SPACE_FUND_X402_MAX_USDC = 1;
-const USDC_BASE_UNITS = BigInt(SPACE_FUND_X402_MAX_USDC * 1_000_000);
+/** @deprecated use SPACE_FUND_X402_CREDIT_USD */
+export const SPACE_FUND_X402_MAX_USDC = SPACE_FUND_X402_CREDIT_USD;
 
 const CAIP_CHAIN_ID = /^eip155:(\d+)$/;
 
@@ -113,8 +119,18 @@ export async function paySpaceFund(
 
   const selected = selectPaymentRequirements(parsedPaymentRequirements, 'base', 'exact');
 
-  if (BigInt(selected.maxAmountRequired) > USDC_BASE_UNITS) {
-    throw new Error(`Payment amount exceeds maximum allowed ($${SPACE_FUND_X402_MAX_USDC} USDC)`);
+  const payAsset =
+    typeof selected.asset === 'string' ? selected.asset.toLowerCase() : '';
+  if (payAsset && payAsset !== X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()) {
+    throw new Error(
+      `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
+    );
+  }
+
+  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_ATOMIC) {
+    throw new Error(
+      `Payment amount exceeds maximum allowed (${formatX402FundPriceLabel()} per click)`
+    );
   }
 
   const paymentHeader = await createPaymentHeader(
@@ -190,8 +206,18 @@ export async function payAgentPoolFund(
 
   const selected = selectPaymentRequirements(parsedPaymentRequirements, 'base', 'exact');
 
-  if (BigInt(selected.maxAmountRequired) > USDC_BASE_UNITS) {
-    throw new Error(`Payment amount exceeds maximum allowed ($${SPACE_FUND_X402_MAX_USDC} USDC)`);
+  const payAsset =
+    typeof selected.asset === 'string' ? selected.asset.toLowerCase() : '';
+  if (payAsset && payAsset !== X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()) {
+    throw new Error(
+      `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
+    );
+  }
+
+  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_ATOMIC) {
+    throw new Error(
+      `Payment amount exceeds maximum allowed (${formatX402FundPriceLabel()} per click)`
+    );
   }
 
   const paymentHeader = await createPaymentHeader(

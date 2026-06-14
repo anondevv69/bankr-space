@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { payAgentPoolFund, SPACE_FUND_X402_MAX_USDC } from '@/lib/x402-pay';
+import { payAgentPoolFund } from '@/lib/x402-pay';
+import {
+  SPACE_FUND_X402_CREDIT_USD,
+  formatX402FundPriceLabel,
+  X402_PAYMENT_TOKEN_SYMBOL,
+} from '@/lib/x402-config';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { AgentPoolSkillId } from '@/lib/types';
@@ -79,13 +84,13 @@ export function AgentPoolWidget({
 
     if (isEmbedded) {
       setPayHint(
-        `On bankr.space in a browser, connect a Base wallet with USDC to fund the community agent for ${symbol}.`
+        `On bankr.space in a browser, connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to fund the community agent for ${symbol}.`
       );
       return;
     }
 
     if (!isConnected) {
-      setPayHint('Connect a Base wallet with USDC to pay.');
+      setPayHint(`Connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to pay.`);
       connectWallet();
       return;
     }
@@ -102,19 +107,20 @@ export function AgentPoolWidget({
     }
 
     setPaying(true);
+    const priceLabel = formatX402FundPriceLabel();
     setPayHint(
       count > 1
-        ? `Authorizing ${count} × $${SPACE_FUND_X402_MAX_USDC} USDC to the community agent pool…`
-        : `Approve $${SPACE_FUND_X402_MAX_USDC} USDC via Bankr x402.`
+        ? `Authorizing ${count} × ${priceLabel} to the community agent pool…`
+        : `Approve ${priceLabel} via Bankr x402.`
     );
 
     try {
       let last: Awaited<ReturnType<typeof payAgentPoolFund>> | null = null;
       for (let i = 0; i < count; i++) {
         if (count > 1) {
-          setPayHint(`Payment ${i + 1} of ${count} — approve in wallet…`);
+          setPayHint(`Payment ${i + 1} of ${count} — approve ${priceLabel} in wallet…`);
         }
-        last = await payAgentPoolFund(address, tokenAddress, skillId, SPACE_FUND_X402_MAX_USDC);
+        last = await payAgentPoolFund(address, tokenAddress, skillId, SPACE_FUND_X402_CREDIT_USD);
         if (!last.success) {
           setPayHint(last.error || `Payment ${i + 1} did not complete.`);
           break;
@@ -122,7 +128,7 @@ export function AgentPoolWidget({
       }
 
       if (last?.success) {
-        const totalUsd = count * SPACE_FUND_X402_MAX_USDC;
+        const totalUsd = count * SPACE_FUND_X402_CREDIT_USD;
         setPayHint(
           last.message ||
             `Thank you — $${totalUsd} credited to the agent pool. Progress: $${last.raisedUsd ?? '?'} / $${last.goalUsd ?? '?'}.`
@@ -166,7 +172,7 @@ export function AgentPoolWidget({
           <div className="text-sm font-semibold">Fund this task</div>
           <p className="text-xs text-muted mt-1">
             {layout === 'sidebar'
-              ? `$1 USDC per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
+              ? `${formatX402FundPriceLabel()} per click toward the goal below (0xWork / QRCoin). POIDH bounties → Bounties tab.`
               : `Holders chip in so the Bankr Space Agent can run 0xWork or QRCoin tasks for $${symbol}.`}
           </p>
         </div>
@@ -227,7 +233,7 @@ export function AgentPoolWidget({
               onClick={() => void contribute(count)}
               className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
             >
-              +${count * SPACE_FUND_X402_MAX_USDC}
+              +${count * SPACE_FUND_X402_CREDIT_USD}
             </button>
           ))}
           <input
@@ -256,7 +262,7 @@ export function AgentPoolWidget({
           <p className="text-xs text-muted border-t border-border pt-3">{payHint}</p>
         ) : (
           <p className="text-[11px] text-muted leading-snug">
-            ${SPACE_FUND_X402_MAX_USDC} USDC per click via x402 on Base.
+            {formatX402FundPriceLabel()} per click via x402 on Base (~$1 toward goal).
           </p>
         )}
       </div>

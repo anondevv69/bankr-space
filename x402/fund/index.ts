@@ -4,7 +4,7 @@
  * Runs on x402.bankr.bot, not on bankr.space:
  *   GET /{wallet}/fund?token=0x...&campaign=dex-profile&amount=1
  *
- * Bankr verifies the USDC payment before this handler runs. This handler only
+ * Bankr verifies the $Space payment before this handler runs. This handler only
  * validates routing metadata and returns 200 so x402 can settle. The
  * bankr.space proxy credits the correct community after the paid request
  * succeeds, using the token and campaign query params.
