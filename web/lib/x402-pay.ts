@@ -121,12 +121,13 @@ async function proxyX402(
   tokenAddress: string,
   campaignId: string,
   amountUsd: number,
-  xPayment?: string
+  xPayment?: string,
+  pinFundBase?: string
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`/api/communities/${tokenAddress}/fundraising/x402`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ campaignId, amountUsd, xPayment }),
+    body: JSON.stringify({ campaignId, amountUsd, xPayment, pinFundBase }),
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, data };
@@ -150,9 +151,13 @@ async function proxyAgentPoolX402(
 async function signAndPay(
   walletAddress: Address,
   quoteData: unknown,
-  retry: (paymentHeader: string) => Promise<{ status: number; data: unknown }>
+  retry: (paymentHeader: string, pinFundBase?: string) => Promise<{ status: number; data: unknown }>
 ): Promise<PayResult> {
   const paymentRequired = assertSpacePaymentQuote(quoteData);
+  const pinFundBase =
+    typeof (quoteData as { x402FundBase?: string }).x402FundBase === 'string'
+      ? (quoteData as { x402FundBase: string }).x402FundBase
+      : undefined;
   const httpClient = createPaymentHttpClient(walletAddress);
   const payload = await httpClient.createPaymentPayload(paymentRequired);
   const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
@@ -166,7 +171,7 @@ async function signAndPay(
     throw new Error('Failed to build x402 payment header');
   }
 
-  const paid = await retry(xPayment);
+  const paid = await retry(xPayment, pinFundBase);
   if (paid.status >= 400) {
     throw new Error(formatPayError(paid.data, paid.status));
   }
@@ -190,8 +195,8 @@ export async function paySpaceFund(
     return data as PayResult;
   }
 
-  return signAndPay(walletAddress, data, (xPayment) =>
-    proxyX402(tokenAddress, campaignId, amountUsd, xPayment)
+  return signAndPay(walletAddress, data, (xPayment, pinFundBase) =>
+    proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase)
   );
 }
 
