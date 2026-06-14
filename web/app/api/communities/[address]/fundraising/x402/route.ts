@@ -3,7 +3,7 @@ import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
-import { enrichX402QuoteBody } from '@/lib/x402-quote-response';
+import { attachX402FundMeta } from '@/lib/x402-quote-response';
 import { parseX402UpstreamError } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
@@ -21,7 +21,13 @@ export async function POST(req: Request, { params }: RouteParams) {
   const tokenAddress = normalizeAddr(address);
   const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
 
-  let body: { campaignId?: string; amountUsd?: number; xPayment?: string; pinFundBase?: string };
+  let body: {
+    campaignId?: string;
+    amountUsd?: number;
+    xPayment?: string;
+    pinFundBase?: string;
+    pinFundUrl?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -32,6 +38,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   const amountUsd = Number(body.amountUsd);
   const xPayment = typeof body.xPayment === 'string' ? body.xPayment.trim() : '';
   const pinFundBase = typeof body.pinFundBase === 'string' ? body.pinFundBase.trim() : '';
+  const pinFundUrl = typeof body.pinFundUrl === 'string' ? body.pinFundUrl.trim() : '';
 
   if (!isBeneficiaryCampaignId(campaignId)) {
     return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
@@ -48,19 +55,20 @@ export async function POST(req: Request, { params }: RouteParams) {
       amountUsd,
       xPayment: xPayment || undefined,
       pinBaseUrl: pinFundBase || undefined,
+      pinFundUrl: pinFundUrl || undefined,
     });
 
     if ('error' in fetched) {
       return NextResponse.json({ error: fetched.error }, { status: fetched.status });
     }
 
-    const { upstream, data, usedFallback, fundBase, fundUrl } = fetched;
+    const { upstream, data, usedFallback, fundBase, fundUrl, paymentRequiredHeader } = fetched;
 
     if (!xPayment && upstream.status === 402) {
       return NextResponse.json(
         {
           requiresPayment: true,
-          ...enrichX402QuoteBody(data, { fundUrl, fundBase }),
+          ...attachX402FundMeta(data, { fundUrl, fundBase, paymentRequiredHeader }),
           x402UsedFallback: usedFallback,
           x402FundBase: fundBase,
         },

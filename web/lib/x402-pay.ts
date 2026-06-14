@@ -1,9 +1,11 @@
 import { x402Client, x402HTTPClient } from '@x402/core/client';
+import { decodePaymentRequiredHeader } from '@x402/core/http';
 import type { PaymentRequired } from '@x402/core/types';
 import { ExactEvmScheme, UptoEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
+import { normalizeBankrPaymentRequired } from '@/lib/x402-normalize-quote';
 import {
   SPACE_FUND_X402_CREDIT_USD,
   X402_PAYMENT_TOKEN_ADDRESS,
@@ -63,43 +65,13 @@ function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
   return new x402HTTPClient(client);
 }
 
-function toPaymentRequired(data: unknown): PaymentRequired {
+function parsePaymentRequired(data: unknown): PaymentRequired {
   const body = data as Record<string, unknown>;
-  if (!Array.isArray(body.accepts) || body.accepts.length === 0) {
-    throw new Error('No payment options returned by x402 endpoint');
+  if (typeof body.paymentRequiredHeader === 'string' && body.paymentRequiredHeader) {
+    const raw = decodePaymentRequiredHeader(body.paymentRequiredHeader) as Record<string, unknown>;
+    return normalizeBankrPaymentRequired(raw);
   }
-
-  const rawAccepts = body.accepts as Record<string, unknown>[];
-  const firstAccept = rawAccepts[0];
-  const resourceUrl =
-    typeof body.x402ResourceUrl === 'string'
-      ? body.x402ResourceUrl
-      : body.resource &&
-          typeof body.resource === 'object' &&
-          'url' in (body.resource as object)
-        ? String((body.resource as { url: string }).url)
-        : String(firstAccept.resource || 'https://x402.bankr.bot/fund');
-
-  const accepts = rawAccepts.map((item) => ({
-    scheme: String(item.scheme),
-    network: String(item.network),
-    asset: String(item.asset),
-    amount: String(item.amount ?? item.maxAmountRequired ?? ''),
-    payTo: String(item.payTo),
-    maxTimeoutSeconds: Number(item.maxTimeoutSeconds ?? 60),
-    extra: (item.extra as Record<string, unknown>) || {},
-    resource: resourceUrl,
-  }));
-
-  return {
-    x402Version: Number(body.x402Version ?? 2),
-    error: String(body.error ?? 'Payment Required'),
-    resource: {
-      url: resourceUrl,
-      description: String(firstAccept.description || ''),
-    },
-    accepts: accepts as PaymentRequired['accepts'],
-  };
+  return normalizeBankrPaymentRequired(body);
 }
 
 function assertSpacePaymentQuote(data: unknown): PaymentRequired {
@@ -109,7 +81,7 @@ function assertSpacePaymentQuote(data: unknown): PaymentRequired {
       `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
     );
   }
-  const paymentRequired = toPaymentRequired(data);
+  const paymentRequired = parsePaymentRequired(data);
   const selected = paymentRequired.accepts.find(
     (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
   );
@@ -126,12 +98,13 @@ async function proxyX402(
   campaignId: string,
   amountUsd: number,
   xPayment?: string,
-  pinFundBase?: string
+  pinFundBase?: string,
+  pinFundUrl?: string
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`/api/communities/${tokenAddress}/fundraising/x402`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ campaignId, amountUsd, xPayment, pinFundBase }),
+    body: JSON.stringify({ campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl }),
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, data };
@@ -155,13 +128,21 @@ async function proxyAgentPoolX402(
 async function signAndPay(
   walletAddress: Address,
   quoteData: unknown,
-  retry: (paymentHeader: string, pinFundBase?: string) => Promise<{ status: number; data: unknown }>,
+  retry: (
+    paymentHeader: string,
+    pinFundBase?: string,
+    pinFundUrl?: string
+  ) => Promise<{ status: number; data: unknown }>,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
   const paymentRequired = assertSpacePaymentQuote(quoteData);
   const pinFundBase =
     typeof (quoteData as { x402FundBase?: string }).x402FundBase === 'string'
       ? (quoteData as { x402FundBase: string }).x402FundBase
+      : undefined;
+  const pinFundUrl =
+    typeof (quoteData as { x402FundUrl?: string }).x402FundUrl === 'string'
+      ? (quoteData as { x402FundUrl: string }).x402FundUrl
       : undefined;
   const selected = paymentRequired.accepts.find(
     (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
@@ -193,7 +174,7 @@ async function signAndPay(
     throw new Error('Failed to build x402 payment header');
   }
 
-  const paid = await retry(xPayment, pinFundBase);
+  const paid = await retry(xPayment, pinFundBase, pinFundUrl);
   if (paid.status >= 400) {
     throw new Error(formatPayError(paid.data, paid.status));
   }
@@ -221,8 +202,8 @@ export async function paySpaceFund(
   return signAndPay(
     walletAddress,
     data,
-    (xPayment, pinFundBase) =>
-      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase),
+    (xPayment, pinFundBase, pinFundUrl) =>
+      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl),
     onProgress
   );
 }

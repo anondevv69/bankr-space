@@ -5,6 +5,7 @@ import {
   isX402EndpointNotFound,
 } from '@/lib/x402-fund-url';
 import { shouldRetrySpaceFundX402 } from '@/lib/x402-upstream';
+import { readPaymentRequiredHeader } from '@/lib/x402-normalize-quote';
 import { x402ProxyPaymentHeaders } from '@/lib/x402-proxy-headers';
 
 export type AgentPoolX402FetchResult = {
@@ -13,6 +14,7 @@ export type AgentPoolX402FetchResult = {
   data: Record<string, unknown>;
   fundUrl: string;
   fundBase: string;
+  paymentRequiredHeader: string | null;
   usedFallback: boolean;
 };
 
@@ -72,7 +74,15 @@ export async function fetchAgentPoolX402Upstream(options: {
         continue;
       }
 
-      return { upstream, text, data, fundUrl, fundBase: baseUrl, usedFallback };
+      return {
+        upstream,
+        text,
+        data,
+        fundUrl,
+        fundBase: baseUrl.replace(/\/$/, ''),
+        paymentRequiredHeader: readPaymentRequiredHeader(upstream.headers),
+        usedFallback,
+      };
     } catch (err) {
       console.error('agent-pool x402 fetch', fundUrl, err);
       if (i === bases.length - 1) {
