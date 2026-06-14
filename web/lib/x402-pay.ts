@@ -37,8 +37,8 @@ function formatPayError(data: unknown, status: number): string {
     if (lower.includes('deadline') && lower.includes('expir')) {
       return formatFacilitatorInvalidReason('permit2_deadline_expired');
     }
-    if (lower.includes('verification failed')) {
-      return `${err} — click Contribute again and approve in your wallet within 60 seconds.`;
+    if (lower.includes('authorization expired')) {
+      return err;
     }
     return err;
   }
@@ -172,15 +172,7 @@ async function signAndPay(
       ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
       : undefined;
 
-  const selected = paymentRequired.accepts.find(
-    (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
-  );
-  const authorizeAtomic = selected ? BigInt(selected.amount) : X402_FUND_MAX_AUTHORIZE_ATOMIC;
-
-  onProgress?.('Checking $Space balance…');
-  await assertSpaceFundPreflight(walletAddress, amountUsd, authorizeAtomic);
-
-  onProgress?.('Sign the Permit2 contribution in your wallet (within 60 seconds)…');
+  onProgress?.('Approve immediately in your wallet — the authorization expires in 60 seconds…');
 
   const httpClient = createPaymentHttpClient(walletAddress);
   const payload = await httpClient.createPaymentPayload(paymentRequired);
@@ -216,8 +208,11 @@ export async function paySpaceFund(
     X402_FUND_MAX_AUTHORIZE_ATOMIC
   );
   if (allowance === 'approved') {
-    onProgress?.('Permit2 approved — fetching payment quote…');
+    onProgress?.('Permit2 approved — checking balance…');
   }
+
+  onProgress?.('Checking $Space balance…');
+  await assertSpaceFundPreflight(walletAddress, amountUsd, X402_FUND_MAX_AUTHORIZE_ATOMIC);
 
   const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
 
