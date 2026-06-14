@@ -7,7 +7,7 @@ export function formatFacilitatorInvalidReason(reason: string): string {
     case 'payment_already_used':
       return 'This payment signature was already submitted. Click Contribute again to sign a fresh payment.';
     case 'insufficient_balance':
-      return 'Insufficient $Space balance for this contribution.';
+      return 'Insufficient $Space in your wallet — buy $Space on Base, then try Contribute again.';
     case 'insufficient_allowance':
       return 'Permit2 allowance missing — approve $Space for Permit2 in your wallet, then try again.';
     default:

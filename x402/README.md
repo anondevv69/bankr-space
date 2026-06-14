@@ -4,7 +4,7 @@ Optional **Bankr Space ($Space)** contributions toward DexScreener or custom goa
 
 Payment token: `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3` (18 decimals). Each click settles **~$1 USD worth of $Space** at the current DexScreener price (via `upto` + `X-402-Settle-Amount` in the fund handler).
 
-**Authorize cap:** `price` in `bankr.x402.json` is the max Space a wallet may authorize per click (currently **250,000 Space**). Only the DexScreener-priced amount settles on-chain. If Space dumps far enough that $1 needs more than the cap, raise `price` and redeploy.
+**Authorize cap:** `price` in `bankr.x402.json` is the max Space a wallet may authorize per click (currently **10,000,000 Space**). Only the DexScreener-priced amount settles on-chain. If Space dumps far enough that $1 needs more than the cap, raise `price` and redeploy.
 
 ## Architecture
 

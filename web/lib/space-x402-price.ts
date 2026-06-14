@@ -3,7 +3,7 @@ import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
 import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
 
 /** Human-readable max authorize (upto cap) — must match x402/bankr.x402.json `price`. */
-export const X402_FUND_MAX_AUTHORIZE_TOKENS = '250000';
+export const X402_FUND_MAX_AUTHORIZE_TOKENS = '10000000';
 
 export const X402_FUND_MAX_AUTHORIZE_ATOMIC =
   BigInt(X402_FUND_MAX_AUTHORIZE_TOKENS) * 10n ** 18n;

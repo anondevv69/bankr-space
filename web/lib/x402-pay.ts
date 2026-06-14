@@ -6,6 +6,7 @@ import type { Address } from 'viem';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
+import { assertSpaceFundPreflight } from '@/lib/x402-fund-preflight';
 import { normalizeBankrPaymentRequired } from '@/lib/x402-normalize-quote';
 import {
   SPACE_FUND_X402_CREDIT_USD,
@@ -148,6 +149,7 @@ async function proxyAgentPoolX402(
 async function signAndPay(
   walletAddress: Address,
   quoteData: unknown,
+  amountUsd: number,
   retry: (
     paymentHeader: string,
     pinFundBase?: string,
@@ -169,6 +171,14 @@ async function signAndPay(
     typeof (quoteData as { paymentRequiredHeader?: string }).paymentRequiredHeader === 'string'
       ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
       : undefined;
+
+  const selected = paymentRequired.accepts.find(
+    (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
+  );
+  const authorizeAtomic = selected ? BigInt(selected.amount) : X402_FUND_MAX_AUTHORIZE_ATOMIC;
+
+  onProgress?.('Checking $Space balance…');
+  await assertSpaceFundPreflight(walletAddress, amountUsd, authorizeAtomic);
 
   onProgress?.('Sign the Permit2 contribution in your wallet (within 60 seconds)…');
 
@@ -223,6 +233,7 @@ export async function paySpaceFund(
   return signAndPay(
     walletAddress,
     data,
+    amountUsd,
     (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
       proxyX402(
         tokenAddress,
@@ -266,6 +277,7 @@ export async function payAgentPoolFund(
   return signAndPay(
     walletAddress,
     data,
+    amountUsd,
     (xPayment) => proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment),
     onProgress
   );

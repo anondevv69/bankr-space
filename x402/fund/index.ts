@@ -3,7 +3,7 @@
  */
 const SPACE_X402_TOKEN = '0xef703b860a6d422fa00cc67bbbb2662297cb6ba3';
 const DEXSCREENER_PAIRS = `https://api.dexscreener.com/token-pairs/v1/base/${SPACE_X402_TOKEN}`;
-const X402_FUND_MAX_AUTHORIZE_ATOMIC = BigInt('250000') * 10n ** 18n;
+const X402_FUND_MAX_AUTHORIZE_ATOMIC = BigInt('10000000') * 10n ** 18n;
 
 type DexPair = {
   liquidity?: { usd?: number | null };
