@@ -4,6 +4,7 @@ import {
   buildAgentPoolX402FallbackBaseUrl,
   isX402EndpointNotFound,
 } from '@/lib/x402-fund-url';
+import { shouldRetrySpaceFundX402 } from '@/lib/x402-upstream';
 
 export type AgentPoolX402FetchResult = {
   upstream: Response;
@@ -60,7 +61,8 @@ export async function fetchAgentPoolX402Upstream(options: {
       const shouldRetry =
         i === 0 &&
         bases.length > 1 &&
-        isX402EndpointNotFound(upstream.status, data);
+        (isX402EndpointNotFound(upstream.status, data) ||
+          shouldRetrySpaceFundX402(upstream.status, data));
 
       if (shouldRetry) {
         console.warn(

@@ -1,38 +1,26 @@
-import { ChainIdToNetwork, PaymentRequirementsSchema } from 'x402/types';
-import { createPaymentHeader, selectPaymentRequirements } from 'x402/client';
+import { x402Client, x402HTTPClient } from '@x402/core/client';
+import type { PaymentRequired } from '@x402/core/types';
+import { ExactEvmScheme, UptoEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
-import { toX402Signer } from '@/lib/x402-signer';
+import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import {
   SPACE_FUND_X402_CREDIT_USD,
   X402_PAYMENT_TOKEN_ADDRESS,
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
 import { X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
+import { x402AcceptsIncludeToken } from '@/lib/x402-upstream';
 
 /** @deprecated use SPACE_FUND_X402_CREDIT_USD */
 export const SPACE_FUND_X402_MAX_USDC = SPACE_FUND_X402_CREDIT_USD;
 
-const CAIP_CHAIN_ID = /^eip155:(\d+)$/;
-
-/** Bankr x402 v2 returns CAIP-2 networks (eip155:8453); x402 client expects short names (base). */
-function normalizeX402Network(network: unknown): unknown {
-  if (typeof network !== 'string') return network;
-  const match = network.match(CAIP_CHAIN_ID);
-  if (!match) return network;
-  const chainId = Number(match[1]);
-  return ChainIdToNetwork[chainId as keyof typeof ChainIdToNetwork] ?? network;
-}
-
-function normalizeAccepts(accepts: unknown[]): unknown[] {
-  return accepts.map((item) => {
-    if (!item || typeof item !== 'object') return item;
-    const copy = { ...(item as Record<string, unknown>) };
-    if ('network' in copy) {
-      copy.network = normalizeX402Network(copy.network);
-    }
-    return copy;
-  });
-}
+type PayResult = {
+  success?: boolean;
+  raisedUsd?: number;
+  goalUsd?: number;
+  message?: string;
+  error?: string;
+};
 
 function formatPayError(data: unknown, status: number): string {
   if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
@@ -52,13 +40,82 @@ function formatPayError(data: unknown, status: number): string {
   return `Payment failed (${status})`;
 }
 
-type PayResult = {
-  success?: boolean;
-  raisedUsd?: number;
-  goalUsd?: number;
-  message?: string;
-  error?: string;
-};
+function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
+  const { walletClient, publicClient } = createEvmPaymentSigner(walletAddress);
+  const signer = toClientEvmSigner(
+    {
+      address: walletAddress,
+      signTypedData: (message) =>
+        walletClient.signTypedData({
+          account: walletAddress,
+          domain: message.domain,
+          types: message.types,
+          primaryType: message.primaryType as 'PermitTransferFrom',
+          message: message.message,
+        }),
+    },
+    publicClient
+  );
+  const client = new x402Client()
+    .register('eip155:8453', new UptoEvmScheme(signer))
+    .register('eip155:8453', new ExactEvmScheme(signer));
+  return new x402HTTPClient(client);
+}
+
+function toPaymentRequired(data: unknown): PaymentRequired {
+  const body = data as Record<string, unknown>;
+  if (!Array.isArray(body.accepts) || body.accepts.length === 0) {
+    throw new Error('No payment options returned by x402 endpoint');
+  }
+
+  const rawAccepts = body.accepts as Record<string, unknown>[];
+  const firstAccept = rawAccepts[0];
+  const resourceUrl =
+    body.resource &&
+    typeof body.resource === 'object' &&
+    'url' in (body.resource as object)
+      ? String((body.resource as { url: string }).url)
+      : String(firstAccept.resource || 'https://x402.bankr.bot/fund');
+
+  const accepts = rawAccepts.map((item) => ({
+    scheme: String(item.scheme),
+    network: String(item.network),
+    asset: String(item.asset),
+    amount: String(item.amount ?? item.maxAmountRequired ?? ''),
+    payTo: String(item.payTo),
+    maxTimeoutSeconds: Number(item.maxTimeoutSeconds ?? 60),
+    extra: (item.extra as Record<string, unknown>) || {},
+  }));
+
+  return {
+    x402Version: Number(body.x402Version ?? 2),
+    error: String(body.error ?? 'Payment Required'),
+    resource: {
+      url: resourceUrl,
+      description: String(firstAccept.description || ''),
+    },
+    accepts: accepts as PaymentRequired['accepts'],
+  };
+}
+
+function assertSpacePaymentQuote(data: unknown): PaymentRequired {
+  const body = data as Record<string, unknown>;
+  if (!x402AcceptsIncludeToken(body, X402_PAYMENT_TOKEN_ADDRESS)) {
+    throw new Error(
+      `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
+    );
+  }
+  const paymentRequired = toPaymentRequired(data);
+  const selected = paymentRequired.accepts.find(
+    (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
+  );
+  if (selected && BigInt(selected.amount) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
+    throw new Error(
+      'Payment authorization exceeds configured maximum — redeploy x402 fund service'
+    );
+  }
+  return paymentRequired;
+}
 
 async function proxyX402(
   tokenAddress: string,
@@ -73,77 +130,6 @@ async function proxyX402(
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, data };
-}
-
-export async function paySpaceFund(
-  walletAddress: Address,
-  tokenAddress: string,
-  campaignId: string,
-  amountUsd: number
-): Promise<PayResult> {
-  const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
-
-  const body = data as {
-    requiresPayment?: boolean;
-    x402Version?: number;
-    accepts?: unknown[];
-    error?: string;
-  };
-
-  const isQuote = status === 402 || (status === 200 && body.requiresPayment);
-  if (!isQuote) {
-    if (status >= 400) {
-      throw new Error(formatPayError(data, status));
-    }
-    return data as PayResult;
-  }
-
-  const { x402Version, accepts } = body;
-  if (!Array.isArray(accepts) || accepts.length === 0) {
-    throw new Error('No payment options returned by x402 endpoint');
-  }
-
-  let parsedPaymentRequirements;
-  try {
-    parsedPaymentRequirements = normalizeAccepts(accepts).map((x) =>
-      PaymentRequirementsSchema.parse(x)
-    );
-  } catch (err) {
-    throw new Error(
-      err instanceof Error
-        ? `Invalid x402 payment requirements: ${err.message}`
-        : 'Invalid x402 payment requirements'
-    );
-  }
-
-  const selected = selectPaymentRequirements(parsedPaymentRequirements, 'base', 'exact');
-
-  const payAsset =
-    typeof selected.asset === 'string' ? selected.asset.toLowerCase() : '';
-  if (payAsset && payAsset !== X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()) {
-    throw new Error(
-      `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
-    );
-  }
-
-  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
-    throw new Error(
-      `Payment authorization exceeds configured maximum — redeploy x402 fund service`
-    );
-  }
-
-  const paymentHeader = await createPaymentHeader(
-    toX402Signer(walletAddress),
-    x402Version ?? 2,
-    selected
-  );
-
-  const paid = await proxyX402(tokenAddress, campaignId, amountUsd, paymentHeader);
-  if (paid.status >= 400) {
-    throw new Error(formatPayError(paid.data, paid.status));
-  }
-
-  return paid.data as PayResult;
 }
 
 async function proxyAgentPoolX402(
@@ -161,6 +147,54 @@ async function proxyAgentPoolX402(
   return { status: res.status, data };
 }
 
+async function signAndPay(
+  walletAddress: Address,
+  quoteData: unknown,
+  retry: (paymentHeader: string) => Promise<{ status: number; data: unknown }>
+): Promise<PayResult> {
+  const paymentRequired = assertSpacePaymentQuote(quoteData);
+  const httpClient = createPaymentHttpClient(walletAddress);
+  const payload = await httpClient.createPaymentPayload(paymentRequired);
+  const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
+  const xPayment =
+    payHeaders['PAYMENT-SIGNATURE'] ||
+    payHeaders['X-PAYMENT'] ||
+    payHeaders['payment-signature'] ||
+    Object.values(payHeaders)[0];
+
+  if (!xPayment) {
+    throw new Error('Failed to build x402 payment header');
+  }
+
+  const paid = await retry(xPayment);
+  if (paid.status >= 400) {
+    throw new Error(formatPayError(paid.data, paid.status));
+  }
+  return paid.data as PayResult;
+}
+
+export async function paySpaceFund(
+  walletAddress: Address,
+  tokenAddress: string,
+  campaignId: string,
+  amountUsd: number
+): Promise<PayResult> {
+  const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
+
+  const body = data as { requiresPayment?: boolean };
+  const isQuote = status === 402 || (status === 200 && body.requiresPayment);
+  if (!isQuote) {
+    if (status >= 400) {
+      throw new Error(formatPayError(data, status));
+    }
+    return data as PayResult;
+  }
+
+  return signAndPay(walletAddress, data, (xPayment) =>
+    proxyX402(tokenAddress, campaignId, amountUsd, xPayment)
+  );
+}
+
 /** Lane B — community agent pool; x402 pay-to is PLATFORM_AGENT_WALLET. */
 export async function payAgentPoolFund(
   walletAddress: Address,
@@ -170,13 +204,7 @@ export async function payAgentPoolFund(
 ): Promise<PayResult> {
   const { status, data } = await proxyAgentPoolX402(tokenAddress, skillId, amountUsd);
 
-  const body = data as {
-    requiresPayment?: boolean;
-    x402Version?: number;
-    accepts?: unknown[];
-    error?: string;
-  };
-
+  const body = data as { requiresPayment?: boolean };
   const isQuote = status === 402 || (status === 200 && body.requiresPayment);
   if (!isQuote) {
     if (status >= 400) {
@@ -185,50 +213,7 @@ export async function payAgentPoolFund(
     return data as PayResult;
   }
 
-  const { x402Version, accepts } = body;
-  if (!Array.isArray(accepts) || accepts.length === 0) {
-    throw new Error('No payment options returned by x402 endpoint');
-  }
-
-  let parsedPaymentRequirements;
-  try {
-    parsedPaymentRequirements = normalizeAccepts(accepts).map((x) =>
-      PaymentRequirementsSchema.parse(x)
-    );
-  } catch (err) {
-    throw new Error(
-      err instanceof Error
-        ? `Invalid x402 payment requirements: ${err.message}`
-        : 'Invalid x402 payment requirements'
-    );
-  }
-
-  const selected = selectPaymentRequirements(parsedPaymentRequirements, 'base', 'exact');
-
-  const payAsset =
-    typeof selected.asset === 'string' ? selected.asset.toLowerCase() : '';
-  if (payAsset && payAsset !== X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()) {
-    throw new Error(
-      `Unexpected payment token — redeploy x402 fund service for $${X402_PAYMENT_TOKEN_SYMBOL}`
-    );
-  }
-
-  if (BigInt(selected.maxAmountRequired) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
-    throw new Error(
-      `Payment authorization exceeds configured maximum — redeploy x402 fund service`
-    );
-  }
-
-  const paymentHeader = await createPaymentHeader(
-    toX402Signer(walletAddress),
-    x402Version ?? 2,
-    selected
+  return signAndPay(walletAddress, data, (xPayment) =>
+    proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment)
   );
-
-  const paid = await proxyAgentPoolX402(tokenAddress, skillId, amountUsd, paymentHeader);
-  if (paid.status >= 400) {
-    throw new Error(formatPayError(paid.data, paid.status));
-  }
-
-  return paid.data as PayResult;
 }

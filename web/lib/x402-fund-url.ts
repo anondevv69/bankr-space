@@ -74,6 +74,14 @@ export function buildAgentPoolX402FallbackBaseUrl(): string | null {
   return u ? u.toString().replace(/\/$/, '') : null;
 }
 
+/** Shared Bankr x402 deploy URL without pay-to path swap (fallback when beneficiary path 404s or serves USDC). */
+export function buildFundraisingX402FallbackBaseUrl(): string | null {
+  const configured = process.env.NEXT_PUBLIC_X402_FUND_URL?.trim();
+  if (!configured) return null;
+  const u = parseConfiguredFundUrl(configured);
+  return u ? u.toString().replace(/\/$/, '') : null;
+}
+
 export function isX402EndpointNotFound(status: number, data: Record<string, unknown>): boolean {
   if (status !== 404) return false;
   const err = data.error;
