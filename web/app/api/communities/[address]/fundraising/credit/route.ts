@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { CAMPAIGN_IDS, type CampaignId } from '@/lib/fundraising';
+import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -22,10 +22,10 @@ export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
   const body = await req.json().catch(() => ({}));
-  const campaignId = String(body.campaignId || body.campaign || '').trim() as CampaignId;
+  const campaignId = String(body.campaignId || body.campaign || '').trim();
   const amountUsd = Number(body.amountUsd ?? body.amount);
 
-  if (!CAMPAIGN_IDS.includes(campaignId)) {
+  if (!isBeneficiaryCampaignId(campaignId)) {
     return NextResponse.json({ error: 'Invalid campaignId' }, { status: 400 });
   }
 

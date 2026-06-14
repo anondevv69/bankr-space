@@ -5,7 +5,7 @@ import type {
   FundraisingCampaign,
   FundraisingState,
 } from './types';
-import { isCampaignFunded, readStoredFundraising } from './fundraising';
+import { isBeneficiaryCampaignId, isCampaignFunded, readStoredFundraising } from './fundraising';
 import {
   isAgentPoolCampaignFunded,
   openAgentPoolCampaigns,
@@ -39,6 +39,16 @@ export type FundraiserSaveResult =
   | { ok: true; campaigns: FundraisingCampaign[] }
   | { ok: false; error: string; status: number };
 
+function clampGoal(value: unknown, fallback: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(Math.round(n * 100) / 100, 1_000_000);
+}
+
+function isNewCustomCampaignId(id: string): boolean {
+  return id === 'custom' || /^custom-[a-z0-9-]+$/i.test(id);
+}
+
 export function applyBeneficiaryFundraisingSave(
   stored: FundraisingState | undefined | null,
   incomingCampaigns: FundraisingCampaign[]
@@ -47,8 +57,21 @@ export function applyBeneficiaryFundraisingSave(
   const campaigns: FundraisingCampaign[] = [];
 
   for (const inc of incomingCampaigns) {
-    const was = prev.campaigns.find((c) => c.id === inc.id);
-    if (!was) continue;
+    const id = String(inc.id || '').trim();
+    if (!isBeneficiaryCampaignId(id)) continue;
+
+    const was = prev.campaigns.find((c) => c.id === id);
+    if (!was) {
+      if (!isNewCustomCampaignId(id)) continue;
+      campaigns.push({
+        id,
+        label: String(inc.label || 'Community goal').slice(0, 80),
+        goalUsd: clampGoal(inc.goalUsd, 500),
+        raisedUsd: 0,
+        enabled: Boolean(inc.enabled),
+      });
+      continue;
+    }
 
     let enabled = Boolean(inc.enabled);
     const goalUsd = Number(inc.goalUsd);
@@ -56,11 +79,7 @@ export function applyBeneficiaryFundraisingSave(
     let raisedUsd = was.raisedUsd;
 
     // Re-open after a completed goal was closed → fresh fundraiser (same slot, $0 raised).
-    if (
-      enabled &&
-      !was.enabled &&
-      isGoalFunded(was.raisedUsd, was.goalUsd)
-    ) {
+    if (enabled && !was.enabled && isGoalFunded(was.raisedUsd, was.goalUsd)) {
       raisedUsd = 0;
     }
 
@@ -89,21 +108,6 @@ export function applyBeneficiaryFundraisingSave(
       label,
       raisedUsd,
     });
-  }
-
-  const open = campaigns.filter((c) => c.enabled && !isCampaignFunded(c));
-  if (open.length > 1) {
-    return {
-      ok: false,
-      error:
-        'Only one beneficiary fundraiser can be open at a time. Close or complete the other goal first (goals with contributions cannot be closed).',
-      status: 400,
-    };
-  }
-
-  const lockedOpen = open.find((c) => isBeneficiaryCampaignLocked(c));
-  if (lockedOpen && open.length === 1 && open[0].id !== lockedOpen.id) {
-    // unreachable if only one open
   }
 
   return { ok: true, campaigns };
@@ -184,19 +188,11 @@ export function assertCanOpenAgentPoolGoal(
   return null;
 }
 
+/** @deprecated Multiple beneficiary fundraisers may be open at once. */
 export function assertCanOpenBeneficiaryCampaign(
-  stored: FundraisingState | undefined | null,
-  campaignId: string,
-  enabling: boolean
+  _stored: FundraisingState | undefined | null,
+  _campaignId: string,
+  _enabling: boolean
 ): string | null {
-  if (!enabling) return null;
-  const prev = readStoredFundraising(stored);
-  const open = prev.campaigns.filter((c) => c.enabled && !isCampaignFunded(c));
-  const other = open.filter((c) => c.id !== campaignId);
-  if (other.length === 0) return null;
-  const active = other[0];
-  if (active.raisedUsd > 0 || isBeneficiaryCampaignLocked(active)) {
-    return `Only one fundraiser can be open at a time. "${active.label}" has active contributions and cannot be closed until the goal is met.`;
-  }
   return null;
 }

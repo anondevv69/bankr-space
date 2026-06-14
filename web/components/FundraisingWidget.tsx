@@ -50,7 +50,9 @@ export function FundraisingWidget({
       const res = await fetch(`/api/communities/${tokenAddress}/fundraising`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
-      const open = (data.campaigns || []).filter((c: FundraisingView) => !c.funded);
+      const open = (data.open || data.campaigns || []).filter(
+        (c: FundraisingView) => !c.funded
+      );
       setCampaigns(open);
       setX402BaseUrl(data.x402BaseUrl || null);
       if (open[0]?.id) {
@@ -189,7 +191,7 @@ export function FundraisingWidget({
                 : 'text-muted hover:text-text'
             }`}
           >
-            {c.id === 'dex-profile' ? 'Dex profile' : c.id === 'dex-boost' ? 'Dex boost' : 'Custom'}
+            {c.label || 'Fundraiser'}
           </button>
         ))}
       </div>

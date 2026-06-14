@@ -1,11 +1,10 @@
 import { getCommunities, setCommunities, getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 import {
-  CAMPAIGN_IDS,
   creditCampaignUsd,
+  isBeneficiaryCampaignId,
   isCampaignFunded,
   readStoredFundraising,
-  type CampaignId,
 } from '@/lib/fundraising';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -13,7 +12,7 @@ export type ApplyCreditResult =
   | {
       success: true;
       tokenAddress: string;
-      campaignId: CampaignId;
+      campaignId: string;
       creditedUsd: number;
       raisedUsd: number;
       goalUsd: number;
@@ -23,12 +22,12 @@ export type ApplyCreditResult =
 
 export async function applyFundraisingCredit(
   tokenAddress: string,
-  campaignId: CampaignId,
+  campaignId: string,
   amountUsd: number
 ): Promise<ApplyCreditResult> {
   const normalized = normalizeAddr(tokenAddress);
 
-  if (!CAMPAIGN_IDS.includes(campaignId)) {
+  if (!isBeneficiaryCampaignId(campaignId)) {
     return { success: false, error: 'Invalid campaignId', status: 400 };
   }
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {

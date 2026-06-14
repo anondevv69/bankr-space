@@ -14,9 +14,8 @@ import type {
   AgentPoolCampaign,
   TrustedDelegateEntry,
 } from '@/lib/types';
-import { DEFAULT_CAMPAIGNS, isCampaignFunded } from '@/lib/fundraising';
+import { DEFAULT_CAMPAIGNS, createCustomCampaignId, isCampaignFunded, isRemovableCustomCampaign } from '@/lib/fundraising';
 import {
-  assertCanOpenBeneficiaryCampaign,
   isAgentPoolCampaignLocked,
   isBeneficiaryCampaignLocked,
 } from '@/lib/fundraiser-locks';
@@ -346,25 +345,11 @@ export function CommunityProfile({
       }
 
       if (patch.enabled === true) {
-        const conflict = assertCanOpenBeneficiaryCampaign(
-          { optedIn: true, campaigns: current },
-          id,
-          true
-        );
-        if (conflict) {
-          alert(conflict);
-          return current;
-        }
         return current.map((c) => {
           if (c.id === id) {
             const freshStart =
-              !target.enabled && isCampaignFunded(target)
-                ? { raisedUsd: 0 }
-                : {};
+              !target.enabled && isCampaignFunded(target) ? { raisedUsd: 0 } : {};
             return { ...c, ...patch, ...freshStart, enabled: true };
-          }
-          if (c.enabled && (isCampaignFunded(c) || c.raisedUsd === 0)) {
-            return { ...c, enabled: false };
           }
           return c;
         });
@@ -391,6 +376,27 @@ export function CommunityProfile({
       }
 
       return current.map((c) => (c.id === id ? { ...c, ...patch } : c));
+    });
+  }
+
+  function addFundraiser() {
+    setFundraisingCampaigns((current) => [
+      ...current,
+      {
+        id: createCustomCampaignId(),
+        label: 'Community goal',
+        goalUsd: 500,
+        raisedUsd: 0,
+        enabled: false,
+      },
+    ]);
+  }
+
+  function removeCampaign(id: string) {
+    setFundraisingCampaigns((current) => {
+      const target = current.find((c) => c.id === id);
+      if (!target || !isRemovableCustomCampaign(target)) return current;
+      return current.filter((c) => c.id !== id);
     });
   }
 
@@ -892,7 +898,7 @@ export function CommunityProfile({
               {canEditFundraising ? (
                 <EditSection
                   title="Fundraising campaigns"
-                  hint="Fee recipient only. One open fundraiser at a time. Once contributors pay in, the goal cannot be closed until it is met — unless the goal is already reached."
+                  hint="Fee recipient only. Enable any combination of fundraisers — each has its own name and goal. Once contributors pay in, a goal stays open until met; completed goals stay in history until you uncheck them."
                 >
                   <div className="space-y-3">
                     {fundraisingCampaigns.map((campaign) => (
@@ -900,82 +906,85 @@ export function CommunityProfile({
                         key={campaign.id}
                         className="p-3 border border-border rounded-lg bg-bg/40 space-y-2"
                       >
-                        <label
-                          className={`flex items-start gap-2 text-sm ${
-                            isBeneficiaryCampaignLocked(campaign)
-                              ? 'cursor-not-allowed opacity-90'
-                              : 'cursor-pointer'
-                          }`}
-                        >
+                        <div className="flex items-start gap-2">
+                          <label
+                            className={`flex flex-1 items-start gap-2 text-sm min-w-0 ${
+                              isBeneficiaryCampaignLocked(campaign)
+                                ? 'cursor-not-allowed opacity-90'
+                                : 'cursor-pointer'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={campaign.enabled}
+                              disabled={isBeneficiaryCampaignLocked(campaign)}
+                              onChange={(e) =>
+                                updateCampaign(campaign.id, { enabled: e.target.checked })
+                              }
+                            />
+                            <span className="flex-1 min-w-0">
+                              <span className="font-medium">{campaign.label}</span>
+                              <span className="block text-xs text-muted mt-0.5">
+                                ${campaign.raisedUsd.toLocaleString()} raised · goal $
+                                {campaign.goalUsd.toLocaleString()}
+                              </span>
+                              {isCampaignFunded(campaign) ? (
+                                <span className="block text-[11px] text-green-600 dark:text-green-400 mt-1">
+                                  Completed — uncheck to archive, or check again to start fresh at
+                                  $0.
+                                </span>
+                              ) : isBeneficiaryCampaignLocked(campaign) ? (
+                                <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                                  Locked — ${campaign.raisedUsd.toLocaleString()} raised. Lower goal
+                                  to that amount to mark complete, or raise until the goal is met.
+                                </span>
+                              ) : null}
+                            </span>
+                          </label>
+                          {isRemovableCustomCampaign(campaign) ? (
+                            <button
+                              type="button"
+                              className="shrink-0 text-xs text-muted hover:text-red-500 px-2 py-0.5"
+                              onClick={() => removeCampaign(campaign.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 pl-6">
                           <input
-                            type="checkbox"
-                            className="mt-0.5"
-                            checked={campaign.enabled}
+                            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                            placeholder="Fundraiser name"
+                            value={campaign.label}
                             disabled={isBeneficiaryCampaignLocked(campaign)}
                             onChange={(e) =>
-                              updateCampaign(campaign.id, { enabled: e.target.checked })
+                              updateCampaign(campaign.id, { label: e.target.value })
                             }
                           />
-                          <span>
-                            <span className="font-medium">{campaign.label}</span>
-                            <span className="block text-xs text-muted mt-0.5">
-                              ${campaign.raisedUsd.toLocaleString()} raised · goal $
-                              {campaign.goalUsd.toLocaleString()}
-                            </span>
-                            {isCampaignFunded(campaign) ? (
-                              <span className="block text-[11px] text-green-600 dark:text-green-400 mt-1">
-                                Goal met — uncheck to close, or enable another fundraiser to replace
-                                this one.
-                              </span>
-                            ) : isBeneficiaryCampaignLocked(campaign) ? (
-                              <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                                Locked — ${campaign.raisedUsd.toLocaleString()} raised. Lower goal to
-                                that amount to mark complete, or raise until the goal is met.
-                              </span>
-                            ) : null}
-                          </span>
-                        </label>
-                        {campaign.id === 'custom' ? (
-                          <div className="grid gap-2 sm:grid-cols-2 pl-6">
-                            <input
-                              className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                              placeholder="Goal label"
-                              value={campaign.label}
-                              onChange={(e) =>
-                                updateCampaign(campaign.id, { label: e.target.value })
-                              }
-                            />
-                            <input
-                              type="number"
-                              min={1}
-                              className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                              placeholder="Goal USD"
-                              value={campaign.goalUsd}
-                              onChange={(e) =>
-                                updateCampaign(campaign.id, {
-                                  goalUsd: Math.max(1, Number(e.target.value) || 1),
-                                })
-                              }
-                            />
-                          </div>
-                        ) : campaign.id === 'dex-boost' ? (
-                          <div className="pl-6">
-                            <label className="block text-xs text-muted mb-1">Goal USD</label>
-                            <input
-                              type="number"
-                              min={1}
-                              className="w-full max-w-[140px] px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                              value={campaign.goalUsd}
-                              onChange={(e) =>
-                                updateCampaign(campaign.id, {
-                                  goalUsd: Math.max(1, Number(e.target.value) || 1),
-                                })
-                              }
-                            />
-                          </div>
-                        ) : null}
+                          <input
+                            type="number"
+                            min={1}
+                            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                            placeholder="Goal USD"
+                            value={campaign.goalUsd}
+                            disabled={isBeneficiaryCampaignLocked(campaign)}
+                            onChange={(e) =>
+                              updateCampaign(campaign.id, {
+                                goalUsd: Math.max(1, Number(e.target.value) || 1),
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     ))}
+                    <button
+                      type="button"
+                      onClick={addFundraiser}
+                      className="w-full py-2.5 text-sm font-medium border border-dashed border-border rounded-lg text-muted hover:text-text hover:border-accent/50 transition-colors"
+                    >
+                      + Add fundraiser
+                    </button>
                   </div>
                 </EditSection>
               ) : null}

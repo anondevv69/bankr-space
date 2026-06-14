@@ -1,7 +1,10 @@
 import type { FundraisingCampaign, FundraisingState } from './types';
 
-export const CAMPAIGN_IDS = ['dex-profile', 'dex-boost', 'custom'] as const;
-export type CampaignId = (typeof CAMPAIGN_IDS)[number];
+export const LEGACY_CAMPAIGN_IDS = ['dex-profile', 'dex-boost', 'custom'] as const;
+export type LegacyCampaignId = (typeof LEGACY_CAMPAIGN_IDS)[number];
+/** @deprecated use isBeneficiaryCampaignId */
+export const CAMPAIGN_IDS = LEGACY_CAMPAIGN_IDS;
+export type CampaignId = string;
 
 export const DEFAULT_CAMPAIGNS: FundraisingCampaign[] = [
   {
@@ -18,17 +21,24 @@ export const DEFAULT_CAMPAIGNS: FundraisingCampaign[] = [
     raisedUsd: 0,
     enabled: false,
   },
-  {
-    id: 'custom',
-    label: 'Community goal',
-    goalUsd: 500,
-    raisedUsd: 0,
-    enabled: false,
-  },
 ];
 
+const DEFAULT_TEMPLATE_ORDER = ['dex-profile', 'dex-boost'] as const;
+
+export function isBeneficiaryCampaignId(id: string): boolean {
+  const trimmed = id.trim();
+  if (trimmed === 'dex-profile' || trimmed === 'dex-boost' || trimmed === 'custom') {
+    return true;
+  }
+  return /^custom-[a-z0-9-]+$/i.test(trimmed);
+}
+
+export function createCustomCampaignId(): string {
+  return `custom-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 function mergeCampaigns(raw: FundraisingState | null | undefined): FundraisingCampaign[] {
-  const byId = new Map<CampaignId, FundraisingCampaign>();
+  const byId = new Map<string, FundraisingCampaign>();
 
   for (const defaults of DEFAULT_CAMPAIGNS) {
     byId.set(defaults.id, { ...defaults });
@@ -37,9 +47,15 @@ function mergeCampaigns(raw: FundraisingState | null | undefined): FundraisingCa
   if (raw && Array.isArray(raw.campaigns)) {
     for (const item of raw.campaigns) {
       if (!item || typeof item !== 'object') continue;
-      const id = String((item as FundraisingCampaign).id || '') as CampaignId;
-      if (!CAMPAIGN_IDS.includes(id)) continue;
-      const current = byId.get(id)!;
+      const id = String((item as FundraisingCampaign).id || '').trim();
+      if (!isBeneficiaryCampaignId(id)) continue;
+      const current = byId.get(id) ?? {
+        id,
+        label: 'Community goal',
+        goalUsd: 500,
+        raisedUsd: 0,
+        enabled: false,
+      };
       byId.set(id, {
         id,
         label: String((item as FundraisingCampaign).label || current.label).slice(0, 80),
@@ -50,7 +66,18 @@ function mergeCampaigns(raw: FundraisingState | null | undefined): FundraisingCa
     }
   }
 
-  return CAMPAIGN_IDS.map((id) => byId.get(id)!);
+  const ordered: FundraisingCampaign[] = [];
+  for (const id of DEFAULT_TEMPLATE_ORDER) {
+    const campaign = byId.get(id);
+    if (campaign) ordered.push(campaign);
+  }
+  const rest = [...byId.keys()]
+    .filter((id) => !DEFAULT_TEMPLATE_ORDER.includes(id as (typeof DEFAULT_TEMPLATE_ORDER)[number]))
+    .sort();
+  for (const id of rest) {
+    ordered.push(byId.get(id)!);
+  }
+  return ordered;
 }
 
 /**
@@ -117,7 +144,7 @@ export function openCampaigns(state: FundraisingState | undefined | null): Fundr
   return state.campaigns.filter((c) => c.enabled && !isCampaignFunded(c));
 }
 
-/** Enabled campaigns that reached their goal — show in history only. */
+/** Campaigns that reached their goal — show in history only. */
 export function completedCampaigns(
   state: FundraisingState | undefined | null
 ): FundraisingCampaign[] {
@@ -160,7 +187,7 @@ export function campaignProgress(campaign: FundraisingCampaign): number {
 
 export function creditCampaignUsd(
   state: FundraisingState,
-  campaignId: CampaignId,
+  campaignId: string,
   amountUsd: number
 ): FundraisingState {
   const amount = clampRaised(amountUsd);
@@ -185,4 +212,13 @@ export function buildSpaceFundUrl(
   url.searchParams.set('campaign', campaignId);
   url.searchParams.set('amount', String(amountUsd));
   return url.toString();
+}
+
+export function isRemovableCustomCampaign(campaign: FundraisingCampaign): boolean {
+  return (
+    campaign.id !== 'dex-profile' &&
+    campaign.id !== 'dex-boost' &&
+    !campaign.enabled &&
+    campaign.raisedUsd === 0
+  );
 }
