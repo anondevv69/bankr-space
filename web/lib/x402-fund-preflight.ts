@@ -5,7 +5,7 @@ import {
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
-import { PERMIT2_ADDRESS } from '@/lib/x402-permit2-allowance';
+import { readPermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import {
   fetchSpacePriceUsd,
   formatX402FundPriceLabel,
@@ -50,13 +50,8 @@ export async function assertSpaceFundPreflight(
     );
   }
 
-  const allowanceRaw = await publicClient.readContract({
-    address: X402_PAYMENT_TOKEN_ADDRESS as Address,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: [walletAddress, PERMIT2_ADDRESS],
-  });
-  if (BigInt(allowanceRaw) < authorizeAtomic) {
+  const allowanceRaw = await readPermit2TokenAllowance(walletAddress, X402_PAYMENT_TOKEN_ADDRESS as Address);
+  if (allowanceRaw < authorizeAtomic) {
     throw new Error(
       `Permit2 is not approved for $${X402_PAYMENT_TOKEN_SYMBOL} yet. Click Contribute again — MetaMask will ask for a one-time approve transaction first (costs a little Base ETH for gas), then the payment signature.`
     );

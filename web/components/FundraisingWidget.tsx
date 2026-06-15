@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSwitchChain } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { campaignProgress } from '@/lib/fundraising';
-import { paySpaceFund } from '@/lib/x402-pay';
+import { paySpaceFund, setupPermit2ForSpace } from '@/lib/x402-pay';
+import { readPermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
 import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
-import { formatX402FundPriceLabel } from '@/lib/space-x402-price';
+import { formatX402FundPriceLabel, X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
@@ -45,6 +46,8 @@ export function FundraisingWidget({
   const [activeCampaignId, setActiveCampaignId] = useState<string>('dex-profile');
   const [payHint, setPayHint] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [settingUpPermit2, setSettingUpPermit2] = useState(false);
+  const [permit2Ready, setPermit2Ready] = useState<boolean | null>(null);
   const [spacePriceUsd, setSpacePriceUsd] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -90,6 +93,49 @@ export function FundraisingWidget({
     };
   }, []);
 
+  useEffect(() => {
+    if (!address || !onBase) {
+      setPermit2Ready(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const allowance = await readPermit2TokenAllowance(
+          address,
+          NATIVE_SPACE_TOKEN_ADDRESS as `0x${string}`
+        );
+        if (!cancelled) {
+          setPermit2Ready(allowance >= X402_FUND_MAX_AUTHORIZE_ATOMIC);
+        }
+      } catch {
+        if (!cancelled) setPermit2Ready(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address, onBase, refreshKey]);
+
+  async function setupPermit2() {
+    if (!address || !onBase) return;
+    setSettingUpPermit2(true);
+    setPayHint('Step 1 — confirm the MetaMask transaction to approve $Space for Permit2 (one-time).');
+    try {
+      const result = await setupPermit2ForSpace(address, setPayHint);
+      setPermit2Ready(true);
+      setPayHint(
+        result === 'approved'
+          ? 'Permit2 is set up — you can Contribute now (Step 2 is a wallet signature only).'
+          : 'Permit2 was already approved — click Contribute to pay.'
+      );
+    } catch (err) {
+      setPayHint(err instanceof Error ? err.message : 'Permit2 setup failed.');
+    } finally {
+      setSettingUpPermit2(false);
+    }
+  }
+
   async function contribute(paymentCount: number) {
     const campaignId = activeCampaignId;
     const count = Math.max(1, Math.min(10, Math.round(paymentCount)));
@@ -128,16 +174,18 @@ export function FundraisingWidget({
     setPaying(true);
     const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
     setPayHint(
-      count > 1
-        ? `Authorizing ${count} × ${priceLabel} — when MetaMask opens, approve within 60 seconds.`
-        : `When MetaMask opens, approve within 60 seconds (${priceLabel} via Bankr x402).`
+      permit2Ready
+        ? count > 1
+          ? `Step 2 — sign ${count} payments in MetaMask (${priceLabel} each, within 60 seconds per signature).`
+          : `Step 2 — sign the payment in MetaMask (${priceLabel}, within 60 seconds).`
+        : 'Checking Permit2 setup…'
     );
 
     try {
       let last: Awaited<ReturnType<typeof paySpaceFund>> | null = null;
       for (let i = 0; i < count; i++) {
         if (count > 1) {
-          setPayHint(`Payment ${i + 1} of ${count} — approve ${priceLabel} in your wallet…`);
+          setPayHint(`Payment ${i + 1} of ${count} — ${priceLabel}…`);
         }
         last = await paySpaceFund(
           address,
@@ -153,6 +201,7 @@ export function FundraisingWidget({
       }
 
       if (last?.success) {
+        setPermit2Ready(true);
         const totalUsd = count * SPACE_FUND_X402_CREDIT_USD;
         setPayHint(
           last.message ||
@@ -230,6 +279,25 @@ export function FundraisingWidget({
     </div>
   );
 
+  const permit2Banner =
+    isConnected && onBase && permit2Ready === false ? (
+      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-text">
+        <p className="font-medium">One-time setup required</p>
+        <p className="text-muted mt-0.5">
+          Before your first contribution, approve {X402_PAYMENT_TOKEN_SYMBOL} for Permit2 on Base
+          (costs a little ETH for gas). After that, Contribute only asks for a signature.
+        </p>
+        <button
+          type="button"
+          disabled={settingUpPermit2 || paying}
+          onClick={() => void setupPermit2()}
+          className="mt-2 px-3 py-1.5 text-xs font-medium border border-amber-500/50 rounded-lg hover:bg-amber-500/15 disabled:opacity-50"
+        >
+          {settingUpPermit2 ? 'Setting up…' : 'Setup Permit2'}
+        </button>
+      </div>
+    ) : null;
+
   const controlsBlock = (
     <div className="flex flex-wrap items-center gap-2 shrink-0">
       {PRESET_PAYMENTS.map((count) => (
@@ -276,6 +344,7 @@ export function FundraisingWidget({
           </p>
         </div>
         {campaignTabs}
+        {permit2Banner}
         {progressBlock}
         {controlsBlock}
         {payHint ? (
@@ -300,7 +369,10 @@ export function FundraisingWidget({
           <div className="shrink-0">{campaignTabs}</div>
         ) : null}
 
-        {progressBlock}
+        <div className="min-w-0 flex-1 space-y-3">
+          {permit2Banner}
+          {progressBlock}
+        </div>
 
         {controlsBlock}
       </div>

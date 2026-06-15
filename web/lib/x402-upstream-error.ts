@@ -39,6 +39,9 @@ export function parseX402UpstreamError(
     }
     return data.error;
   }
+  if (typeof data.reason === 'string') {
+    return formatFacilitatorInvalidReason(data.reason);
+  }
   return 'x402 payment failed';
 }
 

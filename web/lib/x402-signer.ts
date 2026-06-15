@@ -2,6 +2,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  http,
   type Address,
   type Hex,
   type WalletClient,
@@ -34,16 +35,17 @@ export function createBrowserPaymentWalletClient(address: Address): WalletClient
 /** Wallet + public client for @x402/evm Permit2 reads and typed-data signing. */
 export function createEvmPaymentSigner(address: Address) {
   const provider = getBrowserProvider();
-  const transport = custom(provider);
+  const walletTransport = custom(provider);
   return {
     walletClient: createWalletClient({
       account: address,
       chain: base,
-      transport,
+      transport: walletTransport,
     }),
+    /** Base RPC reads — do not route balance/allowance through the wallet extension. */
     publicClient: createPublicClient({
       chain: base,
-      transport,
+      transport: http(),
     }),
   };
 }

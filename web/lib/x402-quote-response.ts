@@ -7,6 +7,7 @@ export function attachX402FundMeta(
   return {
     ...data,
     x402FundUrl: options.fundUrl,
+    x402FundBase: fundBase,
     x402ResourceUrl: fundBase,
     ...(options.paymentRequiredHeader ? { paymentRequiredHeader: options.paymentRequiredHeader } : {}),
   };
