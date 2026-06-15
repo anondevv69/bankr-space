@@ -75,20 +75,35 @@ export async function fetchFundraisingX402Upstream(options: {
     ? x402ProxyPaymentHeaders(options.xPayment)
     : { Accept: 'application/json' };
 
-  // Permit2 signatures are single-use — never retry payment on another URL with the same header.
-  // Include query params so the fund handler can set X-402-Settle-Amount (DexScreener-priced $Space).
+  // Permit2 signatures bind to the quote resource URL (base /fund). Pay that URL exactly —
+  // not the display URL with ?token=&campaign= (exact scheme no longer needs settle header).
   if (options.xPayment) {
-    const fundUrl =
-      options.pinFundUrl ||
-      buildSpaceFundUrl(
-        options.pinBaseUrl || primaryBase || fallbackBase!,
-        options.tokenAddress,
-        options.campaignId,
-        options.amountUsd
-      );
+    const fundUrl = (
+      options.pinBaseUrl?.replace(/\/$/, '') ||
+      (options.pinFundUrl ? fundBaseFromUrl(options.pinFundUrl) : null) ||
+      fundBaseFromUrl(
+        buildSpaceFundUrl(
+          options.pinBaseUrl || primaryBase || fallbackBase!,
+          options.tokenAddress,
+          options.campaignId,
+          options.amountUsd
+        )
+      )
+    );
     try {
       const { upstream, data } = await fetchFundUrl(fundUrl, headers);
-      return buildResult(upstream, data, fundUrl, Boolean(fallbackBase && fundBaseFromUrl(fundUrl) === fallbackBase.replace(/\/$/, '')));
+      return buildResult(
+        upstream,
+        data,
+        options.pinFundUrl ||
+          buildSpaceFundUrl(
+            options.pinBaseUrl || primaryBase || fallbackBase!,
+            options.tokenAddress,
+            options.campaignId,
+            options.amountUsd
+          ),
+        Boolean(fallbackBase && fundBaseFromUrl(fundUrl) === fallbackBase.replace(/\/$/, ''))
+      );
     } catch (err) {
       console.error('fundraising x402 payment fetch', fundUrl, err);
       return { error: 'Failed to reach x402 fund endpoint', status: 502 };
