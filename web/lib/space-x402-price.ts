@@ -3,7 +3,7 @@ import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
 import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
 
 /** Fixed Space per x402 click (exact scheme) — must match x402/bankr.x402.json `price`. */
-export const X402_FUND_EXACT_TOKENS = '2800000';
+export const X402_FUND_EXACT_TOKENS = '2500000';
 
 /** @deprecated use X402_FUND_EXACT_TOKENS */
 export const X402_FUND_MAX_AUTHORIZE_TOKENS = X402_FUND_EXACT_TOKENS;

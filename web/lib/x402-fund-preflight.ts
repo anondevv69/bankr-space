@@ -58,7 +58,7 @@ export async function assertSpaceFundPreflight(
   });
   if (BigInt(allowanceRaw) < authorizeAtomic) {
     throw new Error(
-      `Permit2 is not approved for $${X402_PAYMENT_TOKEN_SYMBOL} — when prompted, confirm the approval transaction in MetaMask first, then click Contribute again.`
+      `Permit2 is not approved for $${X402_PAYMENT_TOKEN_SYMBOL} yet. Click Contribute again — MetaMask will ask for a one-time approve transaction first (costs a little Base ETH for gas), then the payment signature.`
     );
   }
 }

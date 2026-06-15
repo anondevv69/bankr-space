@@ -265,14 +265,16 @@ export async function paySpaceFund(
   amountUsd: number,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
-  onProgress?.('Checking Permit2 allowance for $Space…');
+  onProgress?.('Step 1 of 2 — checking one-time Permit2 approval for $Space…');
   const allowance = await ensurePermit2TokenAllowance(
     walletAddress,
     X402_PAYMENT_TOKEN_ADDRESS as Address,
     X402_FUND_MAX_AUTHORIZE_ATOMIC
   );
   if (allowance === 'approved') {
-    onProgress?.('Permit2 approved — checking balance…');
+    onProgress?.('Permit2 approved on-chain — checking balance…');
+  } else {
+    onProgress?.('Permit2 already approved — checking balance…');
   }
 
   onProgress?.('Checking $Space balance…');
@@ -303,7 +305,13 @@ export async function paySpaceFund(
         pinFundUrl,
         pinPaymentRequiredHeader
       ),
-    onProgress
+    (msg) => {
+      if (msg.includes('MetaMask opening')) {
+        onProgress?.('Step 2 of 2 — sign the payment in MetaMask (within 60 seconds).');
+      } else {
+        onProgress?.(msg);
+      }
+    }
   );
 }
 

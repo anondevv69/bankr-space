@@ -32,6 +32,10 @@ export async function ensurePermit2TokenAllowance(
     abi: erc20Abi,
     functionName: 'approve',
     args: [PERMIT2_ADDRESS, maxUint256],
+  }).catch(() => {
+    throw new Error(
+      'Permit2 approval rejected — you must confirm the first MetaMask transaction (approve $Space for Permit2) before the payment can settle.'
+    );
   });
 
   await publicClient.waitForTransactionReceipt({ hash });

@@ -12,7 +12,7 @@ export function formatFacilitatorInvalidReason(reason: string): string {
       return 'Insufficient $Space in your wallet — buy $Space on Base, then try Contribute again.';
     case 'insufficient_allowance':
     case 'permit2_allowance_required':
-      return 'Permit2 allowance missing — approve $Space for Permit2 in your wallet, then try again.';
+      return 'Permit2 is not approved for $Space — click Contribute and confirm the first MetaMask transaction (approve), then sign the payment.';
     case 'invalid_permit2_recipient_mismatch':
       return 'Payment destination mismatch — refresh the page and try Contribute again.';
     case 'invalid_permit2_spender':
@@ -172,7 +172,7 @@ function genericVerificationFailure(payment: X402PaymentDiagnostics): X402Facili
       : '';
   return {
     message:
-      'Payment verification failed — confirm the Permit2 approval for $Space completed on Base, hard refresh, then try Contribute again.' +
+      'Payment verification failed — you likely skipped the one-time Permit2 approve. Click Contribute again: confirm the first MetaMask tx (approve $Space), then the payment signature.' +
       timingHint,
     payment,
   };
