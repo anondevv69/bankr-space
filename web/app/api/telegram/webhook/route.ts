@@ -50,7 +50,21 @@ function shortWallet(wallet: string): string {
 async function handleStart(chatId: number, botUsername: string): Promise<void> {
   await sendTelegramMessage(
     chatId,
-    `👋 Welcome to <b>Bankr Space</b>!\n\nThis bot lets you post to your community space and manage $Space from Telegram.\n\n<b>First, link your wallet:</b>\n→ /link\n\n<b>Commands:</b>\n/post &lt;text&gt; — post to your space\n/balance — check $Space\n/spaces — your spaces\n/unlink — remove wallet link\n/help — all commands`,
+    [
+      '👋 Welcome to <b>Bankr Space</b>!',
+      '',
+      'Post to your community space and manage $Space from Telegram.',
+      '',
+      '<b>First, link your wallet:</b>',
+      '→ /link',
+      '',
+      '<b>Then post:</b>',
+      '<code>/post $SYMBOL your message</code>',
+      '',
+      '/spaces — see your spaces',
+      '/balance — check $Space',
+      '/help — all commands',
+    ].join('\n'),
     { parseMode: 'HTML' }
   );
 }
@@ -106,55 +120,9 @@ async function handleBalance(chatId: number, wallet: string): Promise<void> {
   }
 }
 
-async function handleSpaces(chatId: number, wallet: string): Promise<void> {
+/** Returns all spaces the wallet is eligible to post in, capped at 20. */
+async function getPostableSpaces(wallet: string) {
   const communities = await getCommunities();
-  const normalizedWallet = wallet.toLowerCase();
-  const eligible = communities.filter(
-    (c) =>
-      c.ownerWallet?.toLowerCase() === normalizedWallet ||
-      c.founderWallet?.toLowerCase() === normalizedWallet
-  );
-
-  if (!eligible.length) {
-    await sendTelegramMessage(
-      chatId,
-      `No spaces found for wallet ${shortWallet(wallet)}.\n\nYou can post to any space where you hold the token — use /post to try.`
-    );
-    return;
-  }
-
-  const lines = eligible
-    .slice(0, 10)
-    .map((c) => `• <b>${c.symbol}</b> — ${communityUrl(c.tokenAddress)}`)
-    .join('\n');
-
-  await sendTelegramMessage(
-    chatId,
-    `🏘️ <b>Your Spaces</b>\n\n${lines}`,
-    { parseMode: 'HTML' }
-  );
-}
-
-async function handlePost(
-  chatId: number,
-  wallet: string,
-  content: string,
-  messageId: number,
-  telegramUsername: string | null
-): Promise<void> {
-  if (!content) {
-    await sendTelegramMessage(
-      chatId,
-      'Usage: /post &lt;your message&gt;\n\nExample: <code>/post GM Space holders! 🚀</code>',
-      { parseMode: 'HTML', replyToMessageId: messageId }
-    );
-    return;
-  }
-
-  const trimmed = content.slice(0, 2000);
-  const communities = await getCommunities();
-
-  // Find communities the wallet can post in (holds token or is owner)
   const postable: typeof communities = [];
   for (const c of communities) {
     try {
@@ -163,48 +131,149 @@ async function handlePost(
     } catch {
       // skip
     }
-    if (postable.length >= 5) break; // cap to avoid timeout
+    if (postable.length >= 20) break;
   }
+  return postable;
+}
+
+async function handleSpaces(chatId: number, wallet: string): Promise<void> {
+  const postable = await getPostableSpaces(wallet);
 
   if (!postable.length) {
     await sendTelegramMessage(
       chatId,
-      `⚠️ You don't hold any $Space or community tokens — can't post.\n\nHold the token to post in a space.`,
+      `No spaces found for wallet ${shortWallet(wallet)}.\n\nHold a community token to post in its space.`
+    );
+    return;
+  }
+
+  const lines = postable
+    .slice(0, 15)
+    .map((c, i) => `${i + 1}. <b>$${c.symbol}</b> — ${communityUrl(c.tokenAddress)}`)
+    .join('\n');
+
+  await sendTelegramMessage(
+    chatId,
+    `🏘️ <b>Your Spaces (${postable.length})</b>\n\n${lines}\n\nPost to a space:\n<code>/post $SYMBOL your message</code>`,
+    { parseMode: 'HTML' }
+  );
+}
+
+/**
+ * Parse `/post $SYMBOL text` or `/post text` from args.
+ * Returns { symbol, content } where symbol may be null.
+ */
+function parsePostArgs(args: string): { symbol: string | null; content: string } {
+  // Match leading $SYMBOL (letters/digits/underscore)
+  const match = args.match(/^\$([A-Za-z0-9_]+)\s+([\s\S]+)$/);
+  if (match) {
+    return { symbol: match[1].toUpperCase(), content: match[2].trim() };
+  }
+  return { symbol: null, content: args.trim() };
+}
+
+async function handlePost(
+  chatId: number,
+  wallet: string,
+  rawArgs: string,
+  messageId: number,
+  telegramUsername: string | null
+): Promise<void> {
+  const { symbol, content } = parsePostArgs(rawArgs);
+
+  if (!rawArgs.trim()) {
+    await sendTelegramMessage(
+      chatId,
+      [
+        '📝 <b>Post to a space</b>',
+        '',
+        'To post to a specific space:',
+        '<code>/post $SYMBOL your message here</code>',
+        '',
+        'Example:',
+        '<code>/post $SPACE GM everyone! 🚀</code>',
+        '',
+        'See your spaces: /spaces',
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId }
+    );
+    return;
+  }
+
+  const postable = await getPostableSpaces(wallet);
+
+  if (!postable.length) {
+    await sendTelegramMessage(
+      chatId,
+      `⚠️ You don't hold any community tokens — can't post.\n\nHold a token to post in its space.`,
       { replyToMessageId: messageId }
     );
     return;
   }
 
-  const author = await resolveAuthorProfile(wallet);
-  const created: string[] = [];
+  // Resolve target community
+  let target = postable.length === 1 ? postable[0] : null;
 
-  for (const c of postable.slice(0, 3)) {
-    const posts = await getPosts(c.tokenAddress);
-    const postId = `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const newPost: Post = {
-      id: postId,
-      wallet,
-      author,
-      content: trimmed,
-      reactions: { '👍': [], '❤️': [], '🔥': [] },
-      timestamp: Date.now(),
-      balance: 0,
-      source: {
-        client: 'api',
-        trigger: 'manual',
-        viaAgent: false,
-        externalRef: `telegram:${telegramUsername || chatId}`,
-      },
-    };
-    posts.push(newPost);
-    await setPostsForToken(c.tokenAddress, posts);
-    await updateCommunityCounts(c.tokenAddress, posts);
-    created.push(`• ${c.symbol} — ${communityUrl(c.tokenAddress)}`);
+  if (symbol) {
+    // Explicit $SYMBOL match
+    target = postable.find((c) => c.symbol.toUpperCase() === symbol) || null;
+    if (!target) {
+      const available = postable.map((c) => `$${c.symbol}`).join(', ');
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ No space found for <b>$${symbol}</b> in your wallet.\n\nSpaces you can post in: ${available}\n\nExample: <code>/post $${postable[0].symbol} your message</code>`,
+        { parseMode: 'HTML', replyToMessageId: messageId }
+      );
+      return;
+    }
   }
+
+  // Multiple spaces, no symbol specified — ask them to pick
+  if (!target) {
+    const lines = postable
+      .slice(0, 10)
+      .map((c) => `• <code>/post $${c.symbol} ${truncate(content, 30)}</code>`)
+      .join('\n');
+    await sendTelegramMessage(
+      chatId,
+      [
+        `You're in <b>${postable.length} spaces</b>. Which one?`,
+        '',
+        lines,
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId }
+    );
+    return;
+  }
+
+  // Post to the resolved community
+  const trimmed = content.slice(0, 2000);
+  const author = await resolveAuthorProfile(wallet);
+  const postId = `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const newPost: Post = {
+    id: postId,
+    wallet,
+    author,
+    content: trimmed,
+    reactions: { '👍': [], '❤️': [], '🔥': [] },
+    timestamp: Date.now(),
+    balance: 0,
+    source: {
+      client: 'telegram',
+      trigger: 'manual',
+      viaAgent: false,
+      externalRef: `telegram:${telegramUsername || chatId}`,
+    },
+  };
+
+  const posts = await getPosts(target.tokenAddress);
+  posts.push(newPost);
+  await setPostsForToken(target.tokenAddress, posts);
+  await updateCommunityCounts(target.tokenAddress, posts);
 
   await sendTelegramMessage(
     chatId,
-    `✅ <b>Posted!</b>\n\n${created.join('\n')}`,
+    `✅ <b>Posted to $${target.symbol}!</b>\n\n"${truncate(trimmed, 120)}"\n\n${communityUrl(target.tokenAddress)}`,
     { parseMode: 'HTML', replyToMessageId: messageId }
   );
 }
@@ -212,7 +281,17 @@ async function handlePost(
 async function handleHelp(chatId: number): Promise<void> {
   await sendTelegramMessage(
     chatId,
-    `<b>Bankr Space Bot — Commands</b>\n\n/link — connect your wallet\n/unlink — remove wallet\n/post &lt;text&gt; — post to your space\n/balance — check $Space balance\n/spaces — list your spaces\n/help — this message`,
+    [
+      '<b>Bankr Space Bot — Commands</b>',
+      '',
+      '/link — connect your wallet',
+      '/unlink — remove wallet',
+      '/spaces — list spaces you can post in',
+      '/post $SYMBOL &lt;text&gt; — post to a specific space',
+      '  e.g. <code>/post $SPACE GM everyone!</code>',
+      '/balance — check $Space balance',
+      '/help — this message',
+    ].join('\n'),
     { parseMode: 'HTML' }
   );
 }
