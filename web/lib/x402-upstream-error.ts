@@ -1,6 +1,8 @@
 import {
   formatFacilitatorInvalidReason,
+  type X402FacilitatorVerification,
   verifyX402PaymentWithFacilitator,
+  verifyX402PaymentWithFacilitatorDetail,
 } from '@/lib/x402-facilitator-verify';
 
 /** Parse Bankr x402 upstream error bodies and PAYMENT-RESPONSE headers (server-side). */
@@ -52,4 +54,12 @@ export async function parseX402UpstreamErrorDetailed(
 
   const detail = await verifyX402PaymentWithFacilitator(xPayment, paymentRequiredHeader);
   return detail || base;
+}
+
+export async function getX402UpstreamErrorDetail(
+  xPayment?: string,
+  paymentRequiredHeader?: string | null
+): Promise<X402FacilitatorVerification | null> {
+  if (!xPayment) return null;
+  return verifyX402PaymentWithFacilitatorDetail(xPayment, paymentRequiredHeader);
 }

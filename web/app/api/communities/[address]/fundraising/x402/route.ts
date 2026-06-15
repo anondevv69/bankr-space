@@ -4,7 +4,10 @@ import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
-import { parseX402UpstreamErrorDetailed } from '@/lib/x402-upstream-error';
+import {
+  getX402UpstreamErrorDetail,
+  parseX402UpstreamErrorDetailed,
+} from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -86,6 +89,10 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     if (upstream.status >= 400) {
+      const detail = await getX402UpstreamErrorDetail(
+        xPayment,
+        pinPaymentRequiredHeader || paymentRequiredHeader
+      );
       const err = await parseX402UpstreamErrorDetailed(
         data,
         upstream.headers,
@@ -93,7 +100,15 @@ export async function POST(req: Request, { params }: RouteParams) {
         pinPaymentRequiredHeader || paymentRequiredHeader
       );
       console.error('x402 upstream error', upstream.status, data, err);
-      return NextResponse.json({ error: err }, { status: xPayment ? 400 : upstream.status });
+      return NextResponse.json(
+        {
+          error: detail?.message || err,
+          ...(detail?.invalidReason ? { x402InvalidReason: detail.invalidReason } : {}),
+          ...(detail?.payer ? { x402Payer: detail.payer } : {}),
+          ...(detail?.payment ? { x402Payment: detail.payment } : {}),
+        },
+        { status: xPayment ? 400 : upstream.status }
+      );
     }
 
     const handlerCredited =
