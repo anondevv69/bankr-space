@@ -100,11 +100,15 @@ export async function POST(req: Request, { params }: RouteParams) {
         xPayment,
         pinPaymentRequiredHeader || paymentRequiredHeader
       );
+      const upstreamReason =
+        typeof data.reason === 'string'
+          ? data.reason
+          : detail?.invalidReason;
       console.error('x402 upstream error', upstream.status, data, err);
       return NextResponse.json(
         {
           error: detail?.message || err,
-          ...(detail?.invalidReason ? { x402InvalidReason: detail.invalidReason } : {}),
+          ...(upstreamReason ? { x402InvalidReason: upstreamReason } : {}),
           ...(detail?.payer ? { x402Payer: detail.payer } : {}),
           ...(detail?.payment ? { x402Payment: detail.payment } : {}),
         },

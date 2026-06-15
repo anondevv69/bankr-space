@@ -1,9 +1,7 @@
-import { x402Client, x402HTTPClient } from '@x402/core/client';
-import { decodePaymentRequiredHeader } from '@x402/core/http';
+import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from '@x402/core/http';
 import type { PaymentRequired } from '@x402/core/types';
-import { ExactEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
-import { createEvmPaymentSigner } from '@/lib/x402-signer';
+import { createBankrExactPermit2PaymentPayload } from '@/lib/x402-bankr-permit2-sign';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
 import { assertSpaceFundPreflight } from '@/lib/x402-fund-preflight';
@@ -57,6 +55,9 @@ function formatPayError(data: unknown, status: number): string {
     if (typeof body.x402InvalidReason === 'string') {
       return formatFacilitatorInvalidReason(body.x402InvalidReason);
     }
+    if (typeof body.reason === 'string') {
+      return formatFacilitatorInvalidReason(body.reason);
+    }
   }
   if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
     const err = (data as { error: string }).error;
@@ -84,26 +85,6 @@ function formatPayError(data: unknown, status: number): string {
     if (messages.length) return messages.join(' ');
   }
   return `Payment failed (${status})`;
-}
-
-function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
-  const { walletClient, publicClient } = createEvmPaymentSigner(walletAddress);
-  const signer = toClientEvmSigner(
-    {
-      address: walletAddress,
-      signTypedData: (message) =>
-        walletClient.signTypedData({
-          account: walletAddress,
-          domain: message.domain,
-          types: message.types,
-          primaryType: message.primaryType as 'PermitWitnessTransferFrom',
-          message: message.message,
-        }),
-    },
-    publicClient
-  );
-  const client = new x402Client().register('eip155:8453', new ExactEvmScheme(signer));
-  return new x402HTTPClient(client);
 }
 
 function parsePaymentRequired(data: unknown): PaymentRequired {
@@ -232,18 +213,11 @@ async function signAndPay(
     (pinFundUrl ? pinFundUrl.split('?')[0].replace(/\/$/, '') : '') ||
     paymentRequired.resource.url.replace(/\/$/, '');
 
-  onProgress?.('MetaMask opening — approve within 60 seconds.');
+  onProgress?.('Step 2 of 2 — sign the payment in MetaMask (within 60 seconds).');
 
-  const httpClient = createPaymentHttpClient(walletAddress);
-  const payload = await httpClient.createPaymentPayload(
-    pinPaymentRequiredToFundBase(paymentRequired, fundBase)
-  );
-  const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
-  const xPayment =
-    payHeaders['PAYMENT-SIGNATURE'] ||
-    payHeaders['X-PAYMENT'] ||
-    payHeaders['payment-signature'] ||
-    Object.values(payHeaders)[0];
+  const pinnedRequired = pinPaymentRequiredToFundBase(paymentRequired, fundBase);
+  const payload = await createBankrExactPermit2PaymentPayload(walletAddress, pinnedRequired);
+  const xPayment = encodePaymentSignatureHeader(payload);
 
   if (!xPayment) {
     throw new Error('Failed to build x402 payment header');
@@ -269,7 +243,8 @@ export async function paySpaceFund(
   const allowance = await ensurePermit2TokenAllowance(
     walletAddress,
     X402_PAYMENT_TOKEN_ADDRESS as Address,
-    X402_FUND_MAX_AUTHORIZE_ATOMIC
+    X402_FUND_MAX_AUTHORIZE_ATOMIC,
+    onProgress
   );
   if (allowance === 'approved') {
     onProgress?.('Permit2 approved on-chain — checking balance…');
@@ -306,8 +281,8 @@ export async function paySpaceFund(
         pinPaymentRequiredHeader
       ),
     (msg) => {
-      if (msg.includes('MetaMask opening')) {
-        onProgress?.('Step 2 of 2 — sign the payment in MetaMask (within 60 seconds).');
+      if (msg.includes('Step 2') || msg.includes('MetaMask')) {
+        onProgress?.(msg);
       } else {
         onProgress?.(msg);
       }
@@ -327,7 +302,8 @@ export async function payAgentPoolFund(
   await ensurePermit2TokenAllowance(
     walletAddress,
     X402_PAYMENT_TOKEN_ADDRESS as Address,
-    X402_FUND_MAX_AUTHORIZE_ATOMIC
+    X402_FUND_MAX_AUTHORIZE_ATOMIC,
+    onProgress
   );
 
   const { status, data } = await proxyAgentPoolX402(tokenAddress, skillId, amountUsd);
@@ -346,6 +322,19 @@ export async function payAgentPoolFund(
     data,
     amountUsd,
     (xPayment) => proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment),
+    onProgress
+  );
+}
+
+/** One-time Permit2 setup without paying (Step 1 only). */
+export async function setupPermit2ForSpace(
+  walletAddress: Address,
+  onProgress?: (message: string) => void
+): Promise<'ready' | 'approved'> {
+  return ensurePermit2TokenAllowance(
+    walletAddress,
+    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    X402_FUND_MAX_AUTHORIZE_ATOMIC,
     onProgress
   );
 }

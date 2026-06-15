@@ -1,5 +1,3 @@
-import { X402_EXACT_PERMIT2_PROXY_ADDRESS } from '@/lib/x402-bankr-permit2-sign';
-
 /** Decode Bankr/x402 facilitator invalidReason into a user-facing message. */
 export function formatFacilitatorInvalidReason(reason: string): string {
   switch (reason) {
@@ -110,10 +108,6 @@ function parsePaymentResponseHeader(headers: Headers): X402FacilitatorVerificati
   }
 }
 
-function isStandardX402Permit2Spender(spender: string | undefined): boolean {
-  return spender?.toLowerCase() === X402_EXACT_PERMIT2_PROXY_ADDRESS.toLowerCase();
-}
-
 async function callBankrFacilitatorVerify(
   paymentPayload: unknown,
   paymentRequiredHeader: string
@@ -136,18 +130,6 @@ async function callBankrFacilitatorVerify(
     };
     if (data.isValid === true) return null;
 
-    const payload = paymentPayload as {
-      payload?: { permit2Authorization?: { spender?: string } };
-    };
-    const spender = payload.payload?.permit2Authorization?.spender;
-
-    if (
-      data.invalidReason === 'permit2_spender_mismatch' &&
-      isStandardX402Permit2Spender(spender)
-    ) {
-      return null;
-    }
-
     if (typeof data.invalidReason === 'string') {
       return {
         message: formatFacilitatorInvalidReason(data.invalidReason),
@@ -168,12 +150,11 @@ function genericVerificationFailure(payment: X402PaymentDiagnostics): X402Facili
   const seconds = payment.secondsRemaining;
   const timingHint =
     seconds != null && seconds > 0 && seconds <= 15
-      ? ' Approve the Permit2 signature immediately when MetaMask opens.'
+      ? ' Sign immediately when MetaMask opens.'
       : '';
   return {
     message:
-      'Payment verification failed — you likely skipped the one-time Permit2 approve. Click Contribute again: confirm the first MetaMask tx (approve $Space), then the payment signature.' +
-      timingHint,
+      'Payment verification failed — hard refresh the page and try Contribute again.' + timingHint,
     payment,
   };
 }
