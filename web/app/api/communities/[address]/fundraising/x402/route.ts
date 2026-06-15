@@ -4,13 +4,6 @@ import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
-import { patchPaymentRequiredHeader } from '@/lib/x402-normalize-quote';
-import {
-  isRecoverableBankrPermit2SpenderMismatch,
-  parseX402PaymentPayload,
-  settleBankrFacilitatorPayment,
-  verifyBankrFacilitatorPayment,
-} from '@/lib/x402-facilitator-settle';
 import {
   getX402UpstreamErrorDetail,
   parseX402UpstreamErrorDetailed,
@@ -78,8 +71,6 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const { upstream, data, usedFallback, fundBase, fundUrl, paymentRequiredHeader } = fetched;
-    const patchedPaymentRequiredHeader =
-      patchPaymentRequiredHeader(paymentRequiredHeader) || paymentRequiredHeader;
 
     if (!xPayment && upstream.status === 402) {
       return NextResponse.json(
@@ -88,7 +79,7 @@ export async function POST(req: Request, { params }: RouteParams) {
           ...attachX402FundMeta(data, {
             fundUrl,
             fundBase,
-            paymentRequiredHeader: patchedPaymentRequiredHeader,
+            paymentRequiredHeader,
           }),
           x402UsedFallback: usedFallback,
           x402FundBase: fundBase,
@@ -102,89 +93,19 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     if (upstream.status >= 400) {
-      const patchedHeader =
-        patchPaymentRequiredHeader(pinPaymentRequiredHeader || paymentRequiredHeader) ||
-        pinPaymentRequiredHeader ||
-        paymentRequiredHeader;
+      const paymentHeader = pinPaymentRequiredHeader || paymentRequiredHeader;
       const upstreamReason = typeof data.reason === 'string' ? data.reason : undefined;
-
-      if (
-        xPayment &&
-        patchedHeader &&
-        isRecoverableBankrPermit2SpenderMismatch(xPayment, upstreamReason)
-      ) {
-        const paymentPayload = parseX402PaymentPayload(xPayment);
-        if (paymentPayload) {
-          const payloadAccepted = (paymentPayload as { accepted?: unknown }).accepted;
-          const headersToTry = [
-            patchedHeader,
-            payloadAccepted
-              ? patchPaymentRequiredHeader(
-                  Buffer.from(
-                    JSON.stringify({
-                      x402Version: 2,
-                      resource: (paymentPayload as { resource?: unknown }).resource,
-                      accepts: [payloadAccepted],
-                    })
-                  ).toString('base64')
-                )
-              : null,
-          ].filter(Boolean) as string[];
-
-          for (const header of headersToTry) {
-            const verify = await verifyBankrFacilitatorPayment(paymentPayload, header);
-            if (!verify.isValid) continue;
-
-            const settle = await settleBankrFacilitatorPayment(paymentPayload, header);
-            if (!settle.success) {
-              console.error('x402 facilitator settle failed', settle);
-              continue;
-            }
-
-            const credit = await applyFundraisingCredit(
-              tokenAddress,
-              campaignId,
-              SPACE_FUND_X402_CREDIT_USD
-            );
-            if (!credit.success) {
-              console.error('x402 credit after facilitator settle', credit.error, settle);
-              return NextResponse.json(
-                {
-                  error:
-                    credit.error ||
-                    '$Space payment settled but crediting the goal failed. Contact the space operator.',
-                  paymentTaken: true,
-                  x402SettleTx: settle.transaction,
-                },
-                { status: credit.status >= 500 ? 502 : credit.status }
-              );
-            }
-            return NextResponse.json({
-              success: true,
-              message: `Thank you — $${SPACE_FUND_X402_CREDIT_USD} credited toward ${campaignId} ($Space via x402)`,
-              token: tokenAddress,
-              campaignId,
-              raisedUsd: credit.raisedUsd,
-              goalUsd: credit.goalUsd,
-              funded: credit.funded,
-              x402UsedFallback: usedFallback,
-              x402SettleTx: settle.transaction,
-              spaceUrl: `https://www.bankr.space/community/${tokenAddress}`,
-            });
-          }
-        }
-      }
 
       const detail = await getX402UpstreamErrorDetail(
         xPayment,
-        patchedHeader,
+        paymentHeader,
         upstream.headers
       );
       const err = await parseX402UpstreamErrorDetailed(
         data,
         upstream.headers,
         xPayment,
-        patchedHeader
+        paymentHeader
       );
       const invalidReason =
         upstreamReason || detail?.invalidReason || undefined;
