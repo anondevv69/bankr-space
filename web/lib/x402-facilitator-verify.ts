@@ -167,12 +167,12 @@ async function callBankrFacilitatorVerify(
 function genericVerificationFailure(payment: X402PaymentDiagnostics): X402FacilitatorVerification {
   const seconds = payment.secondsRemaining;
   const timingHint =
-    seconds != null && seconds > 0 && seconds < 60
-      ? ` You had ${seconds}s left on the signature — approve faster next time.`
+    seconds != null && seconds > 0 && seconds <= 15
+      ? ' Approve the Permit2 signature immediately when MetaMask opens.'
       : '';
   return {
     message:
-      'Payment verification failed — ensure you approved the Permit2 transaction for $Space, then hard refresh and try again.' +
+      'Payment verification failed — confirm the Permit2 approval for $Space completed on Base, hard refresh, then try Contribute again.' +
       timingHint,
     payment,
   };

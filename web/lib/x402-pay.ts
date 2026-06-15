@@ -179,6 +179,26 @@ async function proxyAgentPoolX402(
   return { status: res.status, data };
 }
 
+function pinPaymentRequiredToFundBase(
+  paymentRequired: PaymentRequired,
+  fundBase: string
+): PaymentRequired {
+  const resourceUrl = fundBase.replace(/\/$/, '');
+  return {
+    ...paymentRequired,
+    resource: {
+      ...paymentRequired.resource,
+      url: resourceUrl,
+    },
+    accepts: paymentRequired.accepts.map((item) => ({
+      ...item,
+      ...(typeof item === 'object' && item && 'resource' in item
+        ? { resource: resourceUrl }
+        : {}),
+    })) as PaymentRequired['accepts'],
+  };
+}
+
 async function signAndPay(
   walletAddress: Address,
   quoteData: unknown,
@@ -195,7 +215,9 @@ async function signAndPay(
   const pinFundBase =
     typeof (quoteData as { x402FundBase?: string }).x402FundBase === 'string'
       ? (quoteData as { x402FundBase: string }).x402FundBase
-      : undefined;
+      : typeof (quoteData as { x402ResourceUrl?: string }).x402ResourceUrl === 'string'
+        ? (quoteData as { x402ResourceUrl: string }).x402ResourceUrl
+        : undefined;
   const pinFundUrl =
     typeof (quoteData as { x402FundUrl?: string }).x402FundUrl === 'string'
       ? (quoteData as { x402FundUrl: string }).x402FundUrl
@@ -205,10 +227,17 @@ async function signAndPay(
       ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
       : undefined;
 
+  const fundBase =
+    pinFundBase?.replace(/\/$/, '') ||
+    (pinFundUrl ? pinFundUrl.split('?')[0].replace(/\/$/, '') : '') ||
+    paymentRequired.resource.url.replace(/\/$/, '');
+
   onProgress?.('MetaMask opening — approve within 60 seconds.');
 
   const httpClient = createPaymentHttpClient(walletAddress);
-  const payload = await httpClient.createPaymentPayload(paymentRequired);
+  const payload = await httpClient.createPaymentPayload(
+    pinPaymentRequiredToFundBase(paymentRequired, fundBase)
+  );
   const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
   const xPayment =
     payHeaders['PAYMENT-SIGNATURE'] ||
@@ -222,7 +251,7 @@ async function signAndPay(
 
   assertPermit2NotExpired(xPayment);
 
-  const paid = await retry(xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader);
+  const paid = await retry(xPayment, fundBase, pinFundUrl, pinPaymentRequiredHeader);
   if (paid.status >= 400) {
     throw new Error(formatPayError(paid.data, paid.status));
   }
