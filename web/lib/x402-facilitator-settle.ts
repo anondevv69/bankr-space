@@ -1,5 +1,6 @@
-import { X402_EXACT_PERMIT2_PROXY_ADDRESS } from '@/lib/x402-bankr-permit2-sign';
 import { decodeX402PaymentDiagnostics } from '@/lib/x402-facilitator-verify';
+
+const X402_EXACT_PERMIT2_PROXY_ADDRESS = '0x402085c248EeA27D92E8b30b2C58ed07f9E20001';
 
 export type BankrFacilitatorVerifyResult = {
   isValid: boolean;
