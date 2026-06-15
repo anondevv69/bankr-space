@@ -42,6 +42,26 @@ export type X402FacilitatorVerification = {
   payment?: X402PaymentDiagnostics;
 };
 
+const X402_EXACT_PERMIT2_PROXY_ADDRESS = '0x402085c248EeA27D92E8b30b2C58ed07f9E20001';
+
+/** Bankr x402 Cloud uses a fee-router Permit2 spender — api.bankr.bot/facilitator/verify does not. */
+export function isBankrFeeRouterPermit2Quote(paymentRequiredHeader?: string | null): boolean {
+  if (!paymentRequiredHeader) return false;
+  try {
+    const req = JSON.parse(
+      Buffer.from(paymentRequiredHeader, 'base64').toString('utf8')
+    ) as { accepts?: Array<{ payTo?: string; extra?: { permit2Spender?: string } }> };
+    const accept = req.accepts?.[0];
+    if (!accept) return false;
+    const spender = String(accept.extra?.permit2Spender || accept.payTo || '').toLowerCase();
+    return (
+      spender.length > 0 && spender !== X402_EXACT_PERMIT2_PROXY_ADDRESS.toLowerCase()
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function decodeX402PaymentDiagnostics(xPayment: string): X402PaymentDiagnostics | null {
   try {
     const decoded = JSON.parse(Buffer.from(xPayment, 'base64').toString('utf8')) as {
@@ -205,7 +225,7 @@ export async function verifyX402PaymentWithFacilitatorDetail(
     };
   }
 
-  if (paymentRequiredHeader) {
+  if (paymentRequiredHeader && !isBankrFeeRouterPermit2Quote(paymentRequiredHeader)) {
     const fromFacilitator = await callBankrFacilitatorVerify(
       paymentPayload,
       paymentRequiredHeader

@@ -52,6 +52,10 @@ export async function parseX402UpstreamErrorDetailed(
   xPayment?: string,
   paymentRequiredHeader?: string | null
 ): Promise<string> {
+  if (typeof data.reason === 'string') {
+    return formatFacilitatorInvalidReason(data.reason);
+  }
+
   const base = parseX402UpstreamError(data, headers);
   if (!xPayment) return base;
 
