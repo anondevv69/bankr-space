@@ -4,7 +4,7 @@
   "services": {
     "fund": {
       "description": "Contribute Bankr Space ($Space) to a community fundraiser on bankr.space",
-      "price": "3400000",
+      "price": "3300000",
       "tokenAddress": "0xef703b860a6d422fa00cc67bbbb2662297cb6ba3",
       "paymentScheme": "exact",
       "methods": ["GET"],

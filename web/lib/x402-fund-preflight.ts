@@ -5,6 +5,7 @@ import {
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
+import { PERMIT2_ADDRESS } from '@/lib/x402-permit2-allowance';
 import {
   fetchSpacePriceUsd,
   formatX402FundPriceLabel,
@@ -46,6 +47,18 @@ export async function assertSpaceFundPreflight(
     throw new Error(
       `Insufficient $${X402_PAYMENT_TOKEN_SYMBOL} — need ${priceLabel} (${formatTokenCount(chargeTokens)} tokens) but your wallet has ${balanceLabel}. ` +
         `Buy $${X402_PAYMENT_TOKEN_SYMBOL} on Base, then try Contribute again.`
+    );
+  }
+
+  const allowanceRaw = await publicClient.readContract({
+    address: X402_PAYMENT_TOKEN_ADDRESS as Address,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: [walletAddress, PERMIT2_ADDRESS],
+  });
+  if (BigInt(allowanceRaw) < authorizeAtomic) {
+    throw new Error(
+      `Permit2 is not approved for $${X402_PAYMENT_TOKEN_SYMBOL} — when prompted, confirm the approval transaction in MetaMask first, then click Contribute again.`
     );
   }
 }
