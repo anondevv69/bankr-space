@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { useAppWallet } from '@/hooks/useAppWallet';
-import { shortAddr } from '@/lib/utils';
+import { apiFetch } from '@/lib/wagmi';
 import type { WalletAgentMeta } from '@/lib/types';
+import type { WalletBankrLaunch } from '@/lib/wallet-bankr-launches';
 
 type SpaceSummary = {
   tokenAddress: string;
@@ -30,12 +30,23 @@ type ProfileData = {
   };
   agentMeta: WalletAgentMeta;
   telegram: TelegramStatus;
+  bankrLaunches: WalletBankrLaunch[];
+  pendingActions: {
+    createSpaceCount: number;
+    verifySpaceCount: number;
+  };
   spaces: {
     owned: SpaceSummary[];
     founded: SpaceSummary[];
     delegated: SpaceSummary[];
   };
 };
+
+function roleLabel(roles: WalletBankrLaunch['roles']): string {
+  if (roles.includes('feeRecipient') && roles.includes('deployer')) return 'Fee recipient & deployer';
+  if (roles.includes('feeRecipient')) return 'Fee recipient';
+  return 'Deployer';
+}
 
 function SpaceRow({ space, role }: { space: SpaceSummary; role: string }) {
   return (
@@ -73,6 +84,127 @@ function SpaceRow({ space, role }: { space: SpaceSummary; role: string }) {
   );
 }
 
+function BankrLaunchRow({
+  launch,
+  wallet,
+  onUpdated,
+}: {
+  launch: WalletBankrLaunch;
+  wallet: string;
+  onUpdated: () => void;
+}) {
+  const [busy, setBusy] = useState<'create' | 'verify' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function createSpace() {
+    setBusy('create');
+    setActionError(null);
+    try {
+      await apiFetch(`/api/communities/${launch.tokenAddress}`, {
+        method: 'POST',
+        wallet,
+        body: JSON.stringify({
+          description: `${launch.name} holder space on bankr.space`,
+        }),
+      });
+      onUpdated();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to create space');
+    }
+    setBusy(null);
+  }
+
+  async function verifySpace() {
+    setBusy('verify');
+    setActionError(null);
+    try {
+      await apiFetch(`/api/communities/${launch.tokenAddress}/verify`, {
+        method: 'POST',
+        wallet,
+      });
+      onUpdated();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to verify space');
+    }
+    setBusy(null);
+  }
+
+  return (
+    <div className="p-3 rounded-xl border border-border bg-surface space-y-2">
+      <div className="flex items-center gap-3">
+        {launch.imageUrl ? (
+          <img
+            src={launch.imageUrl}
+            alt={launch.symbol}
+            className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-surface-2 border border-border flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-muted">{launch.symbol.slice(0, 2)}</span>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-sm truncate">{launch.name}</div>
+          <div className="text-xs text-muted">${launch.symbol}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 justify-end">
+          <span className="text-xs text-muted bg-surface-2 border border-border px-2 py-0.5 rounded-full">
+            {roleLabel(launch.roles)}
+          </span>
+          {launch.space.exists && launch.space.verified && (
+            <span className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+              Verified
+            </span>
+          )}
+          {launch.space.exists && !launch.space.verified && (
+            <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+              Unverified
+            </span>
+          )}
+          {!launch.space.exists && (
+            <span className="text-xs text-muted bg-surface-2 border border-border px-2 py-0.5 rounded-full">
+              No space yet
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {launch.actions.canCreateSpace && (
+          <button
+            type="button"
+            onClick={() => void createSpace()}
+            disabled={busy !== null}
+            className="text-xs bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {busy === 'create' ? 'Creating…' : 'Create space'}
+          </button>
+        )}
+        {launch.actions.canVerifySpace && (
+          <button
+            type="button"
+            onClick={() => void verifySpace()}
+            disabled={busy !== null}
+            className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {busy === 'verify' ? 'Verifying…' : 'Verify space'}
+          </button>
+        )}
+        {launch.space.url && (
+          <Link
+            href={launch.space.url}
+            className="text-xs border border-border px-3 py-1.5 rounded-lg hover:bg-surface-2"
+          >
+            Open space →
+          </Link>
+        )}
+      </div>
+
+      {actionError && <p className="text-xs text-red-400">{actionError}</p>}
+    </div>
+  );
+}
+
 function TelegramSection({
   telegram,
   wallet,
@@ -83,6 +215,7 @@ function TelegramSection({
   onUnlinked: () => void;
 }) {
   const [unlinking, setUnlinking] = useState(false);
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'bankrspacebot';
 
   async function unlink() {
     if (!confirm('Unlink your Telegram account?')) return;
@@ -130,7 +263,7 @@ function TelegramSection({
     <div className="flex items-center justify-between gap-4">
       <div className="text-sm text-muted">No Telegram account linked.</div>
       <Link
-        href="https://t.me/bankrspacebot"
+        href={`https://t.me/${botUsername}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
@@ -143,10 +276,10 @@ function TelegramSection({
 
 function ProfileContent() {
   const { address, isConnected, connectWallet } = useAppWallet();
-  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'bankrspacebot';
 
   const load = useCallback(async (wallet: string) => {
     setLoading(true);
@@ -190,10 +323,11 @@ function ProfileContent() {
 
   const agent = profile?.agentMeta;
   const isBankrWallet = agent?.isAgentWallet;
+  const pendingCreate = profile?.pendingActions.createSpaceCount ?? 0;
+  const pendingVerify = profile?.pendingActions.verifySpaceCount ?? 0;
 
   return (
     <div className="space-y-6 pb-16">
-      {/* Wallet card */}
       <div className="rounded-2xl border border-border bg-surface p-5 flex items-start gap-4">
         {profile?.author.profileImage ? (
           <img
@@ -225,14 +359,14 @@ function ProfileContent() {
               <span>Bankr agent · {agent.agentLabel}</span>
             </div>
           )}
-          {!loading && !error && allSpaces.length === 0 && !isBankrWallet && (
+          {!loading && !error && !profile?.bankrLaunches.length && allSpaces.length === 0 && !isBankrWallet && (
             <div className="text-xs text-muted">Token holder</div>
           )}
         </div>
       </div>
 
       {loading && (
-        <p className="text-sm text-muted text-center py-8">Loading profile…</p>
+        <p className="text-sm text-muted text-center py-8">Loading profile from Bankr…</p>
       )}
 
       {error && (
@@ -243,7 +377,43 @@ function ProfileContent() {
 
       {profile && (
         <>
-          {/* Telegram */}
+          {(pendingCreate > 0 || pendingVerify > 0) && (
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-sm space-y-1">
+              <div className="font-medium">Action needed</div>
+              {pendingCreate > 0 && (
+                <p className="text-muted">
+                  {pendingCreate} Bankr launch{pendingCreate !== 1 ? 'es' : ''} without a space — create one below.
+                </p>
+              )}
+              {pendingVerify > 0 && (
+                <p className="text-muted">
+                  {pendingVerify} space{pendingVerify !== 1 ? 's' : ''} waiting for fee-recipient verification.
+                </p>
+              )}
+            </div>
+          )}
+
+          {profile.bankrLaunches.length > 0 && (
+            <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
+              <div>
+                <h2 className="font-semibold text-sm">Your Bankr Launches</h2>
+                <p className="text-xs text-muted mt-0.5">
+                  From Bankr API — tokens where you are fee recipient or deployer.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {profile.bankrLaunches.map((launch) => (
+                  <BankrLaunchRow
+                    key={launch.tokenAddress}
+                    launch={launch}
+                    wallet={address}
+                    onUpdated={() => void load(address)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
             <h2 className="font-semibold text-sm">Telegram</h2>
             <TelegramSection
@@ -255,32 +425,31 @@ function ProfileContent() {
               <p className="text-xs text-muted">
                 1. DM{' '}
                 <a
-                  href="https://t.me/bankrspacebot"
+                  href={`https://t.me/${botUsername}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline"
                 >
-                  @bankrspacebot
+                  @{botUsername}
                 </a>{' '}
-                and type <code className="bg-surface-2 px-1 rounded">/link</code> to get a link
-                code — then come back here and it'll show up automatically.
+                and type <code className="bg-surface-2 px-1 rounded">/link</code> to get a link code.
               </p>
             )}
           </section>
 
-          {/* Spaces */}
           <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-sm">Your Spaces</h2>
               {allSpaces.length > 0 && (
-                <span className="text-xs text-muted">{allSpaces.length} space{allSpaces.length !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-muted">
+                  {allSpaces.length} space{allSpaces.length !== 1 ? 's' : ''}
+                </span>
               )}
             </div>
 
             {allSpaces.length === 0 ? (
               <p className="text-sm text-muted">
-                No spaces found. You'll appear here as fee beneficiary, founder, or trusted delegate
-                once a space is linked to your wallet.
+                No spaces on bankr.space yet. If you launched on Bankr, create one from the section above.
               </p>
             ) : (
               <div className="space-y-2">
@@ -302,7 +471,7 @@ export default function ProfilePage() {
       <Header backHref="/" />
       <div className="mb-4">
         <h1 className="text-xl font-bold">Profile</h1>
-        <p className="text-sm text-muted">Your wallet, spaces, and connected accounts.</p>
+        <p className="text-sm text-muted">Your Bankr launches, spaces, and connected accounts.</p>
       </div>
       <Suspense
         fallback={
