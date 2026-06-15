@@ -4,6 +4,7 @@ import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
+import { patchPaymentRequiredHeader } from '@/lib/x402-normalize-quote';
 import {
   getX402UpstreamErrorDetail,
   parseX402UpstreamErrorDetailed,
@@ -71,12 +72,18 @@ export async function POST(req: Request, { params }: RouteParams) {
     }
 
     const { upstream, data, usedFallback, fundBase, fundUrl, paymentRequiredHeader } = fetched;
+    const patchedPaymentRequiredHeader =
+      patchPaymentRequiredHeader(paymentRequiredHeader) || paymentRequiredHeader;
 
     if (!xPayment && upstream.status === 402) {
       return NextResponse.json(
         {
           requiresPayment: true,
-          ...attachX402FundMeta(data, { fundUrl, fundBase, paymentRequiredHeader }),
+          ...attachX402FundMeta(data, {
+            fundUrl,
+            fundBase,
+            paymentRequiredHeader: patchedPaymentRequiredHeader,
+          }),
           x402UsedFallback: usedFallback,
           x402FundBase: fundBase,
         },
@@ -91,14 +98,18 @@ export async function POST(req: Request, { params }: RouteParams) {
     if (upstream.status >= 400) {
       const detail = await getX402UpstreamErrorDetail(
         xPayment,
-        pinPaymentRequiredHeader || paymentRequiredHeader,
+        patchPaymentRequiredHeader(pinPaymentRequiredHeader || paymentRequiredHeader) ||
+          pinPaymentRequiredHeader ||
+          paymentRequiredHeader,
         upstream.headers
       );
       const err = await parseX402UpstreamErrorDetailed(
         data,
         upstream.headers,
         xPayment,
-        pinPaymentRequiredHeader || paymentRequiredHeader
+        patchPaymentRequiredHeader(pinPaymentRequiredHeader || paymentRequiredHeader) ||
+          pinPaymentRequiredHeader ||
+          paymentRequiredHeader
       );
       const upstreamReason =
         typeof data.reason === 'string'
