@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useDisconnect } from 'wagmi';
 import { shortAddr } from '@/lib/utils';
 import { useAppWallet } from '@/hooks/useAppWallet';
@@ -37,13 +38,22 @@ export function WalletButton({ className = '' }: { className?: string }) {
 
   if (isConnected && address) {
     return (
-      <button
-        type="button"
-        onClick={() => disconnect()}
-        className={`font-mono text-accent-hover hover:opacity-80 ${className}`}
-      >
-        {shortAddr(address)} · Disconnect
-      </button>
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Link
+          href="/profile"
+          className="font-mono text-accent-hover hover:opacity-80 text-sm"
+        >
+          {shortAddr(address)}
+        </Link>
+        <span className="text-muted text-xs">·</span>
+        <button
+          type="button"
+          onClick={() => disconnect()}
+          className="text-muted hover:text-text text-xs"
+        >
+          Disconnect
+        </button>
+      </div>
     );
   }
 
