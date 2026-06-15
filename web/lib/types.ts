@@ -217,7 +217,7 @@ export interface Community {
 }
 
 export interface PostSource {
-  client: 'web' | 'bankr-app' | 'agent' | 'api';
+  client: 'web' | 'bankr-app' | 'agent' | 'api' | 'telegram';
   trigger?: 'manual' | 'x-dm' | 'x-mention' | 'x-reply' | 'terminal' | 'autopilot';
   viaAgent?: boolean;
   agentId?: string;
