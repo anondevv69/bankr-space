@@ -298,6 +298,7 @@ async function handleHelp(chatId: number): Promise<void> {
 
 export async function POST(req: Request) {
   if (!validateTelegramWebhookSecret(req)) {
+    console.error('[telegram] webhook rejected — TELEGRAM_WEBHOOK_SECRET mismatch');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -329,53 +330,66 @@ export async function POST(req: Request) {
 
   const { command, args } = parsed;
 
-  // Commands that don't need a linked wallet
-  if (command === 'start') {
-    await handleStart(chatId, botUsername);
-    return NextResponse.json({ ok: true });
-  }
-  if (command === 'help') {
-    await handleHelp(chatId);
-    return NextResponse.json({ ok: true });
-  }
-  if (command === 'link') {
-    await handleLink(chatId, telegramId, telegramUsername);
-    return NextResponse.json({ ok: true });
-  }
+  try {
+    // Commands that don't need a linked wallet
+    if (command === 'start') {
+      await handleStart(chatId, botUsername);
+      return NextResponse.json({ ok: true });
+    }
+    if (command === 'help') {
+      await handleHelp(chatId);
+      return NextResponse.json({ ok: true });
+    }
+    if (command === 'link') {
+      await handleLink(chatId, telegramId, telegramUsername);
+      return NextResponse.json({ ok: true });
+    }
 
-  // Commands that require a linked wallet
-  const link = await getTelegramLinkByTgId(telegramId);
+    // Commands that require a linked wallet
+    const link = await getTelegramLinkByTgId(telegramId);
 
-  if (command === 'unlink') {
-    await handleUnlink(chatId, telegramId);
-    return NextResponse.json({ ok: true });
-  }
+    if (command === 'unlink') {
+      await handleUnlink(chatId, telegramId);
+      return NextResponse.json({ ok: true });
+    }
 
-  if (!link) {
-    await sendTelegramMessage(
-      chatId,
-      `No wallet linked yet. Use /link to connect your wallet first.`,
-      { replyToMessageId: messageId }
-    );
-    return NextResponse.json({ ok: true });
-  }
-
-  switch (command) {
-    case 'balance':
-      await handleBalance(chatId, link.wallet);
-      break;
-    case 'spaces':
-      await handleSpaces(chatId, link.wallet);
-      break;
-    case 'post':
-      await handlePost(chatId, link.wallet, args, messageId, telegramUsername);
-      break;
-    default:
+    if (!link) {
       await sendTelegramMessage(
         chatId,
-        `Unknown command /${command}. Type /help for a list of commands.`,
+        `No wallet linked yet. Use /link to connect your wallet first.`,
         { replyToMessageId: messageId }
       );
+      return NextResponse.json({ ok: true });
+    }
+
+    switch (command) {
+      case 'balance':
+        await handleBalance(chatId, link.wallet);
+        break;
+      case 'spaces':
+        await handleSpaces(chatId, link.wallet);
+        break;
+      case 'post':
+        await handlePost(chatId, link.wallet, args, messageId, telegramUsername);
+        break;
+      default:
+        await sendTelegramMessage(
+          chatId,
+          `Unknown command /${command}. Type /help for a list of commands.`,
+          { replyToMessageId: messageId }
+        );
+    }
+  } catch (err) {
+    console.error('[telegram] command failed', { command, err });
+    try {
+      await sendTelegramMessage(
+        chatId,
+        'Something went wrong handling that command. Try again in a moment.',
+        { replyToMessageId: messageId }
+      );
+    } catch {
+      // ignore secondary failure
+    }
   }
 
   return NextResponse.json({ ok: true });
