@@ -1,4 +1,4 @@
-/** Decode Bankr facilitator verify invalidReason into a user-facing message. */
+/** Decode Bankr/x402 facilitator invalidReason into a user-facing message. */
 export function formatFacilitatorInvalidReason(reason: string): string {
   switch (reason) {
     case 'permit2_deadline_expired':
@@ -9,9 +9,13 @@ export function formatFacilitatorInvalidReason(reason: string): string {
     case 'insufficient_balance':
       return 'Insufficient $Space in your wallet — buy $Space on Base, then try Contribute again.';
     case 'insufficient_allowance':
+    case 'permit2_allowance_required':
       return 'Permit2 allowance missing — approve $Space for Permit2 in your wallet, then try again.';
+    case 'invalid_permit2_recipient_mismatch':
+      return 'Payment destination mismatch — refresh the page and try Contribute again.';
+    case 'invalid_permit2_spender':
     case 'permit2_spender_mismatch':
-      return 'Payment signature used the wrong Permit2 spender — refresh the page and try Contribute again.';
+      return 'Payment signature format rejected — refresh the page and try Contribute again.';
     default:
       return reason.replace(/_/g, ' ');
   }
@@ -72,105 +76,80 @@ export function decodeX402PaymentDiagnostics(xPayment: string): X402PaymentDiagn
   }
 }
 
-/** Call Bankr facilitator /verify to surface the real rejection reason (server-side). */
-export async function verifyX402PaymentWithFacilitator(
-  xPayment: string,
-  paymentRequiredHeader?: string | null
-): Promise<string | null> {
-  const detail = await verifyX402PaymentWithFacilitatorDetail(xPayment, paymentRequiredHeader);
-  return detail?.message || null;
+function parsePaymentResponseHeader(headers: Headers): X402FacilitatorVerification | null {
+  const paymentResponse =
+    headers.get('payment-response') ||
+    headers.get('PAYMENT-RESPONSE') ||
+    headers.get('x-payment-response') ||
+    headers.get('X-PAYMENT-RESPONSE');
+
+  if (!paymentResponse) return null;
+
+  try {
+    const decoded = JSON.parse(
+      Buffer.from(paymentResponse, 'base64').toString('utf8')
+    ) as Record<string, unknown>;
+    const invalidReason =
+      (typeof decoded.errorReason === 'string' && decoded.errorReason) ||
+      (typeof decoded.invalidReason === 'string' && decoded.invalidReason) ||
+      null;
+    if (!invalidReason) return null;
+    return {
+      message: formatFacilitatorInvalidReason(invalidReason),
+      invalidReason,
+      payer: typeof decoded.payer === 'string' ? decoded.payer : undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
-function alignPaymentRequirementsWithPayload(
-  paymentPayload: unknown,
-  paymentRequirements: unknown
-): unknown {
-  if (!paymentRequirements || typeof paymentRequirements !== 'object') return paymentRequirements;
-  const payload = paymentPayload as { resource?: { url?: string } };
-  const resourceUrl = payload.resource?.url?.trim();
-  if (!resourceUrl) return paymentRequirements;
-
-  const req = paymentRequirements as Record<string, unknown>;
-  const accepts = Array.isArray(req.accepts)
-    ? (req.accepts as Record<string, unknown>[]).map((item) => ({ ...item, resource: resourceUrl }))
-    : req.accepts;
-
-  return {
-    ...req,
-    accepts,
-    resource:
-      req.resource && typeof req.resource === 'object'
-        ? { ...(req.resource as Record<string, unknown>), url: resourceUrl }
-        : { url: resourceUrl },
-  };
+/** Surface the best rejection reason from upstream headers + signed payload. */
+export async function verifyX402PaymentWithFacilitator(
+  xPayment: string,
+  paymentRequiredHeader?: string | null,
+  headers?: Headers
+): Promise<string | null> {
+  const detail = await verifyX402PaymentWithFacilitatorDetail(
+    xPayment,
+    paymentRequiredHeader,
+    headers
+  );
+  return detail?.message || null;
 }
 
 export async function verifyX402PaymentWithFacilitatorDetail(
   xPayment: string,
-  paymentRequiredHeader?: string | null
+  paymentRequiredHeader?: string | null,
+  headers?: Headers
 ): Promise<X402FacilitatorVerification | null> {
+  void paymentRequiredHeader;
   const payment = decodeX402PaymentDiagnostics(xPayment) || undefined;
-  try {
-    let paymentPayload: unknown;
-    try {
-      paymentPayload = JSON.parse(Buffer.from(xPayment, 'base64').toString('utf8'));
-    } catch {
-      return null;
-    }
 
-    let paymentRequirements: unknown = null;
-    if (paymentRequiredHeader) {
-      try {
-        paymentRequirements = JSON.parse(
-          Buffer.from(paymentRequiredHeader, 'base64').toString('utf8')
-        );
-      } catch {
-        /* fall through */
-      }
+  if (headers) {
+    const fromResponse = parsePaymentResponseHeader(headers);
+    if (fromResponse) {
+      return { ...fromResponse, payment: fromResponse.payment || payment };
     }
-
-    const body: Record<string, unknown> = { paymentPayload };
-    if (paymentRequirements) {
-      body.paymentRequirements = alignPaymentRequirementsWithPayload(
-        paymentPayload,
-        paymentRequirements
-      );
-    }
-
-    const res = await fetch('https://api.bankr.bot/facilitator/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      cache: 'no-store',
-    });
-
-    const data = (await res.json()) as {
-      isValid?: boolean;
-      invalidReason?: string;
-      payer?: string;
-      error?: string;
-    };
-
-    if (data.isValid === true) return null;
-    if (typeof data.invalidReason === 'string') {
-      return {
-        message: formatFacilitatorInvalidReason(data.invalidReason),
-        invalidReason: data.invalidReason,
-        payer: data.payer,
-        payment,
-      };
-    }
-    if (typeof data.error === 'string') return { message: data.error, payer: data.payer, payment };
-    return null;
-  } catch {
-    if (payment?.expired) {
-      return {
-        message: formatFacilitatorInvalidReason('permit2_deadline_expired'),
-        invalidReason: 'permit2_deadline_expired',
-        payer: payment.payer,
-        payment,
-      };
-    }
-    return payment ? { message: 'Payment verification failed', payment } : null;
   }
+
+  if (payment?.expired) {
+    return {
+      message: formatFacilitatorInvalidReason('permit2_deadline_expired'),
+      invalidReason: 'permit2_deadline_expired',
+      payer: payment.payer,
+      payment,
+    };
+  }
+
+  if (payment?.secondsRemaining != null && payment.secondsRemaining <= 0) {
+    return {
+      message: formatFacilitatorInvalidReason('permit2_deadline_expired'),
+      invalidReason: 'permit2_deadline_expired',
+      payer: payment.payer,
+      payment,
+    };
+  }
+
+  return payment ? { message: 'Payment verification failed', payment } : null;
 }

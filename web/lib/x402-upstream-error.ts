@@ -52,14 +52,15 @@ export async function parseX402UpstreamErrorDetailed(
   const base = parseX402UpstreamError(data, headers);
   if (!xPayment) return base;
 
-  const detail = await verifyX402PaymentWithFacilitator(xPayment, paymentRequiredHeader);
+  const detail = await verifyX402PaymentWithFacilitator(xPayment, paymentRequiredHeader, headers);
   return detail || base;
 }
 
 export async function getX402UpstreamErrorDetail(
   xPayment?: string,
-  paymentRequiredHeader?: string | null
+  paymentRequiredHeader?: string | null,
+  headers?: Headers
 ): Promise<X402FacilitatorVerification | null> {
   if (!xPayment) return null;
-  return verifyX402PaymentWithFacilitatorDetail(xPayment, paymentRequiredHeader);
+  return verifyX402PaymentWithFacilitatorDetail(xPayment, paymentRequiredHeader, headers);
 }

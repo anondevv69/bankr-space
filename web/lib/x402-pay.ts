@@ -1,7 +1,9 @@
-import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from '@x402/core/http';
+import { x402Client, x402HTTPClient } from '@x402/core/client';
+import { decodePaymentRequiredHeader } from '@x402/core/http';
 import type { PaymentRequired } from '@x402/core/types';
+import { ExactEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
-import { createBankrExactPermit2PaymentPayload } from '@/lib/x402-bankr-permit2-sign';
+import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
 import { assertSpaceFundPreflight } from '@/lib/x402-fund-preflight';
@@ -82,6 +84,26 @@ function formatPayError(data: unknown, status: number): string {
     if (messages.length) return messages.join(' ');
   }
   return `Payment failed (${status})`;
+}
+
+function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
+  const { walletClient, publicClient } = createEvmPaymentSigner(walletAddress);
+  const signer = toClientEvmSigner(
+    {
+      address: walletAddress,
+      signTypedData: (message) =>
+        walletClient.signTypedData({
+          account: walletAddress,
+          domain: message.domain,
+          types: message.types,
+          primaryType: message.primaryType as 'PermitWitnessTransferFrom',
+          message: message.message,
+        }),
+    },
+    publicClient
+  );
+  const client = new x402Client().register('eip155:8453', new ExactEvmScheme(signer));
+  return new x402HTTPClient(client);
 }
 
 function parsePaymentRequired(data: unknown): PaymentRequired {
@@ -185,8 +207,18 @@ async function signAndPay(
 
   onProgress?.('MetaMask opening — approve within 60 seconds.');
 
-  const payload = await createBankrExactPermit2PaymentPayload(walletAddress, paymentRequired);
-  const xPayment = encodePaymentSignatureHeader(payload);
+  const httpClient = createPaymentHttpClient(walletAddress);
+  const payload = await httpClient.createPaymentPayload(paymentRequired);
+  const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
+  const xPayment =
+    payHeaders['PAYMENT-SIGNATURE'] ||
+    payHeaders['X-PAYMENT'] ||
+    payHeaders['payment-signature'] ||
+    Object.values(payHeaders)[0];
+
+  if (!xPayment) {
+    throw new Error('Failed to build x402 payment header');
+  }
 
   assertPermit2NotExpired(xPayment);
 
