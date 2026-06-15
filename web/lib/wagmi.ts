@@ -1,14 +1,15 @@
 'use client';
 
-import { createConfig, http } from 'wagmi';
+import { createConfig } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
+import { createBaseHttpTransport } from '@/lib/base-rpc';
 
 export const config = createConfig({
   chains: [base],
   connectors: [injected({ shimDisconnect: true })],
   transports: {
-    [base.id]: http(),
+    [base.id]: createBaseHttpTransport(),
   },
   ssr: true,
 });

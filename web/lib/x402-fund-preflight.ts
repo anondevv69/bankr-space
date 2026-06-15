@@ -1,11 +1,12 @@
 import { erc20Abi, type Address } from 'viem';
+import { formatRpcRateLimitError, isRpcRateLimitError } from '@/lib/base-rpc';
 import {
   SPACE_FUND_X402_CREDIT_USD,
   X402_PAYMENT_TOKEN_ADDRESS,
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
-import { readPermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
+import { PERMIT2_ADDRESS } from '@/lib/x402-permit2-allowance';
 import {
   fetchSpacePriceUsd,
   formatX402FundPriceLabel,
@@ -27,14 +28,39 @@ export async function assertSpaceFundPreflight(
   const priceLabel = formatX402FundPriceLabel(priceUsd, amountUsd);
   const chargeTokens = Number(authorizeAtomic) / 1e18;
 
+  const token = X402_PAYMENT_TOKEN_ADDRESS as Address;
   const { publicClient } = createEvmPaymentSigner(walletAddress);
-  const raw = await publicClient.readContract({
-    address: X402_PAYMENT_TOKEN_ADDRESS as Address,
-    abi: erc20Abi,
-    functionName: 'balanceOf',
-    args: [walletAddress],
-  });
-  const balanceAtomic = BigInt(raw);
+
+  let balanceAtomic: bigint;
+  let allowanceRaw: bigint;
+  try {
+    const [balanceResult, allowanceResult] = await publicClient.multicall({
+      contracts: [
+        {
+          address: token,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [walletAddress],
+        },
+        {
+          address: token,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [walletAddress, PERMIT2_ADDRESS],
+        },
+      ],
+    });
+    if (balanceResult.status !== 'success' || allowanceResult.status !== 'success') {
+      throw new Error('Failed to read $Space balance on Base');
+    }
+    balanceAtomic = balanceResult.result;
+    allowanceRaw = allowanceResult.result;
+  } catch (err) {
+    if (isRpcRateLimitError(err)) {
+      throw new Error(formatRpcRateLimitError());
+    }
+    throw err;
+  }
 
   if (balanceAtomic < authorizeAtomic) {
     const balanceTokens = Number(balanceAtomic) / 1e18;
@@ -50,7 +76,6 @@ export async function assertSpaceFundPreflight(
     );
   }
 
-  const allowanceRaw = await readPermit2TokenAllowance(walletAddress, X402_PAYMENT_TOKEN_ADDRESS as Address);
   if (allowanceRaw < authorizeAtomic) {
     throw new Error(
       `Permit2 is not approved for $${X402_PAYMENT_TOKEN_SYMBOL} yet. Click Contribute again — MetaMask will ask for a one-time approve transaction first (costs a little Base ETH for gas), then the payment signature.`

@@ -1,21 +1,51 @@
 import { erc20Abi, maxUint256, type Address } from 'viem';
 import { base } from 'viem/chains';
+import { formatRpcRateLimitError, isRpcRateLimitError } from '@/lib/base-rpc';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
 
 /** Uniswap Permit2 — required once before PermitWitnessTransferFrom can settle. */
 export const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
 
+const ALLOWANCE_CACHE_MS = 30_000;
+const allowanceCache = new Map<string, { value: bigint; at: number }>();
+
+function cacheKey(walletAddress: Address, tokenAddress: Address): string {
+  return `${walletAddress.toLowerCase()}:${tokenAddress.toLowerCase()}`;
+}
+
+export function invalidatePermit2TokenAllowanceCache(
+  walletAddress: Address,
+  tokenAddress: Address
+): void {
+  allowanceCache.delete(cacheKey(walletAddress, tokenAddress));
+}
+
 export async function readPermit2TokenAllowance(
   walletAddress: Address,
   tokenAddress: Address
 ): Promise<bigint> {
-  const { publicClient } = createEvmPaymentSigner(walletAddress);
-  return publicClient.readContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: [walletAddress, PERMIT2_ADDRESS],
-  });
+  const key = cacheKey(walletAddress, tokenAddress);
+  const hit = allowanceCache.get(key);
+  if (hit && Date.now() - hit.at < ALLOWANCE_CACHE_MS) {
+    return hit.value;
+  }
+
+  try {
+    const { publicClient } = createEvmPaymentSigner(walletAddress);
+    const value = await publicClient.readContract({
+      address: tokenAddress,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [walletAddress, PERMIT2_ADDRESS],
+    });
+    allowanceCache.set(key, { value, at: Date.now() });
+    return value;
+  } catch (err) {
+    if (isRpcRateLimitError(err)) {
+      throw new Error(formatRpcRateLimitError());
+    }
+    throw err;
+  }
 }
 
 /**
@@ -61,6 +91,7 @@ export async function ensurePermit2TokenAllowance(
   onProgress?.('Waiting for Permit2 approval to confirm on Base…');
   await publicClient.waitForTransactionReceipt({ hash });
 
+  invalidatePermit2TokenAllowanceCache(walletAddress, tokenAddress);
   const confirmed = await readPermit2TokenAllowance(walletAddress, tokenAddress);
   if (confirmed < minAmount) {
     throw new Error(
