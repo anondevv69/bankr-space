@@ -1,6 +1,6 @@
 import type { PostSource } from '@/lib/types';
 
-const CLIENTS = new Set(['web', 'bankr-app', 'agent', 'api']);
+const CLIENTS = new Set(['web', 'bankr-app', 'agent', 'api', 'telegram']);
 
 const TRIGGERS = new Set([
   'manual',
@@ -91,6 +91,9 @@ export function postSourceLabel(source: PostSource | undefined | null): string |
   }
   if (source.client === 'bankr-app' && source.trigger === 'manual') {
     return 'Posted via Bankr app';
+  }
+  if (source.client === 'telegram') {
+    return 'Posted via Telegram';
   }
 
   switch (source.trigger) {
