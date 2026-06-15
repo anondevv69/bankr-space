@@ -2,11 +2,16 @@ import { fetchTokenMarketStats } from '@/lib/dexscreener';
 import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
 import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
 
-/** Human-readable max authorize (upto cap) — must match x402/bankr.x402.json `price`. */
-export const X402_FUND_MAX_AUTHORIZE_TOKENS = '10000000';
+/** Fixed Space per x402 click (exact scheme) — must match x402/bankr.x402.json `price`. */
+export const X402_FUND_EXACT_TOKENS = '3400000';
 
-export const X402_FUND_MAX_AUTHORIZE_ATOMIC =
-  BigInt(X402_FUND_MAX_AUTHORIZE_TOKENS) * 10n ** 18n;
+/** @deprecated use X402_FUND_EXACT_TOKENS */
+export const X402_FUND_MAX_AUTHORIZE_TOKENS = X402_FUND_EXACT_TOKENS;
+
+export const X402_FUND_EXACT_ATOMIC = BigInt(X402_FUND_EXACT_TOKENS) * 10n ** 18n;
+
+/** @deprecated use X402_FUND_EXACT_ATOMIC */
+export const X402_FUND_MAX_AUTHORIZE_ATOMIC = X402_FUND_EXACT_ATOMIC;
 
 export function spaceTokensForUsd(usd: number, priceUsd: number): number {
   if (!(usd > 0) || !(priceUsd > 0)) return 0;
@@ -42,14 +47,16 @@ function formatTokenCount(tokens: number): string {
   return tokens.toFixed(4);
 }
 
-/** UI label for one fund click at the current Space price. */
+/** UI label for one fund click (exact x402 price on-chain; goal bar still credits USD). */
 export function formatX402FundPriceLabel(
   priceUsd: number | null,
   usdCredit = SPACE_FUND_X402_CREDIT_USD
 ): string {
+  const exactTokens = Number(X402_FUND_EXACT_TOKENS);
+  const exactLabel = `${formatTokenCount(exactTokens)} ${X402_PAYMENT_TOKEN_SYMBOL}`;
   if (!priceUsd || priceUsd <= 0) {
-    return `$${usdCredit} worth of ${X402_PAYMENT_TOKEN_SYMBOL}`;
+    return `${exactLabel} (~$${usdCredit} goal credit)`;
   }
-  const tokens = spaceTokensForUsd(usdCredit, priceUsd);
-  return `${formatTokenCount(tokens)} ${X402_PAYMENT_TOKEN_SYMBOL} (~$${usdCredit})`;
+  const spotTokens = spaceTokensForUsd(usdCredit, priceUsd);
+  return `${exactLabel} (~$${usdCredit} goal · spot ≈ ${formatTokenCount(spotTokens)})`;
 }
