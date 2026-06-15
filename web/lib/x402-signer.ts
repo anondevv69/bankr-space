@@ -2,12 +2,12 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
-  http,
   type Address,
   type Hex,
   type WalletClient,
 } from 'viem';
 import { base } from 'viem/chains';
+import { createBaseHttpTransport } from '@/lib/base-rpc';
 
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -45,7 +45,7 @@ export function createEvmPaymentSigner(address: Address) {
     /** Base RPC reads — do not route balance/allowance through the wallet extension. */
     publicClient: createPublicClient({
       chain: base,
-      transport: http(),
+      transport: createBaseHttpTransport(),
     }),
   };
 }
