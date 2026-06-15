@@ -91,7 +91,8 @@ export async function POST(req: Request, { params }: RouteParams) {
     if (upstream.status >= 400) {
       const detail = await getX402UpstreamErrorDetail(
         xPayment,
-        pinPaymentRequiredHeader || paymentRequiredHeader
+        pinPaymentRequiredHeader || paymentRequiredHeader,
+        upstream.headers
       );
       const err = await parseX402UpstreamErrorDetailed(
         data,
