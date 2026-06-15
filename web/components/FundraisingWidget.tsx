@@ -137,6 +137,8 @@ export function FundraisingWidget({
   }
 
   async function contribute(paymentCount: number) {
+    if (paying || settingUpPermit2) return;
+
     const campaignId = activeCampaignId;
     const count = Math.max(1, Math.min(10, Math.round(paymentCount)));
     if (!x402BaseUrl) {
