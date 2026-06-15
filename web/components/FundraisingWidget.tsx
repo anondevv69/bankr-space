@@ -129,8 +129,8 @@ export function FundraisingWidget({
     const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
     setPayHint(
       count > 1
-        ? `Authorizing ${count} × ${priceLabel} via Bankr x402 — approve each wallet prompt within 60 seconds…`
-        : `Your wallet will authorize ${priceLabel} via Bankr x402 — approve within 60 seconds.`
+        ? `Authorizing ${count} × ${priceLabel} — when MetaMask opens, approve within 60 seconds (10M $Space is only the cap).`
+        : `When MetaMask opens, approve within 60 seconds. It may show 10,000,000 $Space — that is the cap, not the charge (~${priceLabel} settles).`
     );
 
     try {

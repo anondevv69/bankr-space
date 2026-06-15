@@ -27,7 +27,37 @@ type PayResult = {
   error?: string;
 };
 
+function decodePermit2DeadlineSeconds(xPayment: string): number | null {
+  try {
+    const decoded = JSON.parse(atob(xPayment)) as {
+      payload?: { permit2Authorization?: { deadline?: string } };
+    };
+    const deadline = decoded.payload?.permit2Authorization?.deadline;
+    const n = deadline ? Number(deadline) : NaN;
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function assertPermit2NotExpired(xPayment: string): void {
+  const deadline = decodePermit2DeadlineSeconds(xPayment);
+  if (deadline == null) return;
+  const remaining = deadline - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) {
+    throw new Error(
+      'Payment authorization already expired — you took longer than 60 seconds in MetaMask. Click Contribute again and approve immediately when the wallet opens (10M $Space is only the cap; ~$1 settles).'
+    );
+  }
+}
+
 function formatPayError(data: unknown, status: number): string {
+  if (data && typeof data === 'object') {
+    const body = data as Record<string, unknown>;
+    if (typeof body.x402InvalidReason === 'string') {
+      return formatFacilitatorInvalidReason(body.x402InvalidReason);
+    }
+  }
   if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
     const err = (data as { error: string }).error;
     const lower = err.toLowerCase();
@@ -172,7 +202,9 @@ async function signAndPay(
       ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
       : undefined;
 
-  onProgress?.('Approve immediately in your wallet — the authorization expires in 60 seconds…');
+  onProgress?.(
+    'MetaMask opening — approve within 60 seconds. The 10,000,000 $Space cap is not what you pay; only ~$1 worth settles.'
+  );
 
   const httpClient = createPaymentHttpClient(walletAddress);
   const payload = await httpClient.createPaymentPayload(paymentRequired);
@@ -186,6 +218,8 @@ async function signAndPay(
   if (!xPayment) {
     throw new Error('Failed to build x402 payment header');
   }
+
+  assertPermit2NotExpired(xPayment);
 
   const paid = await retry(xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader);
   if (paid.status >= 400) {
