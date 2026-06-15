@@ -60,10 +60,14 @@ export async function sendTelegramMessage(
 export async function setTelegramWebhook(siteUrl: string): Promise<unknown> {
   const token = getBotToken();
   const webhookUrl = `${siteUrl.replace(/\/$/, '')}/api/telegram/webhook`;
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  const body: Record<string, unknown> = { url: webhookUrl };
+  if (secret) body.secret_token = secret;
+
   const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: webhookUrl }),
+    body: JSON.stringify(body),
   });
   return res.json();
 }
