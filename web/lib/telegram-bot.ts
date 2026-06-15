@@ -49,11 +49,28 @@ export async function sendTelegramMessage(
   if (options.parseMode) body.parse_mode = options.parseMode;
   if (options.replyToMessageId) body.reply_to_message_id = options.replyToMessageId;
 
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
+  if (!res.ok || !data.ok) {
+    console.error('[telegram] sendMessage failed', { chatId, status: res.status, data });
+    throw new Error(data.description || `Telegram sendMessage failed (${res.status})`);
+  }
+}
+
+export async function getTelegramWebhookInfo(): Promise<unknown> {
+  const token = getBotToken();
+  const res = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+  return res.json();
+}
+
+export async function getTelegramBotMe(): Promise<unknown> {
+  const token = getBotToken();
+  const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+  return res.json();
 }
 
 /** Register the webhook URL with Telegram (call once after deploy). */
