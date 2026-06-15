@@ -5,9 +5,10 @@ import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
 import {
-  getX402UpstreamErrorDetail,
-  parseX402UpstreamErrorDetailed,
-} from '@/lib/x402-upstream-error';
+  decodeX402PaymentDiagnostics,
+  formatFacilitatorInvalidReason,
+} from '@/lib/x402-facilitator-verify';
+import { parseX402UpstreamErrorDetailed } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
 
@@ -94,28 +95,23 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     if (upstream.status >= 400) {
       const paymentHeader = pinPaymentRequiredHeader || paymentRequiredHeader;
+      const payment = decodeX402PaymentDiagnostics(xPayment);
       const upstreamReason = typeof data.reason === 'string' ? data.reason : undefined;
-
-      const detail = await getX402UpstreamErrorDetail(
-        xPayment,
-        paymentHeader,
-        upstream.headers
-      );
       const err = await parseX402UpstreamErrorDetailed(
         data,
         upstream.headers,
         xPayment,
         paymentHeader
       );
-      const invalidReason =
-        upstreamReason || detail?.invalidReason || undefined;
       console.error('x402 upstream error', upstream.status, data, err);
       return NextResponse.json(
         {
-          error: detail?.message || err,
-          ...(invalidReason ? { x402InvalidReason: invalidReason } : {}),
-          ...(detail?.payer ? { x402Payer: detail.payer } : {}),
-          ...(detail?.payment ? { x402Payment: detail.payment } : {}),
+          error: upstreamReason
+            ? formatFacilitatorInvalidReason(upstreamReason)
+            : err,
+          ...(upstreamReason ? { x402InvalidReason: upstreamReason } : {}),
+          ...(payment?.payer ? { x402Payer: payment.payer } : {}),
+          ...(payment ? { x402Payment: payment } : {}),
         },
         { status: xPayment ? 400 : upstream.status }
       );

@@ -45,7 +45,8 @@ function readPermit2Spender(requirements: PaymentRequired['accepts'][number]): A
 /** Bankr x402 Cloud quotes fee-router Permit2 spenders — sign for that, not the x402 proxy. */
 export async function createBankrExactPermit2PaymentPayload(
   walletAddress: Address,
-  paymentRequired: PaymentRequired
+  paymentRequired: PaymentRequired,
+  acceptedOverride?: PaymentRequired['accepts'][number]
 ): Promise<PaymentPayload> {
   const requirements = paymentRequired.accepts.find(
     (item) => item.scheme.toLowerCase() === 'exact'
@@ -116,6 +117,20 @@ export async function createBankrExactPermit2PaymentPayload(
       permit2Authorization,
     },
     resource: paymentRequired.resource,
-    accepted: requirements,
+    accepted: acceptedOverride ?? requirements,
   };
+}
+
+export function readRawAcceptedFromPaymentHeader(
+  paymentRequiredHeader?: string | null
+): PaymentRequired['accepts'][number] | undefined {
+  if (!paymentRequiredHeader) return undefined;
+  try {
+    const req = JSON.parse(atob(paymentRequiredHeader)) as {
+      accepts?: PaymentRequired['accepts'];
+    };
+    return req.accepts?.[0];
+  } catch {
+    return undefined;
+  }
 }

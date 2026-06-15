@@ -1,7 +1,10 @@
 import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from '@x402/core/http';
 import type { PaymentRequired } from '@x402/core/types';
 import type { Address } from 'viem';
-import { createBankrExactPermit2PaymentPayload } from '@/lib/x402-bankr-permit2-sign';
+import {
+  createBankrExactPermit2PaymentPayload,
+  readRawAcceptedFromPaymentHeader,
+} from '@/lib/x402-bankr-permit2-sign';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
 import { assertSpaceFundPreflight } from '@/lib/x402-fund-preflight';
@@ -216,7 +219,12 @@ async function signAndPay(
   onProgress?.('Step 2 of 2 — sign the payment in MetaMask (within 60 seconds).');
 
   const pinnedRequired = pinPaymentRequiredToFundBase(paymentRequired, fundBase);
-  const payload = await createBankrExactPermit2PaymentPayload(walletAddress, pinnedRequired);
+  const rawAccepted = readRawAcceptedFromPaymentHeader(pinPaymentRequiredHeader);
+  const payload = await createBankrExactPermit2PaymentPayload(
+    walletAddress,
+    pinnedRequired,
+    rawAccepted
+  );
   const xPayment = encodePaymentSignatureHeader(payload);
 
   if (!xPayment) {
