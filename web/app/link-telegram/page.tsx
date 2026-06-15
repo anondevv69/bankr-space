@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { useAppWallet } from '@/hooks/useAppWallet';
@@ -19,7 +19,7 @@ type LinkResult = {
   wallet?: string;
 };
 
-export default function LinkTelegramPage() {
+function LinkTelegramContent() {
   const searchParams = useSearchParams();
   const code = searchParams.get('code') || '';
   const { address, isConnected } = useAccount();
@@ -161,5 +161,19 @@ export default function LinkTelegramPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function LinkTelegramPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
+          <p className="text-muted">Loading…</p>
+        </main>
+      }
+    >
+      <LinkTelegramContent />
+    </Suspense>
   );
 }
