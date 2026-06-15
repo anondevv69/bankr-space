@@ -8,8 +8,6 @@ import { createEvmPaymentSigner } from '@/lib/x402-signer';
 import {
   fetchSpacePriceUsd,
   formatX402FundPriceLabel,
-  spaceAtomicForUsd,
-  spaceTokensForUsd,
 } from '@/lib/space-x402-price';
 
 function formatTokenCount(tokens: number): string {
@@ -18,26 +16,15 @@ function formatTokenCount(tokens: number): string {
   return tokens.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-/** Block signing when balance or x402 authorize cap cannot cover the USD credit. */
+/** Block signing when balance cannot cover the fixed exact x402 charge. */
 export async function assertSpaceFundPreflight(
   walletAddress: Address,
   amountUsd: number,
   authorizeAtomic: bigint
 ): Promise<void> {
   const priceUsd = await fetchSpacePriceUsd();
-  if (!priceUsd || priceUsd <= 0) return;
-
-  const neededAtomic = spaceAtomicForUsd(amountUsd, priceUsd);
-  const neededTokens = spaceTokensForUsd(amountUsd, priceUsd);
-  const capTokens = Number(authorizeAtomic) / 1e18;
   const priceLabel = formatX402FundPriceLabel(priceUsd, amountUsd);
-
-  if (neededAtomic > authorizeAtomic) {
-    throw new Error(
-      `Space price is too low for $${amountUsd} per click — ${priceLabel} but the x402 authorize cap is ~${formatTokenCount(capTokens)} $${X402_PAYMENT_TOKEN_SYMBOL}. ` +
-        `Raise price in bankr.x402.json and run bankr x402 deploy.`
-    );
-  }
+  const chargeTokens = Number(authorizeAtomic) / 1e18;
 
   const { publicClient } = createEvmPaymentSigner(walletAddress);
   const raw = await publicClient.readContract({
@@ -48,7 +35,7 @@ export async function assertSpaceFundPreflight(
   });
   const balanceAtomic = BigInt(raw);
 
-  if (balanceAtomic < neededAtomic) {
+  if (balanceAtomic < authorizeAtomic) {
     const balanceTokens = Number(balanceAtomic) / 1e18;
     const balanceLabel =
       balanceTokens <= 0
@@ -57,7 +44,7 @@ export async function assertSpaceFundPreflight(
           ? balanceTokens.toExponential(2)
           : formatTokenCount(balanceTokens);
     throw new Error(
-      `Insufficient $${X402_PAYMENT_TOKEN_SYMBOL} — need ${priceLabel} (~${formatTokenCount(neededTokens)} tokens) but your wallet has ${balanceLabel}. ` +
+      `Insufficient $${X402_PAYMENT_TOKEN_SYMBOL} — need ${priceLabel} (${formatTokenCount(chargeTokens)} tokens) but your wallet has ${balanceLabel}. ` +
         `Buy $${X402_PAYMENT_TOKEN_SYMBOL} on Base, then try Contribute again.`
     );
   }

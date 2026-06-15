@@ -1,9 +1,7 @@
-import { x402Client, x402HTTPClient } from '@x402/core/client';
-import { decodePaymentRequiredHeader } from '@x402/core/http';
+import { decodePaymentRequiredHeader, encodePaymentSignatureHeader } from '@x402/core/http';
 import type { PaymentRequired } from '@x402/core/types';
-import { ExactEvmScheme, UptoEvmScheme, toClientEvmSigner } from '@x402/evm';
 import type { Address } from 'viem';
-import { createEvmPaymentSigner } from '@/lib/x402-signer';
+import { createBankrExactPermit2PaymentPayload } from '@/lib/x402-bankr-permit2-sign';
 import { ensurePermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
 import { formatFacilitatorInvalidReason } from '@/lib/x402-facilitator-verify';
 import { assertSpaceFundPreflight } from '@/lib/x402-fund-preflight';
@@ -46,7 +44,7 @@ function assertPermit2NotExpired(xPayment: string): void {
   const remaining = deadline - Math.floor(Date.now() / 1000);
   if (remaining <= 0) {
     throw new Error(
-      'Payment authorization already expired — you took longer than 60 seconds in MetaMask. Click Contribute again and approve immediately when the wallet opens (10M $Space is only the cap; ~$1 settles).'
+      'Payment authorization already expired — you took longer than 60 seconds in MetaMask. Click Contribute again and approve immediately when the wallet opens.'
     );
   }
 }
@@ -86,35 +84,13 @@ function formatPayError(data: unknown, status: number): string {
   return `Payment failed (${status})`;
 }
 
-function createPaymentHttpClient(walletAddress: Address): x402HTTPClient {
-  const { walletClient, publicClient } = createEvmPaymentSigner(walletAddress);
-  const signer = toClientEvmSigner(
-    {
-      address: walletAddress,
-      signTypedData: (message) =>
-        walletClient.signTypedData({
-          account: walletAddress,
-          domain: message.domain,
-          types: message.types,
-          primaryType: message.primaryType as 'PermitWitnessTransferFrom',
-          message: message.message,
-        }),
-    },
-    publicClient
-  );
-  const client = new x402Client()
-    .register('eip155:8453', new UptoEvmScheme(signer))
-    .register('eip155:8453', new ExactEvmScheme(signer));
-  return new x402HTTPClient(client);
-}
-
 function parsePaymentRequired(data: unknown): PaymentRequired {
   const body = data as Record<string, unknown>;
-  if (typeof body.paymentRequiredHeader === 'string' && body.paymentRequiredHeader) {
-    const raw = decodePaymentRequiredHeader(body.paymentRequiredHeader) as Record<string, unknown>;
-    return normalizeBankrPaymentRequired(raw);
-  }
-  return normalizeBankrPaymentRequired(body);
+  const raw =
+    typeof body.paymentRequiredHeader === 'string' && body.paymentRequiredHeader
+      ? (decodePaymentRequiredHeader(body.paymentRequiredHeader) as Record<string, unknown>)
+      : body;
+  return normalizeBankrPaymentRequired(raw);
 }
 
 function assertSpacePaymentQuote(data: unknown): PaymentRequired {
@@ -128,6 +104,11 @@ function assertSpacePaymentQuote(data: unknown): PaymentRequired {
   const selected = paymentRequired.accepts.find(
     (item) => item.asset.toLowerCase() === X402_PAYMENT_TOKEN_ADDRESS.toLowerCase()
   );
+  if (selected?.scheme.toLowerCase() === 'upto') {
+    throw new Error(
+      'x402 fund endpoint is still on the old upto (10M cap) deploy. From the repo root run: bankr x402 deploy — then hard-refresh and try again.'
+    );
+  }
   if (selected && BigInt(selected.amount) > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
     throw new Error(
       'Payment authorization exceeds configured maximum — redeploy x402 fund service'
@@ -202,22 +183,10 @@ async function signAndPay(
       ? (quoteData as { paymentRequiredHeader: string }).paymentRequiredHeader
       : undefined;
 
-  onProgress?.(
-    'MetaMask opening — approve within 60 seconds. The 10,000,000 $Space cap is not what you pay; only ~$1 worth settles.'
-  );
+  onProgress?.('MetaMask opening — approve within 60 seconds.');
 
-  const httpClient = createPaymentHttpClient(walletAddress);
-  const payload = await httpClient.createPaymentPayload(paymentRequired);
-  const payHeaders = httpClient.encodePaymentSignatureHeader(payload);
-  const xPayment =
-    payHeaders['PAYMENT-SIGNATURE'] ||
-    payHeaders['X-PAYMENT'] ||
-    payHeaders['payment-signature'] ||
-    Object.values(payHeaders)[0];
-
-  if (!xPayment) {
-    throw new Error('Failed to build x402 payment header');
-  }
+  const payload = await createBankrExactPermit2PaymentPayload(walletAddress, paymentRequired);
+  const xPayment = encodePaymentSignatureHeader(payload);
 
   assertPermit2NotExpired(xPayment);
 

@@ -1,9 +1,8 @@
 /**
  * Platform-wide Bankr x402 fundraiser handler (single file — Bankr bundler rejects ./ imports).
  */
-const SPACE_X402_TOKEN = '0xef703b860a6d422fa00cc67bbbb2662297cb6ba3';
-const DEXSCREENER_PAIRS = `https://api.dexscreener.com/token-pairs/v1/base/${SPACE_X402_TOKEN}`;
-const X402_FUND_MAX_AUTHORIZE_ATOMIC = BigInt('10000000') * 10n ** 18n;
+const DEXSCREENER_PAIRS =
+  'https://api.dexscreener.com/token-pairs/v1/base/0xef703b860a6d422fa00cc67bbbb2662297cb6ba3';
 
 type DexPair = {
   liquidity?: { usd?: number | null };
@@ -18,32 +17,16 @@ function parseRequestUrl(req: Request): URL {
   }
 }
 
-function jsonResponse(
-  body: Record<string, unknown>,
-  status = 200,
-  extraHeaders?: Record<string, string>
-): Response {
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...extraHeaders,
-    },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
 function spaceTokensForUsd(usd: number, priceUsd: number): number {
   if (!(usd > 0) || !(priceUsd > 0)) return 0;
   return usd / priceUsd;
-}
-
-function spaceAtomicForUsd(usd: number, priceUsd: number): string {
-  const tokens = spaceTokensForUsd(usd, priceUsd);
-  if (!(tokens > 0)) return '0';
-  const fixed = tokens.toFixed(18);
-  const [whole, frac = ''] = fixed.split('.');
-  const padded = frac.padEnd(18, '0').slice(0, 18);
-  return (BigInt(whole) * 10n ** 18n + BigInt(padded)).toString();
 }
 
 async function fetchSpacePriceUsd(): Promise<number | null> {
@@ -114,59 +97,23 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     const priceUsd = await fetchSpacePriceUsd();
-    if (!priceUsd) {
-      return jsonResponse({
-        success: false,
-        token,
-        campaignId,
-        raisedUsd: 0,
-        goalUsd: 0,
-        error: 'Space token price unavailable — try again shortly',
-      });
-    }
 
-    const settleAtomic = BigInt(spaceAtomicForUsd(amountUsd, priceUsd));
-    if (settleAtomic <= 0n) {
-      return jsonResponse({
-        success: false,
-        token,
-        campaignId,
-        raisedUsd: 0,
-        goalUsd: 0,
-        error: 'Could not compute Space payment amount',
-      });
-    }
-
-    if (settleAtomic > X402_FUND_MAX_AUTHORIZE_ATOMIC) {
-      const needed = spaceTokensForUsd(amountUsd, priceUsd);
-      return jsonResponse({
-        success: false,
-        token,
-        campaignId,
-        raisedUsd: 0,
-        goalUsd: 0,
-        error: `Space price too low for $${amountUsd} credit (~${Math.ceil(needed).toLocaleString()} Space needed). Raise x402 upto cap and redeploy.`,
-      });
-    }
-
-    return jsonResponse(
-      {
-        success: true,
-        token,
-        campaignId,
-        raisedUsd: 0,
-        goalUsd: 0,
-        spacePriceUsd: priceUsd,
-        spaceTokensSettled: spaceTokensForUsd(amountUsd, priceUsd),
-        usdCredit: amountUsd,
-      },
-      200,
-      {
-        'X-402-Settle-Amount': settleAtomic.toString(),
-      }
-    );
+    return jsonResponse({
+      success: true,
+      token,
+      campaignId,
+      raisedUsd: 0,
+      goalUsd: 0,
+      usdCredit: amountUsd,
+      ...(priceUsd
+        ? {
+            spacePriceUsd: priceUsd,
+            spaceTokensAtSpot: spaceTokensForUsd(amountUsd, priceUsd),
+          }
+        : {}),
+    });
   } catch (err) {
     console.error('fund handler', err);
-    return jsonResponse({ success: true, raisedUsd: 0, goalUsd: 0 });
+    return jsonResponse({ success: false, raisedUsd: 0, goalUsd: 0, error: 'handler error' });
   }
 }

@@ -10,6 +10,8 @@ export function formatFacilitatorInvalidReason(reason: string): string {
       return 'Insufficient $Space in your wallet — buy $Space on Base, then try Contribute again.';
     case 'insufficient_allowance':
       return 'Permit2 allowance missing — approve $Space for Permit2 in your wallet, then try again.';
+    case 'permit2_spender_mismatch':
+      return 'Payment signature used the wrong Permit2 spender — refresh the page and try Contribute again.';
     default:
       return reason.replace(/_/g, ' ');
   }
@@ -79,6 +81,30 @@ export async function verifyX402PaymentWithFacilitator(
   return detail?.message || null;
 }
 
+function alignPaymentRequirementsWithPayload(
+  paymentPayload: unknown,
+  paymentRequirements: unknown
+): unknown {
+  if (!paymentRequirements || typeof paymentRequirements !== 'object') return paymentRequirements;
+  const payload = paymentPayload as { resource?: { url?: string } };
+  const resourceUrl = payload.resource?.url?.trim();
+  if (!resourceUrl) return paymentRequirements;
+
+  const req = paymentRequirements as Record<string, unknown>;
+  const accepts = Array.isArray(req.accepts)
+    ? (req.accepts as Record<string, unknown>[]).map((item) => ({ ...item, resource: resourceUrl }))
+    : req.accepts;
+
+  return {
+    ...req,
+    accepts,
+    resource:
+      req.resource && typeof req.resource === 'object'
+        ? { ...(req.resource as Record<string, unknown>), url: resourceUrl }
+        : { url: resourceUrl },
+  };
+}
+
 export async function verifyX402PaymentWithFacilitatorDetail(
   xPayment: string,
   paymentRequiredHeader?: string | null
@@ -105,7 +131,10 @@ export async function verifyX402PaymentWithFacilitatorDetail(
 
     const body: Record<string, unknown> = { paymentPayload };
     if (paymentRequirements) {
-      body.paymentRequirements = paymentRequirements;
+      body.paymentRequirements = alignPaymentRequirementsWithPayload(
+        paymentPayload,
+        paymentRequirements
+      );
     }
 
     const res = await fetch('https://api.bankr.bot/facilitator/verify', {
