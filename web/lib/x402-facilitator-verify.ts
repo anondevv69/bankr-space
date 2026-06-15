@@ -15,11 +15,75 @@ export function formatFacilitatorInvalidReason(reason: string): string {
   }
 }
 
+export type X402PaymentDiagnostics = {
+  payer?: string;
+  deadline?: string;
+  deadlineIso?: string;
+  secondsRemaining?: number;
+  expired?: boolean;
+  maxTokens?: number;
+  resourceUrl?: string;
+};
+
+export type X402FacilitatorVerification = {
+  message: string;
+  invalidReason?: string;
+  payer?: string;
+  payment?: X402PaymentDiagnostics;
+};
+
+export function decodeX402PaymentDiagnostics(xPayment: string): X402PaymentDiagnostics | null {
+  try {
+    const decoded = JSON.parse(Buffer.from(xPayment, 'base64').toString('utf8')) as {
+      payload?: {
+        permit2Authorization?: {
+          from?: string;
+          deadline?: string;
+          permitted?: { amount?: string };
+        };
+      };
+      resource?: { url?: string };
+    };
+    const permit = decoded.payload?.permit2Authorization;
+    if (!permit) return null;
+
+    const now = Math.floor(Date.now() / 1000);
+    const deadline = permit.deadline;
+    const deadlineNumber = deadline ? Number(deadline) : NaN;
+    const secondsRemaining = Number.isFinite(deadlineNumber) ? deadlineNumber - now : undefined;
+    const maxTokens =
+      permit.permitted?.amount != null ? Number(permit.permitted.amount) / 1e18 : undefined;
+
+    return {
+      payer: permit.from,
+      deadline,
+      deadlineIso: Number.isFinite(deadlineNumber)
+        ? new Date(deadlineNumber * 1000).toISOString()
+        : undefined,
+      secondsRemaining,
+      expired: secondsRemaining != null ? secondsRemaining <= 0 : undefined,
+      maxTokens,
+      resourceUrl: decoded.resource?.url,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Call Bankr facilitator /verify to surface the real rejection reason (server-side). */
 export async function verifyX402PaymentWithFacilitator(
   xPayment: string,
   paymentRequiredHeader?: string | null
 ): Promise<string | null> {
+  const detail = await verifyX402PaymentWithFacilitatorDetail(xPayment, paymentRequiredHeader);
+  return detail?.message || null;
+}
+
+export async function verifyX402PaymentWithFacilitatorDetail(
+  xPayment: string,
+  paymentRequiredHeader?: string | null
+): Promise<X402FacilitatorVerification | null> {
+  const payment = decodeX402PaymentDiagnostics(xPayment) || undefined;
   try {
     let paymentPayload: unknown;
     try {
@@ -54,16 +118,30 @@ export async function verifyX402PaymentWithFacilitator(
     const data = (await res.json()) as {
       isValid?: boolean;
       invalidReason?: string;
+      payer?: string;
       error?: string;
     };
 
     if (data.isValid === true) return null;
     if (typeof data.invalidReason === 'string') {
-      return formatFacilitatorInvalidReason(data.invalidReason);
+      return {
+        message: formatFacilitatorInvalidReason(data.invalidReason),
+        invalidReason: data.invalidReason,
+        payer: data.payer,
+        payment,
+      };
     }
-    if (typeof data.error === 'string') return data.error;
+    if (typeof data.error === 'string') return { message: data.error, payer: data.payer, payment };
     return null;
   } catch {
-    return null;
+    if (payment?.expired) {
+      return {
+        message: formatFacilitatorInvalidReason('permit2_deadline_expired'),
+        invalidReason: 'permit2_deadline_expired',
+        payer: payment.payer,
+        payment,
+      };
+    }
+    return payment ? { message: 'Payment verification failed', payment } : null;
   }
 }
