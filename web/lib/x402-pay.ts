@@ -145,6 +145,9 @@ async function proxyX402(
     }),
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status >= 400 && xPayment) {
+    console.error('[x402] payment failed', { status: res.status, ...data });
+  }
   return { status: res.status, data };
 }
 

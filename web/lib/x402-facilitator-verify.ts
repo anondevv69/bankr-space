@@ -19,6 +19,10 @@ export function formatFacilitatorInvalidReason(reason: string): string {
       return 'Payment signature rejected — hard refresh the page and try Contribute again.';
     case 'invalid_permit2_signature':
       return 'Payment signature rejected — hard refresh the page and try Contribute again.';
+    case 'witness_to_mismatch':
+      return 'Payment destination mismatch — hard refresh the page and try Contribute again.';
+    case 'permit2_nonce_used':
+      return 'This payment signature was already submitted. Click Contribute again to sign a fresh payment.';
     default:
       return reason.replace(/_/g, ' ');
   }
