@@ -158,6 +158,242 @@ function SourceToggle({
   );
 }
 
+type X402ProbeResult = {
+  tokenAddress: string;
+  symbol: string;
+  decimals: number;
+  priceLabel: string;
+  fundUrl: string;
+};
+
+function X402ConfigPanel({
+  fundUrl, tokenAddress, tokenSymbol, tokenDecimals, priceLabel, creditUsd,
+  onFundUrl, onTokenAddress, onTokenSymbol, onTokenDecimals, onPriceLabel, onCreditUsd,
+}: {
+  fundUrl: string;
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenDecimals: number;
+  priceLabel: string;
+  creditUsd: number;
+  onFundUrl: (v: string) => void;
+  onTokenAddress: (v: string) => void;
+  onTokenSymbol: (v: string) => void;
+  onTokenDecimals: (v: number) => void;
+  onPriceLabel: (v: string) => void;
+  onCreditUsd: (v: number) => void;
+}) {
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
+  const [detected, setDetected] = useState<X402ProbeResult | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const hasCustom = !!(fundUrl.trim() || tokenAddress.trim());
+
+  async function detectToken() {
+    const url = fundUrl.trim();
+    if (!url.startsWith('http')) {
+      setDetectError('Enter a valid Fund URL first');
+      return;
+    }
+    setDetecting(true);
+    setDetectError(null);
+    try {
+      const res = await fetch('/api/x402/probe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fundUrl: url }),
+      });
+      const data = await res.json() as Partial<X402ProbeResult> & { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Detection failed');
+      // Auto-fill all fields from the probe result
+      onFundUrl(data.fundUrl || url);
+      onTokenAddress(data.tokenAddress || '');
+      onTokenSymbol(data.symbol || '');
+      onTokenDecimals(data.decimals ?? 18);
+      onPriceLabel(data.priceLabel || '');
+      setDetected(data as X402ProbeResult);
+    } catch (err) {
+      setDetectError(err instanceof Error ? err.message : 'Detection failed');
+    } finally {
+      setDetecting(false);
+    }
+  }
+
+  function clearCustom() {
+    onFundUrl('');
+    onTokenAddress('');
+    onTokenSymbol('');
+    onTokenDecimals(18);
+    onPriceLabel('');
+    onCreditUsd(1);
+    setDetected(null);
+    setDetectError(null);
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Fund URL + Detect button */}
+      <div>
+        <label className="block text-xs text-muted mb-1">
+          Your Bankr x402 fund URL
+        </label>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 min-w-0 px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
+            placeholder="https://x402.bankr.bot/0x…/fund"
+            value={fundUrl}
+            onChange={(e) => {
+              onFundUrl(e.target.value);
+              setDetected(null);
+              setDetectError(null);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => void detectToken()}
+            disabled={detecting || !fundUrl.trim()}
+            className="shrink-0 px-3 py-2 text-xs font-medium border border-border rounded-lg bg-surface-2 hover:border-accent disabled:opacity-50 whitespace-nowrap"
+          >
+            {detecting ? 'Detecting…' : 'Detect →'}
+          </button>
+        </div>
+        <p className="text-[11px] text-muted mt-1">
+          Deploy with{' '}
+          <a
+            href="https://docs.bankr.bot/x402-cloud/quick-start"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent-hover hover:underline"
+          >
+            bankr x402 deploy
+          </a>
+          {' '}then paste the URL here. Leave blank to use the platform default.
+        </p>
+      </div>
+
+      {detectError && (
+        <p className="text-xs text-red-400">{detectError}</p>
+      )}
+
+      {/* Auto-detected token preview card */}
+      {detected && detected.tokenAddress && (
+        <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-2.5 space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-green-600 dark:text-green-400">Token detected</p>
+            <button
+              type="button"
+              onClick={clearCustom}
+              className="text-[11px] text-muted hover:text-red-400"
+            >
+              Clear
+            </button>
+          </div>
+          <p className="text-sm font-medium">${detected.symbol || '?'}</p>
+          <p className="text-[11px] text-muted font-mono truncate">{detected.tokenAddress}</p>
+          {detected.priceLabel && (
+            <p className="text-[11px] text-muted">Button label: {detected.priceLabel}</p>
+          )}
+        </div>
+      )}
+
+      {/* Active custom config (when set but no fresh detection) */}
+      {hasCustom && !detected && (
+        <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs space-y-0.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium">Custom x402 configured</p>
+            <button
+              type="button"
+              onClick={clearCustom}
+              className="text-[11px] text-muted hover:text-red-400"
+            >
+              Clear
+            </button>
+          </div>
+          {fundUrl && <p className="text-muted font-mono truncate">→ {fundUrl}</p>}
+          {tokenAddress && (
+            <p className="text-muted">
+              ${tokenSymbol || '?'} · {tokenAddress.slice(0, 10)}…
+            </p>
+          )}
+        </div>
+      )}
+
+      {!hasCustom && !detected && (
+        <p className="text-[11px] text-muted">
+          Using platform default: $Space token + shared fund URL.
+        </p>
+      )}
+
+      {/* Advanced overrides — collapsed by default */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="text-[11px] text-muted hover:text-text flex items-center gap-1"
+      >
+        {showAdvanced ? '▾' : '▸'} Advanced overrides
+      </button>
+      {showAdvanced && (
+        <div className="space-y-2 pl-3 border-l border-border">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs text-muted mb-1">Token address</label>
+              <input
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-xs font-mono"
+                placeholder="0x… (blank = $Space)"
+                value={tokenAddress}
+                onChange={(e) => onTokenAddress(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">Symbol</label>
+              <input
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                placeholder="e.g. MYTOKEN"
+                value={tokenSymbol}
+                onChange={(e) => onTokenSymbol(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">Decimals</label>
+              <input
+                type="number"
+                min={0}
+                max={18}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                value={tokenDecimals}
+                onChange={(e) => onTokenDecimals(Number(e.target.value) || 18)}
+              />
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs text-muted mb-1">Price label</label>
+              <input
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                placeholder="e.g. 1,000 MYTOKEN (~$1)"
+                value={priceLabel}
+                onChange={(e) => onPriceLabel(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">USD credit per click</label>
+              <input
+                type="number"
+                min={0.01}
+                step={0.01}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                value={creditUsd}
+                onChange={(e) => onCreditUsd(Number(e.target.value) || 1)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditSection({
   title,
   hint,
@@ -1072,97 +1308,22 @@ export function CommunityProfile({
               {canEditFundraising ? (
                 <EditSection
                   title="x402 payment token"
-                  hint="Customize which token contributors pay with. Leave blank to use the default $Space token. Paste your Bankr x402 fund URL to route payments to your own endpoint."
+                  hint="Optional — paste your Bankr x402 fund URL and click Detect to auto-fill the token. Leave blank to use the platform default ($Space)."
                 >
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-muted mb-1">
-                        Fund URL (from Bankr x402 — <code className="text-[11px]">https://x402.bankr.bot/0xYourWallet/fund</code>)
-                      </label>
-                      <input
-                        className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
-                        placeholder="https://x402.bankr.bot/0x…/fund"
-                        value={x402FundUrl}
-                        onChange={(e) => setX402FundUrl(e.target.value)}
-                      />
-                      <p className="text-[11px] text-muted mt-1">
-                        Deploy on Bankr:{' '}
-                        <a
-                          href="https://docs.bankr.bot/x402-cloud/overview"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-accent-hover hover:underline"
-                        >
-                          docs.bankr.bot/x402-cloud
-                        </a>
-                        . Leave blank to use the platform default ($Space token).
-                      </p>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Token address (0x…)</label>
-                        <input
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
-                          placeholder="0x… (blank = $Space)"
-                          value={x402TokenAddress}
-                          onChange={(e) => setX402TokenAddress(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Symbol</label>
-                        <input
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                          placeholder="e.g. MYTOKEN"
-                          value={x402TokenSymbol}
-                          onChange={(e) => setX402TokenSymbol(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Decimals</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={18}
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                          value={x402TokenDecimals}
-                          onChange={(e) => setX402TokenDecimals(Number(e.target.value) || 18)}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs text-muted mb-1">Price label (shown in button)</label>
-                        <input
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                          placeholder="e.g. 1,000 MYTOKEN (~$1)"
-                          value={x402PriceLabel}
-                          onChange={(e) => setX402PriceLabel(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-muted mb-1">USD credit per click</label>
-                        <input
-                          type="number"
-                          min={0.01}
-                          step={0.01}
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-                          value={x402CreditUsd}
-                          onChange={(e) => setX402CreditUsd(Number(e.target.value) || 1)}
-                        />
-                      </div>
-                    </div>
-                    {(x402FundUrl || x402TokenAddress) ? (
-                      <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs space-y-0.5">
-                        <p className="font-medium">Custom x402 active</p>
-                        {x402FundUrl && <p className="text-muted font-mono truncate">→ {x402FundUrl}</p>}
-                        {x402TokenAddress && (
-                          <p className="text-muted">Token: ${x402TokenSymbol || '?'} ({x402TokenAddress.slice(0, 10)}…)</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-muted">Using platform default: $Space token + shared fund URL.</p>
-                    )}
-                  </div>
+                  <X402ConfigPanel
+                    fundUrl={x402FundUrl}
+                    tokenAddress={x402TokenAddress}
+                    tokenSymbol={x402TokenSymbol}
+                    tokenDecimals={x402TokenDecimals}
+                    priceLabel={x402PriceLabel}
+                    creditUsd={x402CreditUsd}
+                    onFundUrl={setX402FundUrl}
+                    onTokenAddress={setX402TokenAddress}
+                    onTokenSymbol={setX402TokenSymbol}
+                    onTokenDecimals={setX402TokenDecimals}
+                    onPriceLabel={setX402PriceLabel}
+                    onCreditUsd={setX402CreditUsd}
+                  />
                 </EditSection>
               ) : null}
 
