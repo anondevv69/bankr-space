@@ -1,16 +1,19 @@
 import { kvGet, kvSet } from '@/lib/kv-store';
-import { communityUrl } from '@/lib/site-url';
+import { communityUrl, petitionUrl } from '@/lib/site-url';
 import { isTwitterBotConfigured, postTweet } from '@/lib/twitter-api';
-import type { Community } from '@/lib/types';
+import type { Community, PetitionSpace } from '@/lib/types';
 
 const DEDUPE_PREFIX = 'tw:event:';
 
-async function claimEvent(event: 'created' | 'verified', tokenAddress: string): Promise<boolean> {
-  const key = `${DEDUPE_PREFIX}${event}:${tokenAddress.toLowerCase()}`;
+async function claimEventKey(key: string): Promise<boolean> {
   const existing = await kvGet<{ at: number }>(key);
   if (existing) return false;
   await kvSet(key, { at: Date.now() });
   return true;
+}
+
+async function claimEvent(event: 'created' | 'verified', tokenAddress: string): Promise<boolean> {
+  return claimEventKey(`${DEDUPE_PREFIX}${event}:${tokenAddress.toLowerCase()}`);
 }
 
 function formatCreatedTweet(community: Community): string {
@@ -101,5 +104,48 @@ export function queueSpaceCreatedTweet(community: Community): void {
 export function queueSpaceVerifiedTweet(community: Community): void {
   void notifySpaceVerified(community).catch((err) => {
     console.error('[twitter] notifySpaceVerified', err);
+  });
+}
+
+function formatPetitionCreatedTweet(space: PetitionSpace): string {
+  const symbol = space.tokenSymbol?.trim() || 'TOKEN';
+  const name = space.tokenName?.trim() || symbol;
+  const url = space.websiteUrl || petitionUrl(space.tmpPetitionId);
+
+  return clampTweet(
+    [
+      '📋 New petition on bankr.space',
+      '',
+      `$${symbol} — ${name}`,
+      'Back with ETH to launch on Base',
+      url,
+    ].join('\n')
+  );
+}
+
+/** Tweet when a pre-launch petition space is created. */
+export async function notifyPetitionCreated(space: PetitionSpace): Promise<void> {
+  if (!isTwitterBotConfigured()) return;
+
+  const id = space.tmpPetitionId;
+  const key = `${DEDUPE_PREFIX}petition_created:${id}`;
+  if (!(await claimEventKey(key))) {
+    console.info('[twitter] skip duplicate petition tweet', id);
+    return;
+  }
+
+  const text = formatPetitionCreatedTweet(space);
+  const result = await postTweet(text);
+  if (!result.ok) {
+    console.error('[twitter] petition tweet failed', { id, error: result.error });
+    await kvSet(key, null);
+    return;
+  }
+  console.info('[twitter] posted petition tweet', { id, tweetId: result.id });
+}
+
+export function queuePetitionCreatedTweet(space: PetitionSpace): void {
+  void notifyPetitionCreated(space).catch((err) => {
+    console.error('[twitter] notifyPetitionCreated', err);
   });
 }

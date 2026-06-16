@@ -7,6 +7,7 @@
  *   /link         — generate a link code and send the link URL
  *   /unlink       — remove wallet↔Telegram link
  *   /create       — create a bankr.space for a Bankr token
+ *   /petition     — start a pre-launch petition space
  *   /post <text>  — create a post on the linked wallet's space(s)
  *   /balance      — check $Space balance of linked wallet
  *   /spaces       — list spaces where linked wallet can post
@@ -33,6 +34,7 @@ import {
 } from '@/lib/telegram-kv';
 import { getCommunities, getPosts, setPostsForToken, updateCommunityCounts } from '@/lib/db';
 import { createCommunityFromLaunch } from '@/lib/create-community-from-launch';
+import { createPetitionSpaceForWallet } from '@/lib/create-petition-space';
 import { checkParticipation } from '@/lib/participation';
 import { resolveAuthorProfile } from '@/lib/profiles';
 import { resolveCommunityLink } from '@/lib/resolve-community';
@@ -143,6 +145,9 @@ async function handleStart(chatId: number, botUsername: string, inGroup: boolean
       '',
       '<b>Create a space:</b>',
       '<code>/create $SYMBOL</code>',
+      '',
+      '<b>Start a petition:</b>',
+      '<code>/petition $SYM Name | description</code>',
       '',
       '/spaces — see your spaces',
       '/balance — check $Space',
@@ -392,6 +397,93 @@ async function handleCreate(
   }
 }
 
+/**
+ * Parse `/petition $SYM Token Name | description`
+ * or `/petition $SYM Token Name — description`
+ */
+function parsePetitionArgs(
+  args: string
+): { tokenSymbol: string; tokenName: string; description: string } | null {
+  const trimmed = args.trim();
+  const match = trimmed.match(/^(\$?[A-Za-z0-9_]{1,10})\s+([\s\S]+)$/);
+  if (!match) return null;
+
+  const tokenSymbol = match[1].replace(/^\$/, '').toUpperCase();
+  const rest = match[2].trim();
+
+  const pipeParts = rest.split('|');
+  if (pipeParts.length >= 2) {
+    return {
+      tokenSymbol,
+      tokenName: pipeParts[0].trim(),
+      description: pipeParts.slice(1).join('|').trim(),
+    };
+  }
+
+  const dashMatch = rest.match(/^(.+?)\s+[—-]\s+([\s\S]+)$/);
+  if (dashMatch) {
+    return {
+      tokenSymbol,
+      tokenName: dashMatch[1].trim(),
+      description: dashMatch[2].trim(),
+    };
+  }
+
+  return null;
+}
+
+async function handlePetition(
+  chatId: number,
+  wallet: string,
+  rawArgs: string,
+  messageId: number
+): Promise<void> {
+  const parsed = parsePetitionArgs(rawArgs);
+
+  if (!parsed) {
+    await sendTelegramMessage(
+      chatId,
+      [
+        '📋 <b>Start a petition</b>',
+        '',
+        'Pre-launch a token — backers deposit ETH on Base:',
+        '<code>/petition $SYM Token Name | description</code>',
+        '',
+        'Examples:',
+        '<code>/petition $ROCKET Rocket Coin | Community-backed launch on Base</code>',
+        '<code>/petition $TMP TMP — Launch TMP with holder backing</code>',
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId }
+    );
+    return;
+  }
+
+  try {
+    const result = await createPetitionSpaceForWallet({
+      founderWallet: wallet,
+      tokenName: parsed.tokenName,
+      tokenSymbol: parsed.tokenSymbol,
+      description: parsed.description,
+    });
+
+    await sendTelegramMessage(
+      chatId,
+      [
+        `📋 <b>Petition started for $${result.petition.tokenSymbol}!</b>`,
+        '',
+        result.petition.tokenName,
+        result.message,
+        '',
+        result.petitionUrl,
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId, disableWebPagePreview: false }
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create petition';
+    await sendTelegramMessage(chatId, `⚠️ ${message}`, { replyToMessageId: messageId });
+  }
+}
+
 async function handlePost(
   chatId: number,
   wallet: string,
@@ -528,6 +620,8 @@ async function handleHelp(
     '<b>── Commands ──</b>',
     '<code>/create $SYMBOL</code> — create a space for a Bankr token',
     '  e.g. <code>/create $SPACE</code>',
+    '<code>/petition $SYM Name | description</code> — pre-launch petition',
+    '  e.g. <code>/petition $TMP TMP | Back TMP on Base</code>',
     '<code>/post $SYMBOL &lt;message&gt;</code> — post to a space',
     '  e.g. <code>/post $SPACE yerrr</code>',
     '<code>/spaces</code> — spaces you can post in (need token)',
@@ -687,6 +781,9 @@ export async function POST(req: Request) {
         break;
       case 'create':
         await handleCreate(chatId, link.wallet, args, messageId);
+        break;
+      case 'petition':
+        await handlePetition(chatId, link.wallet, args, messageId);
         break;
       case 'post':
         await handlePost(

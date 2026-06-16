@@ -33,7 +33,7 @@ export async function GET() {
     userId: account.userId,
     tokenExpiresAt: account.tokenExpiresAt,
     dryRun: process.env.TWITTER_BOT_DRY_RUN?.trim() === 'true',
-    events: ['space_created', 'space_verified'],
+    events: ['space_created', 'space_verified', 'petition_created'],
     oauth2: {
       connectUrl: account.oauth2ConnectAvailable
         ? `${site}/api/twitter/connect`
