@@ -4,6 +4,7 @@ import { fetchLaunchByAddress } from '@/lib/bankr-api';
 import { isTokenBeneficiary } from '@/lib/community-owner';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
+import { queueSpaceVerifiedTweet } from '@/lib/twitter-space-events';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,8 @@ export async function POST(req: Request, { params }: RouteParams) {
     community.verifiedAt = Date.now();
     community.verifiedBy = wallet;
     await setCommunities(communities);
+
+    queueSpaceVerifiedTweet(community);
 
     return NextResponse.json({
       success: true,
