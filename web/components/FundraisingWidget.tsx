@@ -332,6 +332,10 @@ export function FundraisingWidget({
           {settingUpPermit2 ? 'Setting up…' : 'Setup Permit2'}
         </button>
       </div>
+    ) : paymentToken.isCustom && isConnected && onBase ? (
+      <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+        Paying with <span className="font-semibold text-text">${paymentToken.symbol}</span> — Permit2 approval will be requested automatically when you Contribute.
+      </div>
     ) : null;
 
   const controlsBlock = (
