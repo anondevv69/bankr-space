@@ -123,6 +123,34 @@ function assertSpacePaymentQuote(data: unknown): PaymentRequired {
   return paymentRequired;
 }
 
+/**
+ * Like assertSpacePaymentQuote but for a custom (non-$Space) token.
+ * Returns { paymentRequired, requiredAtomic } — the atomic amount is read directly
+ * from the quote so Permit2 can be authorized for exactly the right amount.
+ */
+function assertCustomTokenPaymentQuote(
+  data: unknown,
+  customTokenAddress: string
+): { paymentRequired: PaymentRequired; requiredAtomic: bigint } {
+  const body = data as Record<string, unknown>;
+  if (!x402AcceptsIncludeToken(body, customTokenAddress)) {
+    throw new Error(
+      `Custom x402 endpoint does not accept token ${customTokenAddress.slice(0, 10)}… — check your Fund URL and token config.`
+    );
+  }
+  const paymentRequired = parsePaymentRequired(data);
+  const selected = paymentRequired.accepts.find(
+    (item) => item.asset.toLowerCase() === customTokenAddress.toLowerCase()
+  );
+  if (!selected) throw new Error('Custom token not found in x402 accepts list');
+  if (selected.scheme.toLowerCase() === 'upto') {
+    throw new Error(
+      'Custom x402 endpoint uses the old "upto" scheme — redeploy with: bankr x402 deploy'
+    );
+  }
+  return { paymentRequired, requiredAtomic: BigInt(selected.amount) };
+}
+
 async function proxyX402(
   tokenAddress: string,
   campaignId: string,
@@ -196,9 +224,12 @@ async function signAndPay(
     pinFundUrl?: string,
     pinPaymentRequiredHeader?: string
   ) => Promise<{ status: number; data: unknown }>,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  customTokenAddress?: string
 ): Promise<PayResult> {
-  const paymentRequired = assertSpacePaymentQuote(quoteData);
+  const paymentRequired = customTokenAddress
+    ? assertCustomTokenPaymentQuote(quoteData, customTokenAddress).paymentRequired
+    : assertSpacePaymentQuote(quoteData);
   const pinFundBase =
     typeof (quoteData as { x402FundBase?: string }).x402FundBase === 'string'
       ? (quoteData as { x402FundBase: string }).x402FundBase
@@ -251,8 +282,42 @@ export async function paySpaceFund(
   onProgress?: (message: string) => void,
   customPaymentToken?: { address: string; symbol: string; isCustom?: boolean }
 ): Promise<PayResult> {
-  const payTokenAddress = (customPaymentToken?.address || X402_PAYMENT_TOKEN_ADDRESS) as Address;
-  const payTokenSymbol = customPaymentToken?.symbol || X402_PAYMENT_TOKEN_SYMBOL;
+  const isCustom = !!(customPaymentToken?.isCustom && customPaymentToken.address);
+  const payTokenAddress = (isCustom ? customPaymentToken!.address : X402_PAYMENT_TOKEN_ADDRESS) as Address;
+  const payTokenSymbol = isCustom ? customPaymentToken!.symbol : X402_PAYMENT_TOKEN_SYMBOL;
+
+  if (isCustom) {
+    // For custom tokens we must get the quote first to know the exact required amount,
+    // then authorize Permit2 for exactly that amount (not the hardcoded $Space amount).
+    onProgress?.(`Fetching payment quote from custom x402 endpoint…`);
+    const { status: quoteStatus, data: quoteData } = await proxyX402(tokenAddress, campaignId, amountUsd);
+    const quoteBody = quoteData as { requiresPayment?: boolean };
+    const isQuote = quoteStatus === 402 || (quoteStatus === 200 && quoteBody.requiresPayment);
+    if (!isQuote) {
+      if (quoteStatus >= 400) throw new Error(formatPayError(quoteData, quoteStatus));
+      return quoteData as PayResult;
+    }
+
+    // Read required amount from the quote
+    const { requiredAtomic } = assertCustomTokenPaymentQuote(quoteData, payTokenAddress);
+
+    onProgress?.(`Step 1 of 2 — approving $${payTokenSymbol} for Permit2…`);
+    await ensurePermit2TokenAllowance(walletAddress, payTokenAddress, requiredAtomic, onProgress);
+    onProgress?.(`$${payTokenSymbol} Permit2 approved — checking balance…`);
+    await assertSpaceFundPreflight(walletAddress, amountUsd, requiredAtomic, payTokenAddress);
+
+    return signAndPay(
+      walletAddress,
+      quoteData,
+      amountUsd,
+      (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
+        proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader),
+      onProgress,
+      payTokenAddress
+    );
+  }
+
+  // Default $Space flow
   onProgress?.(`Step 1 of 2 — checking one-time Permit2 approval for $${payTokenSymbol}…`);
   const allowance = await ensurePermit2TokenAllowance(
     walletAddress,
@@ -285,22 +350,8 @@ export async function paySpaceFund(
     data,
     amountUsd,
     (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
-      proxyX402(
-        tokenAddress,
-        campaignId,
-        amountUsd,
-        xPayment,
-        pinFundBase,
-        pinFundUrl,
-        pinPaymentRequiredHeader
-      ),
-    (msg) => {
-      if (msg.includes('Step 2') || msg.includes('MetaMask')) {
-        onProgress?.(msg);
-      } else {
-        onProgress?.(msg);
-      }
-    }
+      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader),
+    onProgress
   );
 }
 
