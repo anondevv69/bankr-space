@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { apiFetch } from '@/lib/wagmi';
@@ -88,10 +89,12 @@ function BankrLaunchRow({
   launch,
   wallet,
   onUpdated,
+  canManage = false,
 }: {
   launch: WalletBankrLaunch;
   wallet: string;
   onUpdated: () => void;
+  canManage?: boolean;
 }) {
   const [busy, setBusy] = useState<'create' | 'verify' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -170,7 +173,7 @@ function BankrLaunchRow({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {launch.actions.canCreateSpace && (
+        {canManage && launch.actions.canCreateSpace && (
           <button
             type="button"
             onClick={() => void createSpace()}
@@ -180,7 +183,7 @@ function BankrLaunchRow({
             {busy === 'create' ? 'Creating…' : 'Create space'}
           </button>
         )}
-        {launch.actions.canVerifySpace && (
+        {canManage && launch.actions.canVerifySpace && (
           <button
             type="button"
             onClick={() => void verifySpace()}
@@ -209,10 +212,12 @@ function TelegramSection({
   telegram,
   wallet,
   onUnlinked,
+  readOnly = false,
 }: {
   telegram: TelegramStatus;
   wallet: string;
   onUnlinked: () => void;
+  readOnly?: boolean;
 }) {
   const [unlinking, setUnlinking] = useState(false);
   const [botInfo, setBotInfo] = useState<{
@@ -283,15 +288,21 @@ function TelegramSection({
             </div>
           </div>
         </div>
-        <button
-          onClick={() => void unlink()}
-          disabled={unlinking}
-          className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg disabled:opacity-50"
-        >
-          {unlinking ? 'Unlinking…' : 'Unlink'}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => void unlink()}
+            disabled={unlinking}
+            className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {unlinking ? 'Unlinking…' : 'Unlink'}
+          </button>
+        )}
       </div>
     );
+  }
+
+  if (readOnly) {
+    return <p className="text-sm text-muted">Telegram not linked.</p>;
   }
 
   const botUsername = botInfo?.botUsername;
@@ -345,6 +356,14 @@ function ProfileContent() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const paramWallet = searchParams.get('wallet')?.trim().toLowerCase() || null;
+  const viewWallet = paramWallet || address?.toLowerCase() || null;
+  const isOwnProfile =
+    !!viewWallet &&
+    !!address &&
+    viewWallet === address.toLowerCase() &&
+    (!paramWallet || paramWallet === address.toLowerCase());
 
   const load = useCallback(async (wallet: string) => {
     setLoading(true);
@@ -361,10 +380,14 @@ function ProfileContent() {
   }, []);
 
   useEffect(() => {
-    if (address) void load(address);
-  }, [address, load]);
+    if (viewWallet && /^0x[a-f0-9]{40}$/.test(viewWallet)) {
+      void load(viewWallet);
+    } else {
+      setProfile(null);
+    }
+  }, [viewWallet, load]);
 
-  if (!isConnected || !address) {
+  if (!viewWallet) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 text-center">
         <p className="text-muted">Connect your wallet to view your profile.</p>
@@ -374,6 +397,14 @@ function ProfileContent() {
         >
           Connect Wallet
         </button>
+      </div>
+    );
+  }
+
+  if (paramWallet && !/^0x[a-f0-9]{40}$/.test(paramWallet)) {
+    return (
+      <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+        Invalid wallet address.
       </div>
     );
   }
@@ -417,7 +448,7 @@ function ProfileContent() {
               @{profile.author.twitter}
             </a>
           )}
-          <div className="font-mono text-xs text-muted break-all">{address}</div>
+          <div className="font-mono text-xs text-muted break-all">{viewWallet}</div>
           {isBankrWallet && agent?.agentLabel && (
             <div className="inline-flex items-center gap-1.5 text-xs bg-accent/10 border border-accent/30 text-accent px-2 py-0.5 rounded-full">
               <span>🤖</span>
@@ -442,7 +473,7 @@ function ProfileContent() {
 
       {profile && (
         <>
-          {(pendingCreate > 0 || pendingVerify > 0) && (
+          {(pendingCreate > 0 || pendingVerify > 0) && isOwnProfile && (
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-sm space-y-1">
               <div className="font-medium">Action needed</div>
               {pendingCreate > 0 && (
@@ -461,7 +492,9 @@ function ProfileContent() {
           {profile.bankrLaunches.length > 0 && (
             <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
               <div>
-                <h2 className="font-semibold text-sm">Your Bankr Launches</h2>
+                <h2 className="font-semibold text-sm">
+                  {isOwnProfile ? 'Your Bankr Launches' : 'Bankr Launches'}
+                </h2>
                 <p className="text-xs text-muted mt-0.5">
                   From Bankr API — tokens where you are fee recipient or deployer.
                 </p>
@@ -471,8 +504,9 @@ function ProfileContent() {
                   <BankrLaunchRow
                     key={launch.tokenAddress}
                     launch={launch}
-                    wallet={address}
-                    onUpdated={() => void load(address)}
+                    wallet={viewWallet}
+                    onUpdated={() => void load(viewWallet)}
+                    canManage={isOwnProfile}
                   />
                 ))}
               </div>
@@ -483,14 +517,17 @@ function ProfileContent() {
             <h2 className="font-semibold text-sm">Telegram</h2>
             <TelegramSection
               telegram={profile.telegram}
-              wallet={address}
-              onUnlinked={() => void load(address)}
+              wallet={viewWallet}
+              onUnlinked={() => void load(viewWallet)}
+              readOnly={!isOwnProfile}
             />
           </section>
 
           <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm">Your Spaces</h2>
+              <h2 className="font-semibold text-sm">
+                {isOwnProfile ? 'Your Spaces' : 'Spaces'}
+              </h2>
               {allSpaces.length > 0 && (
                 <span className="text-xs text-muted">
                   {allSpaces.length} space{allSpaces.length !== 1 ? 's' : ''}
@@ -522,7 +559,7 @@ export default function ProfilePage() {
       <Header backHref="/" />
       <div className="mb-4">
         <h1 className="text-xl font-bold">Profile</h1>
-        <p className="text-sm text-muted">Your Bankr launches, spaces, and connected accounts.</p>
+        <p className="text-sm text-muted">Wallet info, Bankr launches, and spaces.</p>
       </div>
       <Suspense
         fallback={
