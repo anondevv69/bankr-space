@@ -175,6 +175,7 @@ export const TELEGRAM_BOT_COMMANDS = [
   { command: 'start', description: 'Welcome and getting started' },
   { command: 'link', description: 'Connect your wallet (DM only)' },
   { command: 'create', description: 'Create a space — /create $SYMBOL' },
+  { command: 'petition', description: 'Start a petition — /petition $SYM Name | desc' },
   { command: 'post', description: 'Post to a space — /post $SYMBOL message' },
   { command: 'spaces', description: 'Spaces you can post in' },
   { command: 'balance', description: 'Your $Space token balance' },
