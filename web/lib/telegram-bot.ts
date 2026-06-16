@@ -1,6 +1,7 @@
 /**
  * Telegram Bot API helpers — send messages and handle webhook payloads.
  */
+import { getSiteUrl } from '@/lib/site-url';
 
 export type TelegramUser = {
   id: number;
@@ -73,20 +74,65 @@ export async function getTelegramBotMe(): Promise<unknown> {
   return res.json();
 }
 
-/** Register the webhook URL with Telegram (call once after deploy). */
-export async function setTelegramWebhook(siteUrl: string): Promise<unknown> {
+export function getTelegramWebhookUrl(siteUrl?: string): string {
+  let base = (siteUrl || getSiteUrl()).replace(/\/$/, '');
+  // Apex 308-redirects to www — Telegram rejects redirect responses
+  if (/^https:\/\/bankr\.space$/i.test(base)) {
+    base = 'https://www.bankr.space';
+  }
+  return `${base}/api/telegram/webhook`;
+}
+
+/** Clear and re-register webhook URL with Telegram. */
+export async function setTelegramWebhook(siteUrl?: string): Promise<{
+  expectedUrl: string;
+  deleteResult: unknown;
+  setResult: unknown;
+  infoResult: unknown;
+  verified: boolean;
+}> {
   const token = getBotToken();
-  const webhookUrl = `${siteUrl.replace(/\/$/, '')}/api/telegram/webhook`;
+  const webhookUrl = getTelegramWebhookUrl(siteUrl);
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
-  const body: Record<string, unknown> = { url: webhookUrl };
+
+  const deleteRes = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ drop_pending_updates: true }),
+  });
+  const deleteResult = await deleteRes.json();
+
+  const body: Record<string, unknown> = {
+    url: webhookUrl,
+    drop_pending_updates: true,
+    allowed_updates: ['message'],
+  };
   if (secret) body.secret_token = secret;
 
-  const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+  const setRes = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return res.json();
+  const setResult = await setRes.json();
+
+  const infoRes = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+  const infoResult = (await infoRes.json()) as {
+    ok?: boolean;
+    result?: { url?: string; last_error_message?: string; pending_update_count?: number };
+  };
+
+  const registeredUrl = infoResult.result?.url || '';
+  const verified =
+    registeredUrl.replace(/\/$/, '') === webhookUrl.replace(/\/$/, '');
+
+  return {
+    expectedUrl: webhookUrl,
+    deleteResult,
+    setResult,
+    infoResult,
+    verified,
+  };
 }
 
 export function validateTelegramWebhookSecret(req: Request): boolean {
