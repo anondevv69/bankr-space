@@ -23,6 +23,7 @@ import {
   getTelegramBotUsername,
   type TelegramUpdate,
 } from '@/lib/telegram-bot';
+import { ensureTelegramBotCommandsSynced } from '@/lib/telegram-commands-sync';
 import {
   getTelegramLinkByTgId,
   removeTelegramLinkByWallet,
@@ -561,6 +562,11 @@ export async function POST(req: Request) {
     console.error('[telegram] webhook rejected — TELEGRAM_WEBHOOK_SECRET mismatch');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Keep Telegram's / menu in sync after deploys (non-blocking).
+  void ensureTelegramBotCommandsSynced().catch((err) => {
+    console.error('[telegram] commands sync failed', err);
+  });
 
   let update: TelegramUpdate;
   try {
