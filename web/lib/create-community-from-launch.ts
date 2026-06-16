@@ -11,6 +11,7 @@ import { mergeCommunityDefaults } from './community-posts';
 import { syncCommunityProfile, withResolvedProfile } from './community-profile-sync';
 import { emptyPoidhBountyState } from './poidh-community-bounties';
 import { communityUrl } from './site-url';
+import { queueSpaceCreatedTweet, queueSpaceVerifiedTweet } from './twitter-space-events';
 import { normalizeAddr } from './utils';
 import type { Community } from './types';
 
@@ -46,6 +47,7 @@ export async function createCommunityFromLaunch(options: {
   if (existing) {
     let merged = mergeCommunityDefaults(existing);
     if (options.fromPetition) {
+      const wasVerified = merged.verified;
       merged = {
         ...merged,
         verified: true,
@@ -63,6 +65,15 @@ export async function createCommunityFromLaunch(options: {
         communities[idx] = merged;
         await setCommunities(communities);
       }
+      const resultCommunity = withResolvedProfile(merged);
+      if (!wasVerified) {
+        queueSpaceVerifiedTweet(resultCommunity);
+      }
+      return {
+        community: resultCommunity,
+        created: false,
+        links: { communityPage: communityUrl(tokenAddress) },
+      };
     }
     return {
       community: withResolvedProfile(merged),
@@ -113,8 +124,14 @@ export async function createCommunityFromLaunch(options: {
     await setPostsForToken(tokenAddress, []);
   }
 
+  const resultCommunity = withResolvedProfile(synced);
+  queueSpaceCreatedTweet(resultCommunity);
+  if (resultCommunity.verified) {
+    queueSpaceVerifiedTweet(resultCommunity);
+  }
+
   return {
-    community: withResolvedProfile(synced),
+    community: resultCommunity,
     created: true,
     links: { communityPage: communityUrl(tokenAddress) },
   };
