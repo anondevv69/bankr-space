@@ -183,10 +183,31 @@ export const TELEGRAM_BOT_COMMANDS = [
 
 export async function setTelegramBotCommands(): Promise<unknown> {
   const token = getBotToken();
-  const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ commands: TELEGRAM_BOT_COMMANDS }),
-  });
-  return res.json();
+  const commands = TELEGRAM_BOT_COMMANDS.map((c) => ({
+    command: c.command,
+    description: c.description.slice(0, 256),
+  }));
+
+  // Register for private DMs (default), all private chats, and groups — each scope has its own menu.
+  const scopes = [
+    { type: 'default' },
+    { type: 'all_private_chats' },
+    { type: 'all_group_chats' },
+  ] as const;
+
+  const results: unknown[] = [];
+  for (const scope of scopes) {
+    const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commands, scope }),
+    });
+    results.push({ scope: scope.type, ...(await res.json()) });
+  }
+  return results;
+}
+
+/** Fingerprint of the command list — bump auto-sync when commands change. */
+export function telegramBotCommandsVersion(): string {
+  return TELEGRAM_BOT_COMMANDS.map((c) => `${c.command}:${c.description}`).join('|');
 }
