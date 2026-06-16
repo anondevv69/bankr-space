@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useSignMessage } from 'wagmi';
 import { Header } from '@/components/Header';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { apiFetch } from '@/lib/wagmi';
@@ -22,6 +23,10 @@ type TelegramStatus =
   | { linked: true; telegramId: string; telegramUsername: string | null; linkedAt: number }
   | { linked: false };
 
+type FarcasterStatus =
+  | { linked: true; fid: number; username: string | null; displayName: string | null; pfpUrl: string | null; linkedAt: number }
+  | { linked: false };
+
 type ProfileData = {
   wallet: string;
   author: {
@@ -31,6 +36,7 @@ type ProfileData = {
   };
   agentMeta: WalletAgentMeta;
   telegram: TelegramStatus;
+  farcaster: FarcasterStatus;
   bankrLaunches: WalletBankrLaunch[];
   pendingActions: {
     createSpaceCount: number;
@@ -351,6 +357,143 @@ function TelegramSection({
   );
 }
 
+function FarcasterSection({
+  farcaster,
+  wallet,
+  onLinked,
+  onUnlinked,
+  readOnly = false,
+}: {
+  farcaster: FarcasterStatus;
+  wallet: string;
+  onLinked: () => void;
+  onUnlinked: () => void;
+  readOnly?: boolean;
+}) {
+  const [linking, setLinking] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { signMessage } = useSignMessage();
+
+  if (farcaster.linked) {
+    return (
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {farcaster.pfpUrl ? (
+            <img
+              src={farcaster.pfpUrl}
+              alt=""
+              className="w-9 h-9 rounded-full object-cover border border-border flex-shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-base">🟣</span>
+            </div>
+          )}
+          <div>
+            <div className="text-sm font-medium">
+              {farcaster.username ? `@${farcaster.username}` : `FID ${farcaster.fid}`}
+              {farcaster.displayName && farcaster.displayName !== farcaster.username && (
+                <span className="text-muted font-normal ml-1.5 text-xs">{farcaster.displayName}</span>
+              )}
+            </div>
+            <div className="text-xs text-muted">
+              FID {farcaster.fid} · Linked {new Date(farcaster.linkedAt).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+        {!readOnly && (
+          <button
+            onClick={() => void (async () => {
+              if (!confirm('Unlink your Farcaster account?')) return;
+              setUnlinking(true);
+              try {
+                await fetch('/api/farcaster/me', {
+                  method: 'DELETE',
+                  headers: { 'x-wallet-address': wallet },
+                });
+                onUnlinked();
+              } finally {
+                setUnlinking(false);
+              }
+            })()}
+            disabled={unlinking}
+            className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {unlinking ? 'Unlinking…' : 'Unlink'}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (readOnly) {
+    return <p className="text-sm text-muted">Farcaster not linked.</p>;
+  }
+
+  async function linkFarcaster() {
+    setLinking(true);
+    setError(null);
+    try {
+      // Dynamic import to avoid SSR issues with auth-kit
+      const { createAppClient, viemConnector } = await import('@farcaster/auth-kit');
+      const appClient = createAppClient({ relay: 'https://relay.farcaster.xyz', ethereum: viemConnector() });
+      const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const siweUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bankr.space';
+
+      const result = await appClient.signIn({
+        nonce,
+        siweUri: siweUrl,
+        domain: typeof window !== 'undefined' ? window.location.hostname : 'bankr.space',
+      });
+
+      if (!result.success) throw new Error('Farcaster sign-in cancelled or failed');
+
+      // Have wallet sign a message to prove wallet ownership
+      const linkMessage = `Link Farcaster FID ${result.fid} to bankr.space\n\nNonce: ${nonce}`;
+      const walletSig = await signMessage({ message: linkMessage });
+
+      const res = await fetch('/api/farcaster/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fid: result.fid,
+          username: result.username,
+          displayName: result.displayName,
+          pfpUrl: result.pfpUrl,
+          wallet,
+          walletSignature: walletSig,
+          nonce,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to link');
+      onLinked();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to link Farcaster');
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">
+        Link your Farcaster account — your username appears on posts.
+      </p>
+      <button
+        type="button"
+        onClick={() => void linkFarcaster()}
+        disabled={linking}
+        className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+      >
+        {linking ? 'Opening Warpcast…' : 'Connect Farcaster'}
+      </button>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
+  );
+}
+
 function ProfileContent() {
   const { address, isConnected, connectWallet } = useAppWallet();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -518,6 +661,17 @@ function ProfileContent() {
             <TelegramSection
               telegram={profile.telegram}
               wallet={viewWallet}
+              onUnlinked={() => void load(viewWallet)}
+              readOnly={!isOwnProfile}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
+            <h2 className="font-semibold text-sm">Farcaster</h2>
+            <FarcasterSection
+              farcaster={profile.farcaster ?? { linked: false }}
+              wallet={viewWallet}
+              onLinked={() => void load(viewWallet)}
               onUnlinked={() => void load(viewWallet)}
               readOnly={!isOwnProfile}
             />

@@ -22,13 +22,14 @@ function formatTokenCount(tokens: number): string {
 export async function assertSpaceFundPreflight(
   walletAddress: Address,
   amountUsd: number,
-  authorizeAtomic: bigint
+  authorizeAtomic: bigint,
+  overrideTokenAddress?: Address
 ): Promise<void> {
   const priceUsd = await fetchSpacePriceUsd();
   const priceLabel = formatX402FundPriceLabel(priceUsd, amountUsd);
   const chargeTokens = Number(authorizeAtomic) / 1e18;
 
-  const token = X402_PAYMENT_TOKEN_ADDRESS as Address;
+  const token = (overrideTokenAddress || X402_PAYMENT_TOKEN_ADDRESS) as Address;
   const { publicClient } = createEvmPaymentSigner(walletAddress);
 
   let balanceAtomic: bigint;

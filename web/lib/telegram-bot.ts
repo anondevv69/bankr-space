@@ -20,6 +20,11 @@ export type TelegramMessage = {
 export type TelegramUpdate = {
   update_id: number;
   message?: TelegramMessage;
+  my_chat_member?: {
+    chat: { id: number; type: string; title?: string };
+    new_chat_member: { user: { is_bot?: boolean }; status: string };
+    old_chat_member: { status: string };
+  };
 };
 
 function getBotToken(): string {
@@ -105,7 +110,7 @@ export async function setTelegramWebhook(siteUrl?: string): Promise<{
   const body: Record<string, unknown> = {
     url: webhookUrl,
     drop_pending_updates: true,
-    allowed_updates: ['message'],
+    allowed_updates: ['message', 'my_chat_member'],
   };
   if (secret) body.secret_token = secret;
 
@@ -141,11 +146,20 @@ export function validateTelegramWebhookSecret(req: Request): boolean {
   return req.headers.get('X-Telegram-Bot-Api-Secret-Token') === secret;
 }
 
-export function parseTelegramCommand(text: string): {
+export function parseTelegramCommand(
+  text: string,
+  botUsername?: string
+): {
   command: string;
   args: string;
 } | null {
-  const match = text.trim().match(/^\/([a-zA-Z0-9_]+)(?:@\S+)?(?:\s+([\s\S]*))?$/);
+  const trimmed = text.trim();
+  // /post $SPACE hello  or  /post@Bankrspace_bot $SPACE hello
+  const botPattern = botUsername
+    ? `(?:@${botUsername.replace(/^@/, '')})?`
+    : '(?:@\\S+)?';
+  const re = new RegExp(`^/([a-zA-Z0-9_]+)${botPattern}(?:\\s+([\\s\\S]*))?$`, 'i');
+  const match = trimmed.match(re);
   if (!match) return null;
   return { command: match[1].toLowerCase(), args: (match[2] || '').trim() };
 }
@@ -153,4 +167,25 @@ export function parseTelegramCommand(text: string): {
 export function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + '…';
+}
+
+/** Shown in Telegram's / command menu (BotFather-style). */
+export const TELEGRAM_BOT_COMMANDS = [
+  { command: 'help', description: 'All commands and how to use the bot' },
+  { command: 'start', description: 'Welcome and getting started' },
+  { command: 'link', description: 'Connect your wallet (DM only)' },
+  { command: 'post', description: 'Post to a space — /post $SYMBOL message' },
+  { command: 'spaces', description: 'Spaces you can post in' },
+  { command: 'balance', description: 'Your $Space token balance' },
+  { command: 'unlink', description: 'Disconnect wallet from Telegram' },
+] as const;
+
+export async function setTelegramBotCommands(): Promise<unknown> {
+  const token = getBotToken();
+  const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ commands: TELEGRAM_BOT_COMMANDS }),
+  });
+  return res.json();
 }

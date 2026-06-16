@@ -248,12 +248,15 @@ export async function paySpaceFund(
   tokenAddress: string,
   campaignId: string,
   amountUsd: number,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  customPaymentToken?: { address: string; symbol: string; isCustom?: boolean }
 ): Promise<PayResult> {
-  onProgress?.('Step 1 of 2 — checking one-time Permit2 approval for $Space…');
+  const payTokenAddress = (customPaymentToken?.address || X402_PAYMENT_TOKEN_ADDRESS) as Address;
+  const payTokenSymbol = customPaymentToken?.symbol || X402_PAYMENT_TOKEN_SYMBOL;
+  onProgress?.(`Step 1 of 2 — checking one-time Permit2 approval for $${payTokenSymbol}…`);
   const allowance = await ensurePermit2TokenAllowance(
     walletAddress,
-    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    payTokenAddress,
     X402_FUND_MAX_AUTHORIZE_ATOMIC,
     onProgress
   );
@@ -263,8 +266,8 @@ export async function paySpaceFund(
     onProgress?.('Permit2 already approved — checking balance…');
   }
 
-  onProgress?.('Checking $Space balance…');
-  await assertSpaceFundPreflight(walletAddress, amountUsd, X402_FUND_MAX_AUTHORIZE_ATOMIC);
+  onProgress?.(`Checking $${payTokenSymbol} balance…`);
+  await assertSpaceFundPreflight(walletAddress, amountUsd, X402_FUND_MAX_AUTHORIZE_ATOMIC, payTokenAddress);
 
   const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
 
