@@ -82,6 +82,10 @@ const BANKR_APP_URL =
 
 const BANKR_SPACE_X_URL = 'https://x.com/BankrSpace';
 
+const TELEGRAM_BOT_USERNAME =
+  process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.trim() || 'bankrspacebot';
+const TELEGRAM_BOT_URL = `https://t.me/${TELEGRAM_BOT_USERNAME}`;
+
 export function Footer() {
   const embed = useEmbeddedBankr();
 
@@ -108,6 +112,15 @@ export function Footer() {
     {' · '}
     <a href="/skill" className="text-accent-hover hover:underline">
       Agent skill
+    </a>
+    {' · '}
+    <a
+      href={TELEGRAM_BOT_URL}
+      className="text-accent-hover hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Telegram bot
     </a>
     {' · '}
     <a

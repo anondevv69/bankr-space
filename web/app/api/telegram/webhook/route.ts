@@ -6,6 +6,7 @@
  *   /start        — welcome + link prompt
  *   /link         — generate a link code and send the link URL
  *   /unlink       — remove wallet↔Telegram link
+ *   /create       — create a bankr.space for a Bankr token
  *   /post <text>  — create a post on the linked wallet's space(s)
  *   /balance      — check $Space balance of linked wallet
  *   /spaces       — list spaces where linked wallet can post
@@ -30,8 +31,10 @@ import {
   attachTelegramToLinkCode,
 } from '@/lib/telegram-kv';
 import { getCommunities, getPosts, setPostsForToken, updateCommunityCounts } from '@/lib/db';
+import { createCommunityFromLaunch } from '@/lib/create-community-from-launch';
 import { checkParticipation } from '@/lib/participation';
 import { resolveAuthorProfile } from '@/lib/profiles';
+import { resolveCommunityLink } from '@/lib/resolve-community';
 import { communityUrl, getSiteUrl } from '@/lib/site-url';
 import type { Post } from '@/lib/types';
 
@@ -136,6 +139,9 @@ async function handleStart(chatId: number, botUsername: string, inGroup: boolean
       '',
       '<b>Then post:</b>',
       `<code>/post $SYMBOL your message</code>`,
+      '',
+      '<b>Create a space:</b>',
+      '<code>/create $SYMBOL</code>',
       '',
       '/spaces — see your spaces',
       '/balance — check $Space',
@@ -263,6 +269,126 @@ function parsePostArgs(args: string): { symbol: string | null; content: string }
     return { symbol: match[1].toUpperCase(), content: match[2].trim() };
   }
   return { symbol: null, content: args.trim() };
+}
+
+/** Parse `/create $SYMBOL`, `/create 0x…`, or `/create $SYMBOL optional description`. */
+function parseCreateArgs(args: string): { query: string; description: string } {
+  const trimmed = args.trim();
+  if (!trimmed) return { query: '', description: '' };
+
+  const addrMatch = trimmed.match(/^(0x[a-fA-F0-9]{40})(?:\s+([\s\S]+))?$/i);
+  if (addrMatch) {
+    return { query: addrMatch[1], description: (addrMatch[2] || '').trim() };
+  }
+
+  const symbolMatch = trimmed.match(/^(\$?[A-Za-z0-9_]+)(?:\s+([\s\S]+))?$/);
+  if (symbolMatch) {
+    return {
+      query: symbolMatch[1].replace(/^\$/, ''),
+      description: (symbolMatch[2] || '').trim(),
+    };
+  }
+
+  return { query: trimmed.replace(/^\$/, ''), description: '' };
+}
+
+async function handleCreate(
+  chatId: number,
+  wallet: string,
+  rawArgs: string,
+  messageId: number
+): Promise<void> {
+  const { query, description } = parseCreateArgs(rawArgs);
+
+  if (!query) {
+    await sendTelegramMessage(
+      chatId,
+      [
+        '🏗️ <b>Create a space</b>',
+        '',
+        'Start a bankr.space for any Bankr-launched token:',
+        '<code>/create $SYMBOL</code>',
+        '<code>/create 0x…contract</code>',
+        '',
+        'Examples:',
+        '<code>/create $SPACE</code>',
+        '<code>/create $TMP A holder community for TMP</code>',
+        '',
+        'Token must be deployed via Bankr. Fee recipients are auto-verified.',
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId }
+    );
+    return;
+  }
+
+  const resolved = await resolveCommunityLink(query);
+
+  if (resolved.communityExists && resolved.communityLink) {
+    await sendTelegramMessage(
+      chatId,
+      [
+        `ℹ️ <b>$${resolved.symbol}</b> already has a space.`,
+        '',
+        resolved.communityLink,
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId, disableWebPagePreview: false }
+    );
+    return;
+  }
+
+  if (!resolved.tokenAddress || !resolved.suggestCreateCommunity) {
+    await sendTelegramMessage(
+      chatId,
+      resolved.error
+        ? `⚠️ ${resolved.error}`
+        : `⚠️ No Bankr token found for <b>${query}</b>. Try a contract address or search on bankr.space.`,
+      { parseMode: 'HTML', replyToMessageId: messageId }
+    );
+    return;
+  }
+
+  try {
+    const result = await createCommunityFromLaunch({
+      tokenAddress: resolved.tokenAddress,
+      founderWallet: wallet,
+      description: description || undefined,
+    });
+
+    const { community, created, links } = result;
+    const verifiedNote = community.verified
+      ? '✅ Auto-verified (you are the fee recipient).'
+      : 'Unverified — fee recipient can verify on bankr.space.';
+
+    if (!created) {
+      await sendTelegramMessage(
+        chatId,
+        [
+          `ℹ️ <b>$${community.symbol}</b> space already exists.`,
+          '',
+          links.communityPage,
+        ].join('\n'),
+        { parseMode: 'HTML', replyToMessageId: messageId, disableWebPagePreview: false }
+      );
+      return;
+    }
+
+    await sendTelegramMessage(
+      chatId,
+      [
+        `🎉 <b>Space created for $${community.symbol}!</b>`,
+        '',
+        community.name,
+        verifiedNote,
+        '',
+        `Post: <code>/post $${community.symbol} GM everyone!</code>`,
+        links.communityPage,
+      ].join('\n'),
+      { parseMode: 'HTML', replyToMessageId: messageId, disableWebPagePreview: false }
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create space';
+    await sendTelegramMessage(chatId, `⚠️ ${message}`, { replyToMessageId: messageId });
+  }
 }
 
 async function handlePost(
@@ -399,6 +525,8 @@ async function handleHelp(
     '3. Post in any group or DM',
     '',
     '<b>── Commands ──</b>',
+    '<code>/create $SYMBOL</code> — create a space for a Bankr token',
+    '  e.g. <code>/create $SPACE</code>',
     '<code>/post $SYMBOL &lt;message&gt;</code> — post to a space',
     '  e.g. <code>/post $SPACE yerrr</code>',
     '<code>/spaces</code> — spaces you can post in (need token)',
@@ -550,6 +678,9 @@ export async function POST(req: Request) {
         break;
       case 'spaces':
         await handleSpaces(chatId, link.wallet);
+        break;
+      case 'create':
+        await handleCreate(chatId, link.wallet, args, messageId);
         break;
       case 'post':
         await handlePost(
