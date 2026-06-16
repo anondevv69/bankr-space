@@ -83,7 +83,24 @@ export async function POST(req: Request) {
   const pending = await getTelegramLinkCode(code);
   if (!pending) {
     return NextResponse.json(
-      { error: 'Link code expired or not found. Ask the bot for a new link.' },
+      { error: 'Link code expired or not found. Start again from your profile.' },
+      { status: 400 }
+    );
+  }
+
+  if (!pending.telegramId) {
+    return NextResponse.json(
+      {
+        error:
+          'Telegram step not done yet — open the bot link from your profile, tap Start, then sign here.',
+      },
+      { status: 400 }
+    );
+  }
+
+  if (pending.wallet && pending.wallet !== wallet) {
+    return NextResponse.json(
+      { error: 'This link was created for a different wallet. Start again from your profile.' },
       { status: 400 }
     );
   }
@@ -155,6 +172,8 @@ export async function GET(req: Request) {
   return NextResponse.json({
     valid: true,
     telegramUsername: pending.telegramUsername,
+    telegramReady: !!pending.telegramId,
+    wallet: pending.wallet,
     expiresAt: pending.expiresAt,
   });
 }

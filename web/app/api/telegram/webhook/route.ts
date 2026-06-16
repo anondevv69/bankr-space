@@ -26,6 +26,8 @@ import {
   getTelegramLinkByTgId,
   removeTelegramLinkByWallet,
   setTelegramLinkCode,
+  getTelegramLinkCode,
+  attachTelegramToLinkCode,
 } from '@/lib/telegram-kv';
 import { getCommunities, getPosts, setPostsForToken, updateCommunityCounts } from '@/lib/db';
 import { checkParticipation } from '@/lib/participation';
@@ -45,6 +47,45 @@ function randomCode(): string {
 
 function shortWallet(wallet: string): string {
   return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`;
+}
+
+async function handleWebLinkStart(
+  chatId: number,
+  telegramId: string,
+  telegramUsername: string | null,
+  code: string
+): Promise<void> {
+  const pending = await getTelegramLinkCode(code);
+  if (!pending?.wallet) {
+    await sendTelegramMessage(
+      chatId,
+      'This link expired or is invalid. Go to bankr.space/profile and tap Connect Telegram again.'
+    );
+    return;
+  }
+
+  const attached = await attachTelegramToLinkCode(code, telegramId, telegramUsername);
+  if (!attached) {
+    await sendTelegramMessage(
+      chatId,
+      'This link was already used. Start again from bankr.space/profile.'
+    );
+    return;
+  }
+
+  const signUrl = `${getSiteUrl()}/link-telegram?code=${code}`;
+  await sendTelegramMessage(
+    chatId,
+    [
+      '✅ <b>Telegram connected!</b>',
+      '',
+      'Last step — sign with your wallet on bankr.space:',
+      signUrl,
+      '',
+      '⏳ Link expires in 10 minutes.',
+    ].join('\n'),
+    { parseMode: 'HTML', disableWebPagePreview: false }
+  );
 }
 
 async function handleStart(chatId: number, botUsername: string): Promise<void> {
@@ -333,7 +374,11 @@ export async function POST(req: Request) {
   try {
     // Commands that don't need a linked wallet
     if (command === 'start') {
-      await handleStart(chatId, botUsername);
+      if (args.startsWith('wl_')) {
+        await handleWebLinkStart(chatId, telegramId, telegramUsername, args.slice(3));
+      } else {
+        await handleStart(chatId, botUsername);
+      }
       return NextResponse.json({ ok: true });
     }
     if (command === 'help') {

@@ -9,6 +9,8 @@ import { createBrowserPaymentWalletClient } from '@/lib/x402-signer';
 type CodeInfo = {
   valid: boolean;
   telegramUsername: string | null;
+  telegramReady?: boolean;
+  wallet?: string | null;
   expiresAt?: number;
   error?: string;
 };
@@ -49,6 +51,14 @@ function LinkTelegramContent() {
   useEffect(() => {
     void checkCode();
   }, [checkCode]);
+
+  useEffect(() => {
+    if (!code || !codeInfo?.valid || codeInfo.telegramReady) return;
+    const timer = setInterval(() => {
+      void checkCode();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [code, codeInfo?.valid, codeInfo?.telegramReady, checkCode]);
 
   async function sign() {
     if (!address || !code) return;
@@ -107,6 +117,21 @@ function LinkTelegramContent() {
           </p>
           <p className="text-sm text-muted">
             Go back to Telegram and type <strong>/post</strong> to post to your space.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (codeInfo.valid && codeInfo.telegramReady === false) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+        <div className="max-w-sm text-center space-y-3">
+          <p className="text-3xl">✈️</p>
+          <p className="font-semibold">Waiting for Telegram</p>
+          <p className="text-sm text-muted">
+            Open the bot from your profile, tap <strong>Start</strong>, then return here — this
+            page will update automatically.
           </p>
         </div>
       </main>
