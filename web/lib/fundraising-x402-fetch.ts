@@ -110,10 +110,15 @@ export async function fetchFundraisingX402Upstream(options: {
     }
   }
 
-  const bases = ([
-    primaryBase || fallbackBase!,
-    ...(fallbackBase && primaryBase && fallbackBase !== primaryBase ? [fallbackBase] : []),
-  ].filter(Boolean) as string[]);
+  // If a custom/pinned base is provided, use it exclusively — no fallback needed.
+  const pinnedBase = options.pinBaseUrl?.replace(/\/$/, '') || null;
+
+  const bases = pinnedBase
+    ? [pinnedBase]
+    : ([
+        primaryBase || fallbackBase!,
+        ...(fallbackBase && primaryBase && fallbackBase !== primaryBase ? [fallbackBase] : []),
+      ].filter(Boolean) as string[]);
 
   for (let i = 0; i < bases.length; i++) {
     const baseUrl = bases[i];

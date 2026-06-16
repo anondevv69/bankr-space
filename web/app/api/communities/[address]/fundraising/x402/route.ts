@@ -11,6 +11,8 @@ import {
 import { parseX402UpstreamErrorDetailed } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
 import { normalizeAddr } from '@/lib/utils';
+import { getCommunity } from '@/lib/db';
+import { mergeCommunityDefaults } from '@/lib/community-posts';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +25,14 @@ type RouteParams = { params: Promise<{ address: string }> };
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
-  const beneficiaryWallet = await getTokenBeneficiaryWallet(tokenAddress);
+  const [beneficiaryWallet, community] = await Promise.all([
+    getTokenBeneficiaryWallet(tokenAddress),
+    getCommunity(tokenAddress),
+  ]);
+  const x402Cfg = community ? mergeCommunityDefaults(community).x402Config : null;
+  // Custom fund URL set by the fee recipient — routes payments to their own Bankr x402 endpoint
+  const spaceFundUrl = x402Cfg?.fundUrl?.trim() || null;
+  const spaceCreditUsd = x402Cfg?.creditUsd || SPACE_FUND_X402_CREDIT_USD;
 
   let body: {
     campaignId?: string;
@@ -63,7 +72,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       campaignId,
       amountUsd,
       xPayment: xPayment || undefined,
-      pinBaseUrl: pinFundBase || undefined,
+      // Custom fund URL takes priority; client-supplied pin is next (for retry after quote)
+      pinBaseUrl: pinFundBase || spaceFundUrl || undefined,
       pinFundUrl: pinFundUrl || undefined,
     });
 
@@ -128,7 +138,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     const credit = await applyFundraisingCredit(
       tokenAddress,
       campaignId,
-      SPACE_FUND_X402_CREDIT_USD
+      spaceCreditUsd
     );
 
     if (!credit.success) {
@@ -137,7 +147,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         {
           error:
             credit.error ||
-            '$Space payment succeeded but crediting the goal failed. Contact the space operator.',
+            'Payment succeeded but crediting the goal failed. Contact the space operator.',
           paymentTaken: true,
         },
         { status: credit.status >= 500 ? 502 : credit.status }
@@ -146,7 +156,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: `Thank you — $${SPACE_FUND_X402_CREDIT_USD} credited toward ${campaignId} ($Space via x402)`,
+      message: `Thank you — $${spaceCreditUsd} credited toward ${campaignId} via x402`,
       token: tokenAddress,
       campaignId,
       raisedUsd: credit.raisedUsd,
