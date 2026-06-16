@@ -215,7 +215,22 @@ function TelegramSection({
   onUnlinked: () => void;
 }) {
   const [unlinking, setUnlinking] = useState(false);
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'bankrspacebot';
+  const [botInfo, setBotInfo] = useState<{
+    configured: boolean;
+    botUsername: string | null;
+    botUrl: string | null;
+    error?: string;
+  } | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [pendingSignUrl, setPendingSignUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/telegram/info')
+      .then((r) => r.json())
+      .then(setBotInfo)
+      .catch(() => setBotInfo({ configured: false, botUsername: null, botUrl: null }));
+  }, []);
 
   async function unlink() {
     if (!confirm('Unlink your Telegram account?')) return;
@@ -230,6 +245,26 @@ function TelegramSection({
       /* ignore */
     }
     setUnlinking(false);
+  }
+
+  async function connectTelegram() {
+    setConnecting(true);
+    setConnectError(null);
+    setPendingSignUrl(null);
+    try {
+      const res = await fetch('/api/telegram/link/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-wallet-address': wallet },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start Telegram link');
+
+      setPendingSignUrl(data.signUrl);
+      window.open(data.deepLink, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : 'Failed to connect');
+    }
+    setConnecting(false);
   }
 
   if (telegram.linked) {
@@ -259,17 +294,48 @@ function TelegramSection({
     );
   }
 
+  const botUsername = botInfo?.botUsername;
+  const botConfigured = botInfo?.configured;
+
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="text-sm text-muted">No Telegram account linked.</div>
-      <Link
-        href={`https://t.me/${botUsername}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-      >
-        Link via Bot →
-      </Link>
+    <div className="space-y-3">
+      {!botInfo ? (
+        <p className="text-sm text-muted">Loading bot info…</p>
+      ) : !botConfigured ? (
+        <p className="text-sm text-amber-400">
+          Telegram bot not configured — set <code className="text-xs">TELEGRAM_BOT_TOKEN</code> and{' '}
+          <code className="text-xs">TELEGRAM_BOT_USERNAME</code> in Vercel (must match @BotFather).
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-muted">
+            Connect <strong>@{botUsername}</strong> to post from Telegram.
+          </p>
+          <button
+            type="button"
+            onClick={() => void connectTelegram()}
+            disabled={connecting}
+            className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+          >
+            {connecting ? 'Opening Telegram…' : 'Connect Telegram'}
+          </button>
+          {pendingSignUrl && (
+            <div className="rounded-lg border border-border bg-surface-2 p-3 text-sm space-y-2">
+              <p className="font-medium">Step 2 — Sign your wallet</p>
+              <p className="text-xs text-muted">
+                In Telegram, tap <strong>Start</strong> on @{botUsername}, then finish here:
+              </p>
+              <Link
+                href={pendingSignUrl}
+                className="inline-block text-xs bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-lg"
+              >
+                Sign &amp; link wallet →
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+      {connectError && <p className="text-xs text-red-400">{connectError}</p>}
     </div>
   );
 }
@@ -279,7 +345,6 @@ function ProfileContent() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'bankrspacebot';
 
   const load = useCallback(async (wallet: string) => {
     setLoading(true);
@@ -421,20 +486,6 @@ function ProfileContent() {
               wallet={address}
               onUnlinked={() => void load(address)}
             />
-            {!profile.telegram.linked && (
-              <p className="text-xs text-muted">
-                1. DM{' '}
-                <a
-                  href={`https://t.me/${botUsername}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  @{botUsername}
-                </a>{' '}
-                and type <code className="bg-surface-2 px-1 rounded">/link</code> to get a link code.
-              </p>
-            )}
           </section>
 
           <section className="rounded-2xl border border-border bg-surface p-5 space-y-3">
