@@ -88,7 +88,23 @@ async function handleWebLinkStart(
   );
 }
 
-async function handleStart(chatId: number, botUsername: string): Promise<void> {
+function isGroupChat(chatType: string | undefined): boolean {
+  return chatType === 'group' || chatType === 'supergroup';
+}
+
+function groupCommandHint(botUsername: string, command: string): string {
+  return `In groups, use <code>/${command}@${botUsername}</code> (or turn off Group Privacy in @BotFather).`;
+}
+
+async function handleStart(chatId: number, botUsername: string, inGroup: boolean): Promise<void> {
+  const groupNote = inGroup
+    ? [
+        '',
+        `<b>Group tip:</b> use <code>/help@${botUsername}</code> so I see your command.`,
+        'Wallet linking works in a <b>private chat</b> with me — tap @' + botUsername + '.',
+      ]
+    : [];
+
   await sendTelegramMessage(
     chatId,
     [
@@ -97,14 +113,15 @@ async function handleStart(chatId: number, botUsername: string): Promise<void> {
       'Post to your community space and manage $Space from Telegram.',
       '',
       '<b>First, link your wallet:</b>',
-      '→ /link',
+      inGroup ? `→ DM me @${botUsername} and send /link` : '→ /link',
       '',
       '<b>Then post:</b>',
-      '<code>/post $SYMBOL your message</code>',
+      `<code>/post $SYMBOL your message</code>`,
       '',
       '/spaces — see your spaces',
       '/balance — check $Space',
       '/help — all commands',
+      ...groupNote,
     ].join('\n'),
     { parseMode: 'HTML' }
   );
@@ -113,8 +130,24 @@ async function handleStart(chatId: number, botUsername: string): Promise<void> {
 async function handleLink(
   chatId: number,
   telegramId: string,
-  telegramUsername: string | null
+  telegramUsername: string | null,
+  botUsername: string,
+  inGroup: boolean
 ): Promise<void> {
+  if (inGroup) {
+    await sendTelegramMessage(
+      chatId,
+      [
+        '🔒 <b>Link your wallet in a private chat</b>',
+        '',
+        'For security, wallet linking is DM-only.',
+        `Open <a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> and send <code>/link</code>.`,
+      ].join('\n'),
+      { parseMode: 'HTML', disableWebPagePreview: false }
+    );
+    return;
+  }
+
   const code = randomCode();
   await setTelegramLinkCode(code, telegramId, telegramUsername);
   const url = `${getSiteUrl()}/link-telegram?code=${code}`;
@@ -319,19 +352,20 @@ async function handlePost(
   );
 }
 
-async function handleHelp(chatId: number): Promise<void> {
+async function handleHelp(chatId: number, botUsername: string, inGroup: boolean): Promise<void> {
   await sendTelegramMessage(
     chatId,
     [
       '<b>Bankr Space Bot — Commands</b>',
       '',
-      '/link — connect your wallet',
+      '/link — connect your wallet (DM only)',
       '/unlink — remove wallet',
       '/spaces — list spaces you can post in',
       '/post $SYMBOL &lt;text&gt; — post to a specific space',
       '  e.g. <code>/post $SPACE GM everyone!</code>',
       '/balance — check $Space balance',
       '/help — this message',
+      ...(inGroup ? ['', groupCommandHint(botUsername, 'post')] : []),
     ].join('\n'),
     { parseMode: 'HTML' }
   );
@@ -356,6 +390,8 @@ export async function POST(req: Request) {
   }
 
   const chatId = message.chat.id;
+  const chatType = message.chat.type;
+  const inGroup = isGroupChat(chatType);
   const telegramId = String(message.from.id);
   const telegramUsername = message.from.username || null;
   const text = message.text.trim();
@@ -375,18 +411,34 @@ export async function POST(req: Request) {
     // Commands that don't need a linked wallet
     if (command === 'start') {
       if (args.startsWith('wl_')) {
-        await handleWebLinkStart(chatId, telegramId, telegramUsername, args.slice(3));
+        if (inGroup) {
+          await sendTelegramMessage(
+            chatId,
+            `Open <a href="https://t.me/${botUsername}?start=${encodeURIComponent(args)}">@${botUsername}</a> in a private chat to finish linking.`,
+            { parseMode: 'HTML' }
+          );
+        } else {
+          await handleWebLinkStart(chatId, telegramId, telegramUsername, args.slice(3));
+        }
+      } else if (args === 'link' && inGroup) {
+        await sendTelegramMessage(
+          chatId,
+          `Send <code>/link</code> in a <a href="https://t.me/${botUsername}">private chat</a> with me to link your wallet.`,
+          { parseMode: 'HTML' }
+        );
+      } else if (args === 'link') {
+        await handleLink(chatId, telegramId, telegramUsername, botUsername, false);
       } else {
-        await handleStart(chatId, botUsername);
+        await handleStart(chatId, botUsername, inGroup);
       }
       return NextResponse.json({ ok: true });
     }
     if (command === 'help') {
-      await handleHelp(chatId);
+      await handleHelp(chatId, botUsername, inGroup);
       return NextResponse.json({ ok: true });
     }
     if (command === 'link') {
-      await handleLink(chatId, telegramId, telegramUsername);
+      await handleLink(chatId, telegramId, telegramUsername, botUsername, inGroup);
       return NextResponse.json({ ok: true });
     }
 
