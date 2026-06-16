@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSignMessage } from 'wagmi';
+import { AuthKitProvider, useSignIn } from '@farcaster/auth-kit';
 import { Header } from '@/components/Header';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { apiFetch } from '@/lib/wagmi';
@@ -357,6 +358,82 @@ function TelegramSection({
   );
 }
 
+const FC_CONFIG = {
+  relay: 'https://relay.farcaster.xyz',
+  domain: 'bankr.space',
+  siweUri: 'https://www.bankr.space',
+  rpcUrl: 'https://mainnet.optimism.io',
+};
+
+/** Must be rendered inside AuthKitProvider */
+function FarcasterSignInInner({
+  wallet,
+  onLinked,
+}: {
+  wallet: string;
+  onLinked: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { signMessageAsync } = useSignMessage();
+
+  const { signIn, isError, error: signInError } = useSignIn({
+    onSuccess: (result) => {
+      setSaving(true);
+      setSaveError(null);
+      const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const linkMessage = `Link Farcaster FID ${result.fid} to bankr.space\n\nNonce: ${nonce}`;
+      signMessageAsync({ message: linkMessage })
+        .then((walletSig) =>
+          fetch('/api/farcaster/link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fid: result.fid,
+              username: result.username ?? null,
+              displayName: result.displayName ?? null,
+              pfpUrl: result.pfpUrl ?? null,
+              wallet,
+              walletSignature: walletSig,
+              nonce,
+            }),
+          })
+        )
+        .then(async (res) => {
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || 'Failed to link');
+          onLinked();
+        })
+        .catch((err: unknown) => {
+          setSaveError(err instanceof Error ? err.message : 'Failed to save link');
+        })
+        .finally(() => setSaving(false));
+    },
+  });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">
+        Link your Farcaster account — your username appears on posts.
+      </p>
+      <button
+        type="button"
+        onClick={() => void signIn()}
+        disabled={saving}
+        className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+      >
+        {saving ? 'Signing…' : 'Connect Farcaster'}
+      </button>
+      {isError && (
+        <p className="text-xs text-red-400">
+          {signInError?.message || 'Farcaster sign-in failed'}
+        </p>
+      )}
+      {saveError && <p className="text-xs text-red-400">{saveError}</p>}
+    </div>
+  );
+}
+
 function FarcasterSection({
   farcaster,
   wallet,
@@ -370,10 +447,7 @@ function FarcasterSection({
   onUnlinked: () => void;
   readOnly?: boolean;
 }) {
-  const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { signMessage } = useSignMessage();
 
   if (farcaster.linked) {
     return (
@@ -387,7 +461,7 @@ function FarcasterSection({
             />
           ) : (
             <div className="w-9 h-9 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-base">🟣</span>
+              <span className="text-[18px] leading-none">🟣</span>
             </div>
           )}
           <div>
@@ -431,66 +505,10 @@ function FarcasterSection({
     return <p className="text-sm text-muted">Farcaster not linked.</p>;
   }
 
-  async function linkFarcaster() {
-    setLinking(true);
-    setError(null);
-    try {
-      // Dynamic import to avoid SSR issues with auth-kit
-      const { createAppClient, viemConnector } = await import('@farcaster/auth-kit');
-      const appClient = createAppClient({ relay: 'https://relay.farcaster.xyz', ethereum: viemConnector() });
-      const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      const siweUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bankr.space';
-
-      const result = await appClient.signIn({
-        nonce,
-        siweUri: siweUrl,
-        domain: typeof window !== 'undefined' ? window.location.hostname : 'bankr.space',
-      });
-
-      if (!result.success) throw new Error('Farcaster sign-in cancelled or failed');
-
-      // Have wallet sign a message to prove wallet ownership
-      const linkMessage = `Link Farcaster FID ${result.fid} to bankr.space\n\nNonce: ${nonce}`;
-      const walletSig = await signMessage({ message: linkMessage });
-
-      const res = await fetch('/api/farcaster/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fid: result.fid,
-          username: result.username,
-          displayName: result.displayName,
-          pfpUrl: result.pfpUrl,
-          wallet,
-          walletSignature: walletSig,
-          nonce,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to link');
-      onLinked();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to link Farcaster');
-    } finally {
-      setLinking(false);
-    }
-  }
-
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted">
-        Link your Farcaster account — your username appears on posts.
-      </p>
-      <button
-        type="button"
-        onClick={() => void linkFarcaster()}
-        disabled={linking}
-        className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-      >
-        {linking ? 'Opening Warpcast…' : 'Connect Farcaster'}
-      </button>
-      {error && <p className="text-xs text-red-400">{error}</p>}
-    </div>
+    <AuthKitProvider config={FC_CONFIG}>
+      <FarcasterSignInInner wallet={wallet} onLinked={onLinked} />
+    </AuthKitProvider>
   );
 }
 
