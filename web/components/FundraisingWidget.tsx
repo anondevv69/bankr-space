@@ -6,12 +6,26 @@ import { base } from 'wagmi/chains';
 import { campaignProgress } from '@/lib/fundraising';
 import { paySpaceFund, setupPermit2ForSpace } from '@/lib/x402-pay';
 import { readPermit2TokenAllowance } from '@/lib/x402-permit2-allowance';
-import { SPACE_FUND_X402_CREDIT_USD, X402_PAYMENT_TOKEN_SYMBOL } from '@/lib/x402-config';
+import {
+  SPACE_FUND_X402_CREDIT_USD,
+  X402_PAYMENT_TOKEN_SYMBOL,
+  X402_PAYMENT_TOKEN_ADDRESS,
+  X402_PAYMENT_TOKEN_DECIMALS,
+} from '@/lib/x402-config';
 import { NATIVE_SPACE_TOKEN_ADDRESS } from '@/lib/featured-community';
 import { formatX402FundPriceLabel, X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { usePaymentWalletClient } from '@/hooks/usePaymentWalletClient';
 import type { FundraisingCampaign } from '@/lib/types';
+
+type PaymentTokenInfo = {
+  address: string;
+  symbol: string;
+  decimals: number;
+  isCustom: boolean;
+  priceLabel: string | null;
+  creditUsd: number;
+};
 
 type FundraisingView = FundraisingCampaign & {
   progressPct: number;
@@ -41,6 +55,14 @@ export function FundraisingWidget({
   const { switchChain } = useSwitchChain();
   const [campaigns, setCampaigns] = useState<FundraisingView[]>([]);
   const [x402BaseUrl, setX402BaseUrl] = useState<string | null>(null);
+  const [paymentToken, setPaymentToken] = useState<PaymentTokenInfo>({
+    address: X402_PAYMENT_TOKEN_ADDRESS,
+    symbol: X402_PAYMENT_TOKEN_SYMBOL,
+    decimals: X402_PAYMENT_TOKEN_DECIMALS,
+    isCustom: false,
+    priceLabel: null,
+    creditUsd: SPACE_FUND_X402_CREDIT_USD,
+  });
   const [loading, setLoading] = useState(true);
   const [customAmount, setCustomAmount] = useState('10');
   const [activeCampaignId, setActiveCampaignId] = useState<string>('dex-profile');
@@ -61,6 +83,7 @@ export function FundraisingWidget({
       );
       setCampaigns(open);
       setX402BaseUrl(data.x402BaseUrl || null);
+      if (data.paymentToken) setPaymentToken(data.paymentToken as PaymentTokenInfo);
       if (open[0]?.id) {
         setActiveCampaignId(open[0].id);
       }
@@ -150,13 +173,13 @@ export function FundraisingWidget({
 
     if (isEmbedded) {
       setPayHint(
-        `In the Bankr app, pay via @bankrbot: fund $${count} to ${symbol} space for Dex. On bankr.space, connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} and try again.`
+        `In the Bankr app, pay via @bankrbot: fund $${count} to ${symbol} space for Dex. On bankr.space, connect a Base wallet with $${paymentToken.symbol} and try again.`
       );
       return;
     }
 
     if (!isConnected) {
-      setPayHint(`Connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to pay.`);
+      setPayHint(`Connect a Base wallet with $${paymentToken.symbol} to pay.`);
       connectWallet();
       return;
     }
@@ -168,13 +191,17 @@ export function FundraisingWidget({
     }
 
     if (!address) {
-      setPayHint(`Connect a Base wallet with $${X402_PAYMENT_TOKEN_SYMBOL} to pay.`);
+      setPayHint(`Connect a Base wallet with $${paymentToken.symbol} to pay.`);
       connectWallet();
       return;
     }
 
     setPaying(true);
-    const priceLabel = formatX402FundPriceLabel(spacePriceUsd);
+    const priceLabel =
+      paymentToken.priceLabel ||
+      (paymentToken.isCustom
+        ? `(custom $${paymentToken.symbol} payment)`
+        : formatX402FundPriceLabel(spacePriceUsd));
     setPayHint(
       permit2Ready
         ? count > 1
@@ -193,8 +220,9 @@ export function FundraisingWidget({
           address,
           tokenAddress,
           campaignId,
-          SPACE_FUND_X402_CREDIT_USD,
-          setPayHint
+          paymentToken.creditUsd,
+          setPayHint,
+          paymentToken
         );
         if (!last.success) {
           setPayHint(last.error || `Payment ${i + 1} did not complete.`);
@@ -281,12 +309,18 @@ export function FundraisingWidget({
     </div>
   );
 
+  const tokenBadge = paymentToken.isCustom ? (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-accent/10 border border-accent/30 text-accent">
+      ${paymentToken.symbol}
+    </span>
+  ) : null;
+
   const permit2Banner =
-    isConnected && onBase && permit2Ready === false ? (
+    isConnected && onBase && permit2Ready === false && !paymentToken.isCustom ? (
       <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-text">
         <p className="font-medium">One-time setup required</p>
         <p className="text-muted mt-0.5">
-          Before your first contribution, approve {X402_PAYMENT_TOKEN_SYMBOL} for Permit2 on Base
+          Before your first contribution, approve ${paymentToken.symbol} for Permit2 on Base
           (costs a little ETH for gas). After that, Contribute only asks for a signature.
         </p>
         <button
@@ -309,9 +343,9 @@ export function FundraisingWidget({
           disabled={paying}
           onClick={() => void contribute(count)}
           className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent bg-surface-2 disabled:opacity-50"
-          title={`${count}× ${formatX402FundPriceLabel(spacePriceUsd)} via x402`}
+          title={`${count}× ${paymentToken.priceLabel || formatX402FundPriceLabel(spacePriceUsd)} via x402`}
         >
-          +${count * SPACE_FUND_X402_CREDIT_USD}
+          +${count * paymentToken.creditUsd}
         </button>
       ))}
       <input
@@ -340,9 +374,12 @@ export function FundraisingWidget({
     return (
       <div className="p-5 rounded-xl border border-border bg-surface space-y-4">
         <div>
-          <div className="text-sm font-semibold">Fund this space</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold">Fund this space</div>
+            {tokenBadge}
+          </div>
           <p className="text-xs text-muted mt-1">
-            Optional ${X402_PAYMENT_TOKEN_SYMBOL} toward DexScreener or community goals.
+            Optional ${paymentToken.symbol} toward DexScreener or community goals.
           </p>
         </div>
         {campaignTabs}
@@ -361,9 +398,12 @@ export function FundraisingWidget({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-6">
         {showHeader ? (
           <div className="shrink-0 xl:w-[168px]">
-            <div className="text-sm font-semibold">Fund this space</div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-semibold">Fund this space</div>
+              {tokenBadge}
+            </div>
             <p className="text-[11px] text-muted mt-0.5 leading-snug">
-              ${X402_PAYMENT_TOKEN_SYMBOL} on Base · posts stay free
+              ${paymentToken.symbol} on Base · posts stay free
             </p>
             {campaignTabs ? <div className="mt-2">{campaignTabs}</div> : null}
           </div>
@@ -383,7 +423,7 @@ export function FundraisingWidget({
         <p className="text-xs text-muted border-t border-border mt-4 pt-3">{payHint}</p>
       ) : (
         <p className="text-[11px] text-muted mt-3 xl:mt-2 leading-snug">
-          {formatX402FundPriceLabel(spacePriceUsd)} per click via{' '}
+          {paymentToken.priceLabel || formatX402FundPriceLabel(spacePriceUsd)} per click via{' '}
           <a
             href="https://docs.bankr.bot/x402-cloud/overview/"
             target="_blank"
@@ -392,7 +432,7 @@ export function FundraisingWidget({
           >
             Bankr x402
           </a>
-          . Each successful click adds ${SPACE_FUND_X402_CREDIT_USD} toward the USD goal.
+          . Each successful click adds ${paymentToken.creditUsd} toward the USD goal.
         </p>
       )}
     </div>

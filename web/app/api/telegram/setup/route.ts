@@ -3,7 +3,7 @@
  * Registers the bot webhook with Telegram. Call once after each deploy.
  */
 import { NextResponse } from 'next/server';
-import { getTelegramBotMe, setTelegramWebhook } from '@/lib/telegram-bot';
+import { getTelegramBotMe, setTelegramWebhook, setTelegramBotCommands } from '@/lib/telegram-bot';
 import { getSiteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +20,7 @@ export async function GET(req: Request) {
   try {
     const siteUrl = getSiteUrl();
     const registration = await setTelegramWebhook(siteUrl);
+    const commands = await setTelegramBotCommands();
     const bot = await getTelegramBotMe();
 
     return NextResponse.json({
@@ -29,6 +30,7 @@ export async function GET(req: Request) {
       webhookSecretConfigured: !!process.env.TELEGRAM_WEBHOOK_SECRET?.trim(),
       botTokenConfigured: !!process.env.TELEGRAM_BOT_TOKEN?.trim(),
       telegram: registration.setResult,
+      commands,
       delete: registration.deleteResult,
       webhook: registration.infoResult,
       bot,

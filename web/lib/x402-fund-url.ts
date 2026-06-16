@@ -17,6 +17,25 @@ function walletPathFundUrl(base: URL, wallet: string): string {
   return base.toString().replace(/\/$/, '');
 }
 
+/**
+ * If the space has a custom x402 fund URL configured, return it directly.
+ * Otherwise fall through to the platform default (beneficiary wallet path).
+ */
+export function resolveSpaceX402FundUrl(
+  customFundUrl: string | null | undefined,
+  beneficiaryWallet: string | null
+): string | null {
+  if (customFundUrl?.trim()) {
+    try {
+      const u = new URL(customFundUrl.trim());
+      return u.toString().replace(/\/$/, '');
+    } catch {
+      // invalid URL — fall through
+    }
+  }
+  return buildFundraisingX402BaseUrl(beneficiaryWallet);
+}
+
 /** x402 $Space always settles to the token fee recipient — never the deployer. */
 export function buildFundraisingX402BaseUrl(beneficiaryWallet: string | null): string | null {
   const w = beneficiaryWallet?.trim().toLowerCase();

@@ -9,6 +9,7 @@ import { resolveAuthorProfile } from '@/lib/profiles';
 import { resolveAgentWallet } from '@/lib/bankr-agent-wallet';
 import { trustedDelegateWallets } from '@/lib/space-delegates';
 import { getTelegramLinkByWallet } from '@/lib/telegram-kv';
+import { getFarcasterLinkByWallet } from '@/lib/farcaster-kv';
 import { getWalletBankrLaunches } from '@/lib/wallet-bankr-launches';
 import { communityUrl } from '@/lib/site-url';
 import { normalizeAddr } from '@/lib/utils';
@@ -33,11 +34,12 @@ export async function GET(req: Request) {
 
   const wallet = normalizeAddr(raw);
 
-  const [communities, author, agentMeta, telegramLink, bankrLaunches] = await Promise.all([
+  const [communities, author, agentMeta, telegramLink, farcasterLink, bankrLaunches] = await Promise.all([
     getCommunities(),
     resolveAuthorProfile(wallet),
     resolveAgentWallet(wallet),
     getTelegramLinkByWallet(wallet),
+    getFarcasterLinkByWallet(wallet),
     getWalletBankrLaunches(wallet),
   ]);
 
@@ -80,6 +82,16 @@ export async function GET(req: Request) {
           telegramId: telegramLink.telegramId,
           telegramUsername: telegramLink.telegramUsername,
           linkedAt: telegramLink.linkedAt,
+        }
+      : { linked: false },
+    farcaster: farcasterLink
+      ? {
+          linked: true,
+          fid: farcasterLink.fid,
+          username: farcasterLink.username,
+          displayName: farcasterLink.displayName,
+          pfpUrl: farcasterLink.pfpUrl,
+          linkedAt: farcasterLink.linkedAt,
         }
       : { linked: false },
     bankrLaunches,

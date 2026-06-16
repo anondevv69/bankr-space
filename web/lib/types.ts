@@ -69,6 +69,25 @@ export interface FundraisingState {
   campaigns: FundraisingCampaign[];
 }
 
+/**
+ * Per-space x402 payment configuration set by the fee recipient.
+ * If absent, the global $Space token + platform fund URL is used.
+ */
+export interface SpaceX402Config {
+  /** ERC-20 token address to accept for contributions (null = $Space default) */
+  tokenAddress?: string | null;
+  /** Token symbol shown in UI (e.g. "MYTOKEN") */
+  tokenSymbol?: string | null;
+  /** Token decimals (default 18) */
+  tokenDecimals?: number | null;
+  /** Full Bankr x402 fund URL, e.g. https://x402.bankr.bot/0xWallet/fund */
+  fundUrl?: string | null;
+  /** Human-readable price label for the contribute button */
+  priceLabel?: string | null;
+  /** USD credit amount per contribution (defaults to platform default) */
+  creditUsd?: number | null;
+}
+
 /** Bankr Skills the community agent may run after Lane B x402 pool is matched. */
 export type AgentPoolSkillId = 'qrcoin' | '0xwork' | 'poidh';
 
@@ -199,6 +218,8 @@ export interface Community {
   socialLinks?: SocialLinks;
   /** Optional USDC fundraise campaigns (Dex profile, boost, custom) */
   fundraising?: FundraisingState;
+  /** Fee recipient's custom x402 payment config — token, fund URL, price */
+  x402Config?: SpaceX402Config | null;
   /** Lane B — community x402 pool for platform agent skills (QRCoin, 0xWork) */
   agentPool?: AgentPoolState;
   /** POIDH open bounties — on-chain crowdfunding (no x402). */

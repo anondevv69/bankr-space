@@ -204,6 +204,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       !touchesModeration &&
       !touchesAgentPool &&
       body.fundraising === undefined &&
+      body.x402Config === undefined &&
       body.allowDeployerEdit === undefined &&
       body.trustedDelegates === undefined
     ) {
@@ -211,11 +212,11 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     }
 
     if (
-      body.fundraising !== undefined &&
+      (body.fundraising !== undefined || body.x402Config !== undefined) &&
       !(await canEditCommunityFundraising(wallet, tokenAddress))
     ) {
       return NextResponse.json(
-        { error: 'Only the fee recipient can manage fundraisers and USDC goals' },
+        { error: 'Only the fee recipient can manage fundraisers and payment settings' },
         { status: 403 }
       );
     }
@@ -323,6 +324,21 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       });
     }
 
+    // Persist per-space x402 config (fee recipient only — already checked above)
+    let nextX402Config = current.x402Config ?? null;
+    if (body.x402Config !== undefined) {
+      const raw = body.x402Config as Record<string, unknown>;
+      const addr = typeof raw.tokenAddress === 'string' ? raw.tokenAddress.trim() : null;
+      nextX402Config = {
+        tokenAddress: addr && /^0x[a-fA-F0-9]{40}$/.test(addr) ? addr.toLowerCase() : null,
+        tokenSymbol: typeof raw.tokenSymbol === 'string' ? raw.tokenSymbol.trim().slice(0, 20) || null : null,
+        tokenDecimals: typeof raw.tokenDecimals === 'number' ? Math.max(0, Math.min(18, raw.tokenDecimals)) : 18,
+        fundUrl: typeof raw.fundUrl === 'string' && raw.fundUrl.trim().startsWith('http') ? raw.fundUrl.trim().slice(0, 500) : null,
+        priceLabel: typeof raw.priceLabel === 'string' ? raw.priceLabel.trim().slice(0, 80) || null : null,
+        creditUsd: typeof raw.creditUsd === 'number' && raw.creditUsd > 0 ? raw.creditUsd : 1,
+      };
+    }
+
     let nextFeeRecipientAgent = current.feeRecipientAgent ?? null;
     if (
       (body.trustedDelegates !== undefined ||
@@ -366,6 +382,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       useDexLinks: boolField(body, 'useDexLinks', current.useDexLinks ?? true),
       fundraising: nextFundraising,
       agentPool: nextAgentPool,
+      x402Config: nextX402Config,
     });
 
     const synced = await syncCommunityProfile(updated, { force: true });

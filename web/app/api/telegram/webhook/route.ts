@@ -92,16 +92,35 @@ function isGroupChat(chatType: string | undefined): boolean {
   return chatType === 'group' || chatType === 'supergroup';
 }
 
-function groupCommandHint(botUsername: string, command: string): string {
-  return `In groups, use <code>/${command}@${botUsername}</code> (or turn off Group Privacy in @BotFather).`;
+function groupCommandHint(_botUsername: string): string {
+  return 'In this group: <code>/post $SYMBOL your message</code> — e.g. <code>/post $SPACE yerrr</code>';
+}
+
+async function handleGroupWelcome(chatId: number, botUsername: string, title?: string): Promise<void> {
+  const name = title ? `<b>${title}</b>` : 'this group';
+  await sendTelegramMessage(
+    chatId,
+    [
+      `👋 Bankr Space bot added to ${name}!`,
+      '',
+      'Post to bankr.space from here:',
+      '<code>/post $SPACE your message</code>',
+      '',
+      'Each person links once via DM →',
+      `<a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> → /link`,
+      '',
+      '<i>Tip: send /help anytime for this list.</i>',
+    ].join('\n'),
+    { parseMode: 'HTML', disableWebPagePreview: false }
+  );
 }
 
 async function handleStart(chatId: number, botUsername: string, inGroup: boolean): Promise<void> {
   const groupNote = inGroup
     ? [
         '',
-        `<b>Group tip:</b> use <code>/help@${botUsername}</code> so I see your command.`,
-        'Wallet linking works in a <b>private chat</b> with me — tap @' + botUsername + '.',
+        '<b>Post here:</b> <code>/post $SPACE your message</code>',
+        `First time? DM <a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> → /link`,
       ]
     : [];
 
@@ -238,8 +257,8 @@ async function handleSpaces(chatId: number, wallet: string): Promise<void> {
  * Returns { symbol, content } where symbol may be null.
  */
 function parsePostArgs(args: string): { symbol: string | null; content: string } {
-  // Match leading $SYMBOL (letters/digits/underscore)
-  const match = args.match(/^\$([A-Za-z0-9_]+)\s+([\s\S]+)$/);
+  // Match leading $SYMBOL (case-insensitive ticker)
+  const match = args.match(/^\$([A-Za-z0-9_]+)\s+([\s\S]+)$/i);
   if (match) {
     return { symbol: match[1].toUpperCase(), content: match[2].trim() };
   }
@@ -251,7 +270,9 @@ async function handlePost(
   wallet: string,
   rawArgs: string,
   messageId: number,
-  telegramUsername: string | null
+  telegramUsername: string | null,
+  botUsername: string,
+  inGroup: boolean
 ): Promise<void> {
   const { symbol, content } = parsePostArgs(rawArgs);
 
@@ -347,28 +368,64 @@ async function handlePost(
 
   await sendTelegramMessage(
     chatId,
-    `✅ <b>Posted to $${target.symbol}!</b>\n\n"${truncate(trimmed, 120)}"\n\n${communityUrl(target.tokenAddress)}`,
-    { parseMode: 'HTML', replyToMessageId: messageId }
+    inGroup
+      ? [
+          `✅ <b>Posted to $${target.symbol}!</b>`,
+          `"${truncate(trimmed, 120)}"`,
+          '',
+          `Anyone can post: <code>/post $${target.symbol} your message</code>`,
+          `New here? DM <a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> → /link once.`,
+          communityUrl(target.tokenAddress),
+        ].join('\n')
+      : `✅ <b>Posted to $${target.symbol}!</b>\n\n"${truncate(trimmed, 120)}"\n\n${communityUrl(target.tokenAddress)}`,
+    { parseMode: 'HTML', replyToMessageId: messageId, disableWebPagePreview: false }
   );
 }
 
-async function handleHelp(chatId: number, botUsername: string, inGroup: boolean): Promise<void> {
-  await sendTelegramMessage(
-    chatId,
-    [
-      '<b>Bankr Space Bot — Commands</b>',
+async function handleHelp(
+  chatId: number,
+  botUsername: string,
+  inGroup: boolean,
+  messageId?: number
+): Promise<void> {
+  const site = getSiteUrl();
+  const lines = [
+    '<b>Bankr Space Bot</b>',
+    'Post to bankr.space from Telegram.',
+    '',
+    '<b>── Getting started ──</b>',
+    `1. DM <a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> → <code>/link</code>`,
+    '2. Sign with MetaMask on Base (one time)',
+    '3. Post in any group or DM',
+    '',
+    '<b>── Commands ──</b>',
+    '<code>/post $SYMBOL &lt;message&gt;</code> — post to a space',
+    '  e.g. <code>/post $SPACE yerrr</code>',
+    '<code>/spaces</code> — spaces you can post in (need token)',
+    '<code>/balance</code> — your $Space balance',
+    '<code>/link</code> — connect wallet <i>(DM only)</i>',
+    '<code>/unlink</code> — disconnect wallet',
+    '<code>/start</code> — welcome message',
+    '<code>/help</code> — this list',
+  ];
+
+  if (inGroup) {
+    lines.push(
       '',
-      '/link — connect your wallet (DM only)',
-      '/unlink — remove wallet',
-      '/spaces — list spaces you can post in',
-      '/post $SYMBOL &lt;text&gt; — post to a specific space',
-      '  e.g. <code>/post $SPACE GM everyone!</code>',
-      '/balance — check $Space balance',
-      '/help — this message',
-      ...(inGroup ? ['', groupCommandHint(botUsername, 'post')] : []),
-    ].join('\n'),
-    { parseMode: 'HTML' }
-  );
+      '<b>── In this group ──</b>',
+      groupCommandHint(botUsername),
+      'Anyone with a linked wallet + token can post.',
+      `New? DM @${botUsername} → /link first.`
+    );
+  }
+
+  lines.push('', `<a href="${site}">bankr.space</a> — browse all spaces`);
+
+  await sendTelegramMessage(chatId, lines.join('\n'), {
+    parseMode: 'HTML',
+    disableWebPagePreview: false,
+    replyToMessageId: messageId,
+  });
 }
 
 export async function POST(req: Request) {
@@ -384,6 +441,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  const botUsername = getTelegramBotUsername();
+
+  // Bot added to a group — post welcome with /post instructions
+  const member = update.my_chat_member;
+  const wasAbsent =
+    member?.old_chat_member?.status === 'left' ||
+    member?.old_chat_member?.status === 'kicked';
+  const nowPresent =
+    member?.new_chat_member?.status === 'member' ||
+    member?.new_chat_member?.status === 'administrator';
+  if (
+    member?.new_chat_member?.user?.is_bot &&
+    isGroupChat(member.chat.type) &&
+    wasAbsent &&
+    nowPresent
+  ) {
+    try {
+      await handleGroupWelcome(member.chat.id, botUsername, member.chat.title);
+    } catch (err) {
+      console.error('[telegram] group welcome failed', err);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const message = update.message;
   if (!message?.text || !message.from) {
     return NextResponse.json({ ok: true });
@@ -396,9 +477,8 @@ export async function POST(req: Request) {
   const telegramUsername = message.from.username || null;
   const text = message.text.trim();
   const messageId = message.message_id;
-  const botUsername = getTelegramBotUsername();
 
-  const parsed = parseTelegramCommand(text);
+  const parsed = parseTelegramCommand(text, botUsername);
 
   // Not a command — ignore (could support free-form posting later)
   if (!parsed) {
@@ -434,7 +514,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
     if (command === 'help') {
-      await handleHelp(chatId, botUsername, inGroup);
+      await handleHelp(chatId, botUsername, inGroup, messageId);
       return NextResponse.json({ ok: true });
     }
     if (command === 'link') {
@@ -451,11 +531,16 @@ export async function POST(req: Request) {
     }
 
     if (!link) {
-      await sendTelegramMessage(
-        chatId,
-        `No wallet linked yet. Use /link to connect your wallet first.`,
-        { replyToMessageId: messageId }
-      );
+      const linkHint = inGroup
+        ? [
+            'Link your wallet once to post here:',
+            `<code>/post $SPACE your message</code> after you DM <a href="https://t.me/${botUsername}?start=link">@${botUsername}</a> → /link`,
+          ].join('\n')
+        : 'No wallet linked yet. Use /link to connect your wallet first.';
+      await sendTelegramMessage(chatId, linkHint, {
+        parseMode: inGroup ? 'HTML' : undefined,
+        replyToMessageId: messageId,
+      });
       return NextResponse.json({ ok: true });
     }
 
@@ -467,7 +552,15 @@ export async function POST(req: Request) {
         await handleSpaces(chatId, link.wallet);
         break;
       case 'post':
-        await handlePost(chatId, link.wallet, args, messageId, telegramUsername);
+        await handlePost(
+          chatId,
+          link.wallet,
+          args,
+          messageId,
+          telegramUsername,
+          botUsername,
+          inGroup
+        );
         break;
       default:
         await sendTelegramMessage(

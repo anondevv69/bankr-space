@@ -239,6 +239,24 @@ export function CommunityProfile({
   const [agentPoolCampaigns, setAgentPoolCampaigns] = useState<AgentPoolCampaign[]>(
     community.agentPool?.campaigns || DEFAULT_AGENT_POOL_CAMPAIGNS.map((c) => ({ ...c }))
   );
+  const [x402TokenAddress, setX402TokenAddress] = useState(
+    community.x402Config?.tokenAddress || ''
+  );
+  const [x402TokenSymbol, setX402TokenSymbol] = useState(
+    community.x402Config?.tokenSymbol || ''
+  );
+  const [x402TokenDecimals, setX402TokenDecimals] = useState<number>(
+    community.x402Config?.tokenDecimals ?? 18
+  );
+  const [x402FundUrl, setX402FundUrl] = useState(
+    community.x402Config?.fundUrl || ''
+  );
+  const [x402PriceLabel, setX402PriceLabel] = useState(
+    community.x402Config?.priceLabel || ''
+  );
+  const [x402CreditUsd, setX402CreditUsd] = useState<number>(
+    community.x402Config?.creditUsd ?? 1
+  );
   const [resolvingAgentIndex, setResolvingAgentIndex] = useState<number | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -493,6 +511,18 @@ export function CommunityProfile({
           useDexDescription,
           useDexLinks,
           ...(canEditFundraising ? { fundraising: { campaigns: fundraisingCampaigns } } : {}),
+          ...(canEditFundraising
+            ? {
+                x402Config: {
+                  tokenAddress: x402TokenAddress.trim() || null,
+                  tokenSymbol: x402TokenSymbol.trim() || null,
+                  tokenDecimals: x402TokenDecimals || 18,
+                  fundUrl: x402FundUrl.trim() || null,
+                  priceLabel: x402PriceLabel.trim() || null,
+                  creditUsd: x402CreditUsd || 1,
+                },
+              }
+            : {}),
           ...(canManageTeamAccess
             ? { allowDeployerEdit, trustedDelegates }
             : {}),
@@ -1035,6 +1065,103 @@ export function CommunityProfile({
                     >
                       + Add fundraiser
                     </button>
+                  </div>
+                </EditSection>
+              ) : null}
+
+              {canEditFundraising ? (
+                <EditSection
+                  title="x402 payment token"
+                  hint="Customize which token contributors pay with. Leave blank to use the default $Space token. Paste your Bankr x402 fund URL to route payments to your own endpoint."
+                >
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-muted mb-1">
+                        Fund URL (from Bankr x402 — <code className="text-[11px]">https://x402.bankr.bot/0xYourWallet/fund</code>)
+                      </label>
+                      <input
+                        className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
+                        placeholder="https://x402.bankr.bot/0x…/fund"
+                        value={x402FundUrl}
+                        onChange={(e) => setX402FundUrl(e.target.value)}
+                      />
+                      <p className="text-[11px] text-muted mt-1">
+                        Deploy on Bankr:{' '}
+                        <a
+                          href="https://docs.bankr.bot/x402-cloud/overview"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-accent-hover hover:underline"
+                        >
+                          docs.bankr.bot/x402-cloud
+                        </a>
+                        . Leave blank to use the platform default ($Space token).
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Token address (0x…)</label>
+                        <input
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
+                          placeholder="0x… (blank = $Space)"
+                          value={x402TokenAddress}
+                          onChange={(e) => setX402TokenAddress(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Symbol</label>
+                        <input
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                          placeholder="e.g. MYTOKEN"
+                          value={x402TokenSymbol}
+                          onChange={(e) => setX402TokenSymbol(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Decimals</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={18}
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                          value={x402TokenDecimals}
+                          onChange={(e) => setX402TokenDecimals(Number(e.target.value) || 18)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Price label (shown in button)</label>
+                        <input
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                          placeholder="e.g. 1,000 MYTOKEN (~$1)"
+                          value={x402PriceLabel}
+                          onChange={(e) => setX402PriceLabel(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted mb-1">USD credit per click</label>
+                        <input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+                          value={x402CreditUsd}
+                          onChange={(e) => setX402CreditUsd(Number(e.target.value) || 1)}
+                        />
+                      </div>
+                    </div>
+                    {(x402FundUrl || x402TokenAddress) ? (
+                      <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs space-y-0.5">
+                        <p className="font-medium">Custom x402 active</p>
+                        {x402FundUrl && <p className="text-muted font-mono truncate">→ {x402FundUrl}</p>}
+                        {x402TokenAddress && (
+                          <p className="text-muted">Token: ${x402TokenSymbol || '?'} ({x402TokenAddress.slice(0, 10)}…)</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted">Using platform default: $Space token + shared fund URL.</p>
+                    )}
                   </div>
                 </EditSection>
               ) : null}

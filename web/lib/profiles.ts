@@ -1,5 +1,6 @@
 import type { Author, TokenLaunch, UserProfile } from './types';
 import { getLaunches, getProfiles, setProfiles } from './db';
+import { getFarcasterLinkByWallet } from './farcaster-kv';
 import { stripAt } from './utils';
 
 export async function resolveAuthorProfile(wallet: string): Promise<Author> {
@@ -29,6 +30,13 @@ export async function resolveAuthorProfile(wallet: string): Promise<Author> {
     profileImage: null,
     updatedAt: Date.now(),
   };
+
+  // Pull verified Farcaster link from KV
+  const fcLink = await getFarcasterLinkByWallet(w).catch(() => null);
+  if (fcLink) {
+    profile.farcaster = fcLink.username;
+    if (fcLink.pfpUrl && !profile.profileImage) profile.profileImage = fcLink.pfpUrl;
+  }
 
   const launches = await getLaunches();
   for (const launch of launches) {
