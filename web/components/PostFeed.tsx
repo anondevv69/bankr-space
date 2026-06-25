@@ -24,11 +24,12 @@ import { CommunityJobsPanel } from '@/components/CommunityJobsPanel';
 import { TokenBountiesPanel } from '@/components/TokenBountiesPanel';
 import { QuestionsPanel } from '@/components/QuestionsPanel';
 import { FundraisingTabPanel } from '@/components/FundraisingTabPanel';
+import { VestingTabPanel } from '@/components/VestingTabPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs' | 'fundraisers';
+type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs' | 'fundraisers' | 'vesting';
 
 const POST_SUB_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'all', label: 'All', icon: '' },
@@ -43,6 +44,8 @@ const VOTES_TAB = { id: 'questions' as const, label: 'Votes', icon: '🗳️' };
 const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' };
 
 const FUNDRAISERS_TAB = { id: 'fundraisers' as const, label: 'Fundraisers', icon: '💰' };
+
+const VESTING_TAB = { id: 'vesting' as const, label: 'Vesting', icon: '🔒' };
 
 const JOBS_TAB = { id: 'oxjobs' as const, label: 'Jobs', icon: '💼' };
 
@@ -481,6 +484,7 @@ export function PostFeed({
   const isOxJobs = section === 'oxjobs';
   const isBounties = section === 'bounties';
   const isFundraisers = section === 'fundraisers';
+  const isVesting = section === 'vesting';
   const isQuestions = section === 'questions';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -527,6 +531,7 @@ export function PostFeed({
             POSTS_TAB,
             VOTES_TAB,
             FUNDRAISERS_TAB,
+            VESTING_TAB,
             BOUNTIES_TAB,
             ...(hasJobs ? [JOBS_TAB] : []),
           ],
@@ -646,6 +651,8 @@ export function PostFeed({
           symbol={tokenSymbol}
           refreshKey={fundraisersRefreshKey}
         />
+      ) : isVesting ? (
+        <VestingTabPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
       ) : isBounties ? (
         <TokenBountiesPanel
           tokenAddress={tokenAddress}
