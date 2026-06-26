@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { applyRaffleCredit, RAFFLE_X402_CREDIT_USD } from '@/lib/apply-raffle-credit';
+import { applyRaffleCredit, assertRaffleFundingPayer, RAFFLE_X402_CREDIT_USD } from '@/lib/apply-raffle-credit';
 import {
   isRaffleX402CampaignId,
   parseRaffleX402CampaignId,
   raffleX402CampaignId,
 } from '@/lib/community-raffles';
-import { canActAsFeeRecipient, getTokenBeneficiaryWallet } from '@/lib/community-owner';
+import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { attachX402FundMeta } from '@/lib/x402-quote-response';
@@ -21,33 +21,6 @@ import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 type RouteParams = { params: Promise<{ address: string }> };
-
-async function assertFeeRecipientPayer(
-  tokenAddress: string,
-  wallet: string | null,
-  xPayment?: string
-): Promise<{ ok: true; payer: string } | { ok: false; error: string; status: number }> {
-  let payer = wallet?.toLowerCase() || null;
-  if (xPayment) {
-    const decoded = decodeX402PaymentDiagnostics(xPayment);
-    if (decoded?.payer) payer = decoded.payer.toLowerCase();
-  }
-  if (!payer) {
-    return {
-      ok: false,
-      error: 'Connect as the fee recipient wallet to fund this raffle.',
-      status: 401,
-    };
-  }
-  if (!(await canActAsFeeRecipient(payer, tokenAddress))) {
-    return {
-      ok: false,
-      error: 'Only the fee recipient can fund raffle prize pools.',
-      status: 403,
-    };
-  }
-  return { ok: true, payer };
-}
 
 /**
  * Fee recipient funds a raffle prize pool via x402 ($Space).
@@ -103,7 +76,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'amountUsd must be a positive number' }, { status: 400 });
   }
 
-  const payerCheck = await assertFeeRecipientPayer(tokenAddress, wallet, xPayment || undefined);
+  const payerCheck = await assertRaffleFundingPayer(tokenAddress, wallet, xPayment || undefined);
   if (!payerCheck.ok) {
     return NextResponse.json({ error: payerCheck.error }, { status: payerCheck.status });
   }

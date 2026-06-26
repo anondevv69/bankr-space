@@ -1,52 +1,9 @@
 import type { PaymentPayload, PaymentRequired } from '@x402/core/types';
+import { permit2WitnessTypes, uptoPermit2WitnessTypes } from '@x402/evm';
 import { getAddress, toHex, type Address, type Hex } from 'viem';
 import { createEvmPaymentSigner } from '@/lib/x402-signer';
 
 const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
-
-/** Bankr fee router uses payTo as Permit2 spender — not the x402 exact proxy. */
-const bankrPermit2WitnessTypes = {
-  PermitWitnessTransferFrom: [
-    { name: 'permitted', type: 'TokenPermissions' },
-    { name: 'spender', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'deadline', type: 'uint256' },
-    { name: 'witness', type: 'Witness' },
-  ],
-  TokenPermissions: [
-    { name: 'token', type: 'address' },
-    { name: 'amount', type: 'uint256' },
-  ],
-  Witness: [
-    { name: 'to', type: 'address' },
-    { name: 'validAfter', type: 'uint256' },
-  ],
-} as const;
-
-/**
- * Bankr fee-router endpoints include `extra.facilitatorAddress`, which means the
- * on-chain contract verifies against the upto-style Permit2 witness that has a
- * `facilitator` field.  Using the plain two-field witness produces a different
- * type-hash and always fails with `invalid_permit2_signature`.
- */
-const bankrFeeRouterPermit2WitnessTypes = {
-  PermitWitnessTransferFrom: [
-    { name: 'permitted', type: 'TokenPermissions' },
-    { name: 'spender', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'deadline', type: 'uint256' },
-    { name: 'witness', type: 'Witness' },
-  ],
-  TokenPermissions: [
-    { name: 'token', type: 'address' },
-    { name: 'amount', type: 'uint256' },
-  ],
-  Witness: [
-    { name: 'to', type: 'address' },
-    { name: 'facilitator', type: 'address' },
-    { name: 'validAfter', type: 'uint256' },
-  ],
-} as const;
 
 function evmChainId(network: string): number {
   const match = network.match(/^eip155:(\d+)$/);
@@ -67,11 +24,102 @@ function readPermit2Spender(requirements: PaymentRequired['accepts'][number]): A
   return getAddress(requirements.payTo);
 }
 
+/** Bankr settlement expects `amount` and a resource URL pinned to the signed /fund base. */
+export function pinAcceptedForBankrPayload(
+  raw: PaymentRequired['accepts'][number] | undefined,
+  requirements: PaymentRequired['accepts'][number],
+  fundBase: string
+): PaymentRequired['accepts'][number] {
+  const record = (raw ?? requirements) as Record<string, unknown>;
+  const amount = String(record.maxAmountRequired ?? record.amount ?? requirements.amount);
+  const extra =
+    (record.extra as Record<string, unknown> | undefined) ??
+    (requirements.extra as Record<string, unknown> | undefined) ??
+    {};
+  return {
+    scheme: String(record.scheme ?? requirements.scheme),
+    network: String(record.network ?? requirements.network),
+    asset: String(record.asset ?? requirements.asset),
+    amount,
+    payTo: String(record.payTo ?? requirements.payTo),
+    maxTimeoutSeconds: Number(record.maxTimeoutSeconds ?? requirements.maxTimeoutSeconds),
+    extra,
+    resource: fundBase,
+  } as PaymentRequired['accepts'][number];
+}
+
+function serializePermit2MessageForWallet(
+  message: Record<string, unknown>
+): Record<string, unknown> {
+  const permitted = message.permitted as { token: string; amount: bigint };
+  const witness = message.witness as Record<string, unknown>;
+  const serializedWitness: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(witness)) {
+    serializedWitness[key] =
+      typeof value === 'bigint' ? value.toString() : value;
+  }
+  return {
+    permitted: {
+      token: permitted.token,
+      amount: permitted.amount.toString(),
+    },
+    spender: message.spender,
+    nonce: (message.nonce as bigint).toString(),
+    deadline: (message.deadline as bigint).toString(),
+    witness: serializedWitness,
+  };
+}
+
+async function signPermit2WitnessTransfer(
+  walletAddress: Address,
+  chainId: number,
+  types: typeof permit2WitnessTypes | typeof uptoPermit2WitnessTypes,
+  message: Record<string, unknown>
+): Promise<Hex> {
+  const account = getAddress(walletAddress);
+  const domain = { name: 'Permit2', chainId, verifyingContract: PERMIT2_ADDRESS };
+  const { walletClient } = createEvmPaymentSigner(account);
+
+  if (typeof walletClient.signTypedData === 'function') {
+    return walletClient.signTypedData({
+      account,
+      domain,
+      types,
+      primaryType: 'PermitWitnessTransferFrom',
+      message: message as never,
+    });
+  }
+
+  if (typeof window === 'undefined') {
+    throw new Error('Wallet signing is only available in the browser.');
+  }
+  const provider = (window as Window & { ethereum?: { request: (args: unknown) => Promise<unknown> } })
+    .ethereum;
+  if (!provider?.request) {
+    throw new Error('No browser wallet found for Permit2 signing.');
+  }
+
+  const signature = await provider.request({
+    method: 'eth_signTypedData_v4',
+    params: [
+      account,
+      JSON.stringify({
+        domain,
+        types,
+        primaryType: 'PermitWitnessTransferFrom',
+        message: serializePermit2MessageForWallet(message),
+      }),
+    ],
+  });
+  return signature as Hex;
+}
+
 /** Bankr x402 Cloud quotes fee-router Permit2 spenders — sign for that, not the x402 proxy. */
 export async function createBankrExactPermit2PaymentPayload(
   walletAddress: Address,
   paymentRequired: PaymentRequired,
-  acceptedOverride?: PaymentRequired['accepts'][number]
+  acceptedOverride?: PaymentRequired['accepts'][number],
+  fundBase?: string
 ): Promise<PaymentPayload> {
   const requirements = paymentRequired.accepts.find(
     (item) => item.scheme.toLowerCase() === 'exact'
@@ -93,17 +141,15 @@ export async function createBankrExactPermit2PaymentPayload(
   const validAfter = '0';
   const deadline = (now + requirements.maxTimeoutSeconds).toString();
   const nonce = createPermit2Nonce();
+  const chainId = evmChainId(requirements.network);
 
-  // Bankr fee-router endpoints include `facilitatorAddress` in extra — those contracts
-  // verify against the three-field upto witness (to, facilitator, validAfter).
-  // Plain endpoints use the two-field exact witness (to, validAfter).
   const facilitatorAddress =
     typeof extra.facilitatorAddress === 'string' ? extra.facilitatorAddress.trim() : '';
   const useFeeRouterWitness = facilitatorAddress.length > 0;
 
   const permit2Authorization = useFeeRouterWitness
     ? {
-        from: walletAddress,
+        from: getAddress(walletAddress),
         permitted: { token: getAddress(requirements.asset), amount: requirements.amount },
         spender,
         nonce,
@@ -115,7 +161,7 @@ export async function createBankrExactPermit2PaymentPayload(
         },
       }
     : {
-        from: walletAddress,
+        from: getAddress(walletAddress),
         permitted: { token: getAddress(requirements.asset), amount: requirements.amount },
         spender,
         nonce,
@@ -123,58 +169,36 @@ export async function createBankrExactPermit2PaymentPayload(
         witness: { to: payTo, validAfter },
       };
 
-  const { walletClient } = createEvmPaymentSigner(walletAddress);
-  const chainId = evmChainId(requirements.network);
+  const message = {
+    permitted: {
+      token: getAddress(permit2Authorization.permitted.token),
+      amount: BigInt(permit2Authorization.permitted.amount),
+    },
+    spender: permit2Authorization.spender,
+    nonce: BigInt(permit2Authorization.nonce),
+    deadline: BigInt(permit2Authorization.deadline),
+    witness: useFeeRouterWitness
+      ? {
+          to: (permit2Authorization.witness as { to: Address; facilitator: Address }).to,
+          facilitator: (permit2Authorization.witness as { to: Address; facilitator: Address })
+            .facilitator,
+          validAfter: BigInt(permit2Authorization.witness.validAfter),
+        }
+      : {
+          to: (permit2Authorization.witness as { to: Address }).to,
+          validAfter: BigInt(permit2Authorization.witness.validAfter),
+        },
+  };
 
-  let signature: Hex;
-  if (useFeeRouterWitness) {
-    const auth = permit2Authorization as typeof permit2Authorization & {
-      witness: { to: Address; facilitator: Address; validAfter: string };
-    };
-    signature = await walletClient.signTypedData({
-      account: walletAddress,
-      domain: { name: 'Permit2', chainId, verifyingContract: PERMIT2_ADDRESS },
-      types: bankrFeeRouterPermit2WitnessTypes,
-      primaryType: 'PermitWitnessTransferFrom',
-      message: {
-        permitted: {
-          token: auth.permitted.token,
-          amount: BigInt(auth.permitted.amount),
-        },
-        spender: auth.spender,
-        nonce: BigInt(auth.nonce),
-        deadline: BigInt(auth.deadline),
-        witness: {
-          to: auth.witness.to,
-          facilitator: auth.witness.facilitator,
-          validAfter: BigInt(auth.witness.validAfter),
-        },
-      },
-    });
-  } else {
-    const auth = permit2Authorization as typeof permit2Authorization & {
-      witness: { to: Address; validAfter: string };
-    };
-    signature = await walletClient.signTypedData({
-      account: walletAddress,
-      domain: { name: 'Permit2', chainId, verifyingContract: PERMIT2_ADDRESS },
-      types: bankrPermit2WitnessTypes,
-      primaryType: 'PermitWitnessTransferFrom',
-      message: {
-        permitted: {
-          token: auth.permitted.token,
-          amount: BigInt(auth.permitted.amount),
-        },
-        spender: auth.spender,
-        nonce: BigInt(auth.nonce),
-        deadline: BigInt(auth.deadline),
-        witness: {
-          to: auth.witness.to,
-          validAfter: BigInt(auth.witness.validAfter),
-        },
-      },
-    });
-  }
+  const signature = await signPermit2WitnessTransfer(
+    walletAddress,
+    chainId,
+    useFeeRouterWitness ? uptoPermit2WitnessTypes : permit2WitnessTypes,
+    message
+  );
+
+  const pinnedBase = fundBase?.replace(/\/$/, '') || paymentRequired.resource.url.replace(/\/$/, '');
+  const accepted = pinAcceptedForBankrPayload(acceptedOverride, requirements, pinnedBase);
 
   return {
     x402Version: paymentRequired.x402Version,
@@ -182,8 +206,11 @@ export async function createBankrExactPermit2PaymentPayload(
       signature: signature as Hex,
       permit2Authorization,
     },
-    resource: paymentRequired.resource,
-    accepted: acceptedOverride ?? requirements,
+    resource: {
+      ...paymentRequired.resource,
+      url: pinnedBase,
+    },
+    accepted,
   };
 }
 

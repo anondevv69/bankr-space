@@ -1,5 +1,6 @@
 import { getCommunity } from '@/lib/db';
-import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
+import { canActAsFeeRecipient, getTokenBeneficiaryWallet } from '@/lib/community-owner';
+import { decodeX402PaymentDiagnostics } from '@/lib/x402-facilitator-verify';
 import {
   creditRaffleUsd,
   getRaffleById,
@@ -99,6 +100,33 @@ export async function assertRaffleFundingWallet(
     };
   }
   return { ok: true };
+}
+
+export async function assertRaffleFundingPayer(
+  tokenAddress: string,
+  wallet: string | null,
+  xPayment?: string
+): Promise<{ ok: true; payer: string } | { ok: false; error: string; status: number }> {
+  let payer = wallet?.toLowerCase() || null;
+  if (xPayment) {
+    const decoded = decodeX402PaymentDiagnostics(xPayment);
+    if (decoded?.payer) payer = decoded.payer.toLowerCase();
+  }
+  if (!payer) {
+    return {
+      ok: false,
+      error: 'Connect as the fee recipient wallet to fund this raffle.',
+      status: 401,
+    };
+  }
+  if (!(await canActAsFeeRecipient(payer, tokenAddress))) {
+    return {
+      ok: false,
+      error: 'Only the fee recipient can fund raffle prize pools.',
+      status: 403,
+    };
+  }
+  return { ok: true, payer };
 }
 
 export const RAFFLE_X402_CREDIT_USD = SPACE_FUND_X402_CREDIT_USD;
