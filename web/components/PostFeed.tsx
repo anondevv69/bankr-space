@@ -465,6 +465,8 @@ export function PostFeed({
   canManageRaffles,
   voteUsesUnits,
   fundraisersRefreshKey,
+  initialSection,
+  highlightRaffleId,
 }: {
   tokenAddress: string;
   tokenSymbol: string;
@@ -482,9 +484,11 @@ export function PostFeed({
   canManageRaffles?: boolean;
   voteUsesUnits?: boolean;
   fundraisersRefreshKey?: string;
+  initialSection?: FeedSection;
+  highlightRaffleId?: string | null;
 }) {
   const { address } = useAppWallet();
-  const [section, setSection] = useState<FeedSection>('posts');
+  const [section, setSection] = useState<FeedSection>(initialSection || 'posts');
   const [postFilter, setPostFilter] = useState<PostFilter>('all');
   const [hasJobs, setHasJobs] = useState(false);
   const isPosts = section === 'posts';
@@ -501,6 +505,10 @@ export function PostFeed({
   const [tippingPostId, setTippingPostId] = useState<string | null>(null);
 
   const pins = pinnedPosts || [];
+
+  useEffect(() => {
+    if (initialSection) setSection(initialSection);
+  }, [initialSection]);
 
   useEffect(() => {
     if (hideExtraTabs) return;
@@ -669,6 +677,7 @@ export function PostFeed({
           canManage={!!canManageRaffles}
           canEnter={!!canVoteOnQuestion}
           voteUsesUnits={voteUsesUnits}
+          highlightRaffleId={highlightRaffleId}
         />
       ) : isBounties ? (
         <TokenBountiesPanel
