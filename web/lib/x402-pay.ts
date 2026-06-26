@@ -220,6 +220,9 @@ async function proxyRaffleX402(
     }),
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status >= 400 && xPayment) {
+    console.error('[x402] raffle payment failed', { status: res.status, ...data });
+  }
   return { status: res.status, data };
 }
 
@@ -429,11 +432,24 @@ export async function payRaffleFund(
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
   onProgress?.('Checking Permit2 allowance for $Space…');
-  await ensurePermit2TokenAllowance(
+  const allowance = await ensurePermit2TokenAllowance(
     walletAddress,
     X402_PAYMENT_TOKEN_ADDRESS as Address,
     X402_FUND_MAX_AUTHORIZE_ATOMIC,
     onProgress
+  );
+  if (allowance === 'approved') {
+    onProgress?.('Permit2 approved on-chain — checking balance…');
+  } else {
+    onProgress?.('Permit2 already approved — checking balance…');
+  }
+
+  onProgress?.('Checking $Space balance…');
+  await assertSpaceFundPreflight(
+    walletAddress,
+    amountUsd,
+    X402_FUND_MAX_AUTHORIZE_ATOMIC,
+    X402_PAYMENT_TOKEN_ADDRESS as Address
   );
 
   const { status, data } = await proxyRaffleX402(

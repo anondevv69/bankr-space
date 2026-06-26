@@ -168,7 +168,7 @@ export function RafflesPanel({
     }
   }
 
-  async function fundRaffle(raffleId: string, amountUsd: number) {
+  async function fundRaffle(raffleId: string, targetUsd: number) {
     if (!address) {
       if (isEmbedded) await connectWallet();
       return;
@@ -176,21 +176,35 @@ export function RafflesPanel({
     if (!onBase) {
       await switchChain({ chainId: base.id });
     }
+    const count = Math.max(1, Math.min(10, Math.ceil(targetUsd / SPACE_FUND_X402_CREDIT_USD)));
     setPayingId(raffleId);
     setHint(null);
     try {
-      const result = await payRaffleFund(
-        address,
-        tokenAddress,
-        raffleId,
-        amountUsd,
-        (msg) => setHint(msg)
-      );
-      setHint(
-        result.message ||
-          `Credited $${SPACE_FUND_X402_CREDIT_USD} toward prize pool.`
-      );
-      await load();
+      let last: Awaited<ReturnType<typeof payRaffleFund>> | null = null;
+      for (let i = 0; i < count; i++) {
+        if (count > 1) {
+          setHint(`Payment ${i + 1} of ${count} — ~$${SPACE_FUND_X402_CREDIT_USD} each…`);
+        }
+        last = await payRaffleFund(
+          address,
+          tokenAddress,
+          raffleId,
+          SPACE_FUND_X402_CREDIT_USD,
+          (msg) => setHint(msg)
+        );
+        if (!last.success) {
+          setHint(last.error || `Payment ${i + 1} did not complete.`);
+          break;
+        }
+      }
+      if (last?.success) {
+        const totalUsd = count * SPACE_FUND_X402_CREDIT_USD;
+        setHint(
+          last.message ||
+            `Thank you — $${totalUsd} credited toward the prize pool (${count}× ~$${SPACE_FUND_X402_CREDIT_USD}).`
+        );
+        await load();
+      }
     } catch (err) {
       setHint(err instanceof Error ? err.message : 'Payment failed');
     } finally {
@@ -225,8 +239,9 @@ export function RafflesPanel({
         <h3 className="text-lg font-semibold mb-1">Gift card raffles</h3>
         <p className="text-sm text-muted mb-3">
           <strong className="text-text">Fee recipient only:</strong> fund the full prize pool via
-          x402 ($Space) before entries open. Holders can enter after funding. At close, the Bankr
-          agent buys the gift card through{' '}
+          x402 ($Space) before entries open (~${SPACE_FUND_X402_CREDIT_USD} credited per wallet
+          signature). Holders can enter after funding. At close, the Bankr agent buys the gift card
+          through{' '}
           <a
             href="https://www.bitrefill.com/agents"
             className="text-accent-hover hover:underline"
@@ -415,7 +430,7 @@ export function RafflesPanel({
                             >
                               {payingId === raffle.id
                                 ? 'Paying…'
-                                : `Fund remaining $${remaining.toFixed(0)}`}
+                                : `Fund remaining ($${remaining.toFixed(0)})`}
                             </button>
                           ) : null;
                         })()}
