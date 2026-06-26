@@ -194,6 +194,31 @@ async function proxyAgentPoolX402(
   return { status: res.status, data };
 }
 
+async function proxyRaffleX402(
+  tokenAddress: string,
+  raffleId: string,
+  amountUsd: number,
+  xPayment?: string,
+  pinFundBase?: string,
+  pinFundUrl?: string,
+  pinPaymentRequiredHeader?: string
+): Promise<{ status: number; data: unknown }> {
+  const res = await fetch(`/api/communities/${tokenAddress}/raffles/x402`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      raffleId,
+      amountUsd,
+      xPayment,
+      pinFundBase,
+      pinFundUrl,
+      pinPaymentRequiredHeader,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { status: res.status, data };
+}
+
 function pinPaymentRequiredToFundBase(
   paymentRequired: PaymentRequired,
   fundBase: string
@@ -387,6 +412,51 @@ export async function payAgentPoolFund(
     data,
     amountUsd,
     (xPayment) => proxyAgentPoolX402(tokenAddress, skillId, amountUsd, xPayment),
+    onProgress
+  );
+}
+
+/** Fund a community raffle prize pool — fee recipient x402 via beneficiary fund URL. */
+export async function payRaffleFund(
+  walletAddress: Address,
+  tokenAddress: string,
+  raffleId: string,
+  amountUsd: number,
+  onProgress?: (message: string) => void
+): Promise<PayResult> {
+  onProgress?.('Checking Permit2 allowance for $Space…');
+  await ensurePermit2TokenAllowance(
+    walletAddress,
+    X402_PAYMENT_TOKEN_ADDRESS as Address,
+    X402_FUND_MAX_AUTHORIZE_ATOMIC,
+    onProgress
+  );
+
+  const { status, data } = await proxyRaffleX402(tokenAddress, raffleId, amountUsd);
+
+  const body = data as { requiresPayment?: boolean };
+  const isQuote = status === 402 || (status === 200 && body.requiresPayment);
+  if (!isQuote) {
+    if (status >= 400) {
+      throw new Error(formatPayError(data, status));
+    }
+    return data as PayResult;
+  }
+
+  return signAndPay(
+    walletAddress,
+    data,
+    amountUsd,
+    (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
+      proxyRaffleX402(
+        tokenAddress,
+        raffleId,
+        amountUsd,
+        xPayment,
+        pinFundBase,
+        pinFundUrl,
+        pinPaymentRequiredHeader
+      ),
     onProgress
   );
 }

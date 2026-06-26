@@ -43,6 +43,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
     canPinPosts: boolean;
     canCreateQuestion: boolean;
     canVoteOnQuestion: boolean;
+    voteUsesUnits: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -91,6 +92,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPinPosts: data.canPinPosts,
         canCreateQuestion: data.canCreateQuestion,
         canVoteOnQuestion: data.canVoteOnQuestion,
+        voteUsesUnits: data.voteUsesUnits,
       });
     } catch {
       setHolder({
@@ -112,6 +114,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canPinPosts: false,
         canCreateQuestion: false,
         canVoteOnQuestion: false,
+        voteUsesUnits: false,
       });
     }
   }, [address, tokenAddress]);
@@ -307,6 +310,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         onUpdate={load}
         canCreateQuestion={!!holder?.canCreateQuestion}
         canVoteOnQuestion={!!holder?.canVoteOnQuestion}
+        canManageRaffles={!!holder?.effectiveBeneficiary}
+        voteUsesUnits={!!holder?.voteUsesUnits}
         fundraisersRefreshKey={fundraisersRefreshKey}
       />
       <Footer />

@@ -363,3 +363,54 @@ export interface PetitionSpace {
   createdAt: number;
   updatedAt: number;
 }
+
+export type RaffleEntryRule = 'one_per_wallet' | 'one_per_unit';
+
+export type RaffleStatus =
+  | 'pending'
+  | 'open'
+  | 'drawing'
+  | 'completed'
+  | 'fulfilled'
+  | 'failed'
+  | 'cancelled';
+
+export interface RaffleEntry {
+  wallet: string;
+  tickets: number;
+  enteredAt: number;
+}
+
+/** Holder gift-card raffle — USDC pool via x402, Bitrefill purchase after draw. */
+export interface CommunityRaffle {
+  id: string;
+  tokenAddress: string;
+  title: string;
+  /** Display label, e.g. "Amazon $50" */
+  prizeLabel: string;
+  /** Agent hint for Bitrefill search, e.g. "amazon united states 50" */
+  productHint: string;
+  country: string;
+  prizeUsd: number;
+  goalUsd: number;
+  raisedUsd: number;
+  entryRule: RaffleEntryRule;
+  /** Minimum token balance to enter (ERC-20 spaces only). */
+  minBalance?: number | null;
+  durationHours: number;
+  startsAt: number | null;
+  endsAt: number | null;
+  status: RaffleStatus;
+  entries: RaffleEntry[];
+  createdBy: string;
+  createdAt: number;
+  fundedAt: number | null;
+  drawSeed: string;
+  drawSeedCommitment: string;
+  winnerWallet: string | null;
+  drawnAt: number | null;
+  totalTickets: number;
+  bankrAgentJobId: string | null;
+  fulfillmentNote: string | null;
+  bitrefillInvoiceId: string | null;
+}
