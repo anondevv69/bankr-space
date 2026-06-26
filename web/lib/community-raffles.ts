@@ -18,19 +18,25 @@ export const RAFFLE_FUND_BUFFER = 1.05;
 export const MIN_RAFFLE_DURATION_HOURS = 1;
 export const MAX_RAFFLE_DURATION_HOURS = 24 * 28;
 
+/** x402 accepts beneficiary `custom-*` campaigns — not `raffle-*`. */
 export function raffleX402CampaignId(raffleId: string): string {
-  return `raffle-${raffleId}`;
+  const slug = raffleId.toLowerCase().replace(/_/g, '-');
+  return `custom-${slug}`;
 }
 
 export function parseRaffleX402CampaignId(campaignId: string): string | null {
   const id = campaignId.trim().toLowerCase();
-  if (!id.startsWith('raffle-')) return null;
-  const raffleId = id.slice('raffle-'.length);
-  return raffleId.length > 0 ? raffleId : null;
+  if (!id.startsWith('custom-rfl-')) return null;
+  const slug = id.slice('custom-'.length);
+  return slug.length > 0 ? slug : null;
 }
 
 export function isRaffleX402CampaignId(campaignId: string): boolean {
   return parseRaffleX402CampaignId(campaignId) != null;
+}
+
+function normalizeRaffleId(id: string): string {
+  return id.toLowerCase().replace(/_/g, '-');
 }
 
 function clampPrizeUsd(value: unknown): number {
@@ -52,7 +58,7 @@ function clampRaised(value: unknown): number {
 }
 
 function newRaffleId(): string {
-  return `rfl_${Date.now().toString(36)}_${randomBytes(4).toString('hex')}`;
+  return `rfl-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
 }
 
 function drawSeedPair(): { drawSeed: string; drawSeedCommitment: string } {
@@ -75,7 +81,8 @@ export async function getRaffleById(
   raffleId: string
 ): Promise<CommunityRaffle | null> {
   const raffles = await getRaffles(tokenAddress);
-  return raffles.find((r) => r.id === raffleId) || null;
+  const norm = normalizeRaffleId(raffleId);
+  return raffles.find((r) => normalizeRaffleId(r.id) === norm) || null;
 }
 
 async function saveRaffles(tokenAddress: string, raffles: CommunityRaffle[]): Promise<void> {
@@ -186,7 +193,8 @@ export async function creditRaffleUsd(
   if (amount <= 0) return null;
 
   const raffles = await getRaffles(token);
-  const index = raffles.findIndex((r) => r.id === raffleId);
+  const norm = normalizeRaffleId(raffleId);
+  const index = raffles.findIndex((r) => normalizeRaffleId(r.id) === norm);
   if (index === -1) return null;
 
   let raffle = {
@@ -209,7 +217,8 @@ export async function enterCommunityRaffle(
   const w = wallet.toLowerCase();
 
   const raffles = await getRaffles(token);
-  const index = raffles.findIndex((r) => r.id === raffleId);
+  const norm = normalizeRaffleId(raffleId);
+  const index = raffles.findIndex((r) => normalizeRaffleId(r.id) === norm);
   if (index === -1) throw new Error('Raffle not found');
 
   const raffle = raffles[index];
@@ -315,7 +324,8 @@ export async function drawCommunityRaffle(
 ): Promise<CommunityRaffle | null> {
   const token = normalizeAddr(tokenAddress);
   const raffles = await getRaffles(token);
-  const index = raffles.findIndex((r) => r.id === raffleId);
+  const norm = normalizeRaffleId(raffleId);
+  const index = raffles.findIndex((r) => normalizeRaffleId(r.id) === norm);
   if (index === -1) return null;
 
   let raffle = raffles[index];
