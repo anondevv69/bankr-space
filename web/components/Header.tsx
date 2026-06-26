@@ -30,7 +30,7 @@ export function Header({
       <header className="mb-4 sm:mb-7 pt-2 sm:pt-4">
         <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <SiteLogo size={36} />
+            <SiteLogo size={32} />
             <Link
               href={backHref}
               className="hidden sm:inline text-sm text-muted hover:text-text"
@@ -48,11 +48,14 @@ export function Header({
     <header className="mb-4 sm:mb-7 pt-2 sm:pt-4">
       <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <SiteLogo size={44} />
+          <SiteLogo size={32} />
           <div className="min-w-0 hidden sm:block">
             {!embed.isEmbedded ? (
               <>
-                <p className="text-muted text-sm">
+                <h1 className="text-[26px] font-bold tracking-tight leading-tight">
+                  Bankr Space
+                </h1>
+                <p className="text-muted text-sm mt-1">
                   Token-gated spaces for Bankr-launched tokens
                 </p>
                 {syncUpdatedAt ? (
@@ -62,8 +65,8 @@ export function Header({
                 ) : null}
               </>
             ) : (
-              <p className="text-muted text-sm pt-1">
-                Wallet via Bankr sign-in
+              <p className="text-muted text-sm pt-2">
+                Bankr Space — wallet via Bankr sign-in
               </p>
             )}
           </div>
