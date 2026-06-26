@@ -127,7 +127,9 @@ export function RafflesPanel({
         }),
       });
       setShowCreate(false);
-      setHint('Raffle created — fund the prize pool to open entries.');
+      setHint(
+        'Raffle created — fund the full prize pool as fee recipient to open entries for holders.'
+      );
       await load();
     } catch (err) {
       setHint(err instanceof Error ? err.message : 'Create failed');
@@ -192,8 +194,9 @@ export function RafflesPanel({
       <div className="rounded-xl border border-border bg-surface p-4">
         <h3 className="text-lg font-semibold mb-1">Gift card raffles</h3>
         <p className="text-sm text-muted mb-3">
-          Fee recipient funds a prize pool via x402 ($Space). Holders enter while the raffle is
-          open. When it ends, the Bankr agent buys the gift card through{' '}
+          <strong className="text-text">Fee recipient only:</strong> fund the full prize pool via
+          x402 ($Space) before entries open. Holders can enter after funding. At close, the Bankr
+          agent buys the gift card through{' '}
           <a
             href="https://www.bitrefill.com/agents"
             className="text-accent-hover hover:underline"
@@ -202,8 +205,13 @@ export function RafflesPanel({
           >
             Bitrefill
           </a>{' '}
-          and delivers the code privately to the winner — never on the public feed.
+          — codes are delivered privately, never on the feed.
         </p>
+        {canManage ? (
+          <p className="text-xs text-muted mb-3">
+            Connect with your fee recipient wallet to create and pay for raffles.
+          </p>
+        ) : null}
         {canManage ? (
           <button
             type="button"
@@ -320,7 +328,7 @@ export function RafflesPanel({
                 {raffle.status === 'pending' ? (
                   <div>
                     <div className="flex justify-between text-xs text-muted mb-1">
-                      <span>Prize pool</span>
+                      <span>Prize pool (fee recipient)</span>
                       <span>
                         ${raffle.raisedUsd.toFixed(0)} / ${raffle.goalUsd.toFixed(0)}
                       </span>
@@ -333,6 +341,24 @@ export function RafflesPanel({
                     </div>
                     {canManage ? (
                       <div className="flex flex-wrap gap-2 mt-3">
+                        {(() => {
+                          const remaining = Math.max(
+                            0,
+                            Math.ceil((raffle.goalUsd - raffle.raisedUsd) * 100) / 100
+                          );
+                          return remaining > 0 ? (
+                            <button
+                              type="button"
+                              disabled={!isConnected || payingId === raffle.id}
+                              onClick={() => void fundRaffle(raffle.id, remaining)}
+                              className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg disabled:opacity-50"
+                            >
+                              {payingId === raffle.id
+                                ? 'Paying…'
+                                : `Fund remaining $${remaining.toFixed(0)}`}
+                            </button>
+                          ) : null;
+                        })()}
                         {FUND_PRESETS.filter((n) => n <= raffle.goalUsd).map((n) => (
                           <button
                             key={n}
@@ -341,13 +367,13 @@ export function RafflesPanel({
                             onClick={() => void fundRaffle(raffle.id, n)}
                             className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:border-accent disabled:opacity-50"
                           >
-                            {payingId === raffle.id ? 'Paying…' : `Fund $${n}`}
+                            +${n}
                           </button>
                         ))}
                       </div>
                     ) : (
                       <p className="text-xs text-muted mt-2">
-                        Waiting for fee recipient to fund the prize pool.
+                        Waiting for the fee recipient to fund the prize pool before entries open.
                       </p>
                     )}
                   </div>

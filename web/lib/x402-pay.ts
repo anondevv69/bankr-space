@@ -198,6 +198,7 @@ async function proxyRaffleX402(
   tokenAddress: string,
   raffleId: string,
   amountUsd: number,
+  payerWallet: string,
   xPayment?: string,
   pinFundBase?: string,
   pinFundUrl?: string,
@@ -205,7 +206,10 @@ async function proxyRaffleX402(
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`/api/communities/${tokenAddress}/raffles/x402`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wallet-address': payerWallet,
+    },
     body: JSON.stringify({
       raffleId,
       amountUsd,
@@ -432,7 +436,12 @@ export async function payRaffleFund(
     onProgress
   );
 
-  const { status, data } = await proxyRaffleX402(tokenAddress, raffleId, amountUsd);
+  const { status, data } = await proxyRaffleX402(
+    tokenAddress,
+    raffleId,
+    amountUsd,
+    walletAddress
+  );
 
   const body = data as { requiresPayment?: boolean };
   const isQuote = status === 402 || (status === 200 && body.requiresPayment);
@@ -452,6 +461,7 @@ export async function payRaffleFund(
         tokenAddress,
         raffleId,
         amountUsd,
+        walletAddress,
         xPayment,
         pinFundBase,
         pinFundUrl,
