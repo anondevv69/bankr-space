@@ -25,11 +25,12 @@ import { TokenBountiesPanel } from '@/components/TokenBountiesPanel';
 import { QuestionsPanel } from '@/components/QuestionsPanel';
 import { FundraisingTabPanel } from '@/components/FundraisingTabPanel';
 import { VestingTabPanel } from '@/components/VestingTabPanel';
+import { RafflesPanel } from '@/components/RafflesPanel';
 import { apiFetch } from '@/lib/wagmi';
 
 const REACTIONS = ['👍', '❤️', '🔥'] as const;
 
-type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs' | 'fundraisers' | 'vesting';
+type FeedSection = 'posts' | 'questions' | 'bounties' | 'oxjobs' | 'fundraisers' | 'vesting' | 'raffles';
 
 const POST_SUB_FILTERS: Array<{ id: PostFilter; label: string; icon: string }> = [
   { id: 'all', label: 'All', icon: '' },
@@ -46,6 +47,8 @@ const BOUNTIES_TAB = { id: 'bounties' as const, label: 'Bounties', icon: '🎯' 
 const FUNDRAISERS_TAB = { id: 'fundraisers' as const, label: 'Fundraisers', icon: '💰' };
 
 const VESTING_TAB = { id: 'vesting' as const, label: 'Vesting', icon: '🔒' };
+
+const RAFFLES_TAB = { id: 'raffles' as const, label: 'Raffles', icon: '🎁' };
 
 const JOBS_TAB = { id: 'oxjobs' as const, label: 'Jobs', icon: '💼' };
 
@@ -459,6 +462,8 @@ export function PostFeed({
   hideExtraTabs,
   canCreateQuestion,
   canVoteOnQuestion,
+  canManageRaffles,
+  voteUsesUnits,
   fundraisersRefreshKey,
 }: {
   tokenAddress: string;
@@ -474,6 +479,8 @@ export function PostFeed({
   hideExtraTabs?: boolean;
   canCreateQuestion?: boolean;
   canVoteOnQuestion?: boolean;
+  canManageRaffles?: boolean;
+  voteUsesUnits?: boolean;
   fundraisersRefreshKey?: string;
 }) {
   const { address } = useAppWallet();
@@ -485,6 +492,7 @@ export function PostFeed({
   const isBounties = section === 'bounties';
   const isFundraisers = section === 'fundraisers';
   const isVesting = section === 'vesting';
+  const isRaffles = section === 'raffles';
   const isQuestions = section === 'questions';
   const [sort, setSort] = useState<PostSort>('newest');
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -531,6 +539,7 @@ export function PostFeed({
             POSTS_TAB,
             VOTES_TAB,
             FUNDRAISERS_TAB,
+            RAFFLES_TAB,
             VESTING_TAB,
             BOUNTIES_TAB,
             ...(hasJobs ? [JOBS_TAB] : []),
@@ -653,6 +662,14 @@ export function PostFeed({
         />
       ) : isVesting ? (
         <VestingTabPanel tokenAddress={tokenAddress} symbol={tokenSymbol} />
+      ) : isRaffles ? (
+        <RafflesPanel
+          tokenAddress={tokenAddress}
+          symbol={tokenSymbol}
+          canManage={!!canManageRaffles}
+          canEnter={!!canVoteOnQuestion}
+          voteUsesUnits={voteUsesUnits}
+        />
       ) : isBounties ? (
         <TokenBountiesPanel
           tokenAddress={tokenAddress}
