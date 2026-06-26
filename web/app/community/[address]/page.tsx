@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useConnectWallet } from '@/components/WalletButton';
 import { useAppWallet } from '@/hooks/useAppWallet';
 import { useEmbeddedBankr } from '@/components/EmbeddedBankrProvider';
@@ -18,6 +18,11 @@ import { apiFetch } from '@/lib/wagmi';
 export default function CommunityPage({ params }: { params: { address: string } }) {
   const tokenAddress = params.address;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const raffleDeepLink = searchParams.get('raffle');
+  const tabDeepLink = searchParams.get('tab');
+  const initialFeedSection =
+    tabDeepLink === 'raffles' || raffleDeepLink ? ('raffles' as const) : undefined;
   const { address, isConnected, isEmbedded } = useAppWallet();
   const { connectWallet } = useConnectWallet();
   const embed = useEmbeddedBankr();
@@ -313,6 +318,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         canManageRaffles={!!holder?.effectiveBeneficiary}
         voteUsesUnits={!!holder?.voteUsesUnits}
         fundraisersRefreshKey={fundraisersRefreshKey}
+        initialSection={initialFeedSection}
+        highlightRaffleId={raffleDeepLink}
       />
       <Footer />
     </div>

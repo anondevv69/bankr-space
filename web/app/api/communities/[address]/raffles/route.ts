@@ -7,6 +7,7 @@ import {
   processExpiredRaffles,
   raffleX402CampaignId,
 } from '@/lib/community-raffles';
+import { communityRaffleUrl } from '@/lib/site-url';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -49,6 +50,7 @@ function publicRaffleView(
     x402CampaignId: raffleX402CampaignId(raffle.id),
     fulfillmentNote: raffle.fulfillmentNote,
     bankrAgentJobId: raffle.bankrAgentJobId,
+    shareUrl: communityRaffleUrl(raffle.tokenAddress, raffle.id),
   };
 }
 

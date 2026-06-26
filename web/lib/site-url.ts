@@ -20,6 +20,12 @@ export function communityUrl(tokenAddress: string): string {
   return `${getSiteUrl()}/community/${tokenAddress}`;
 }
 
+/** Deep link to a specific gift-card raffle on a space (opens Raffles tab). */
+export function communityRaffleUrl(tokenAddress: string, raffleId: string): string {
+  const base = communityUrl(tokenAddress);
+  return `${base}?tab=raffles&raffle=${encodeURIComponent(raffleId)}`;
+}
+
 export function communityUrlTemplate(): string {
   return `${getSiteUrl()}/community/{tokenContractAddress}`;
 }
