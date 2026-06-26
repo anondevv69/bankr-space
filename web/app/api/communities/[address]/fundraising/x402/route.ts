@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { applyFundraisingCredit } from '@/lib/apply-fundraising-credit';
+import { applyRaffleCredit, assertRaffleFundingPayer } from '@/lib/apply-raffle-credit';
+import { isRaffleX402CampaignId } from '@/lib/community-raffles';
 import { getTokenBeneficiaryWallet } from '@/lib/community-owner';
 import { isBeneficiaryCampaignId } from '@/lib/fundraising';
 import { fetchFundraisingX402Upstream } from '@/lib/fundraising-x402-fetch';
@@ -10,7 +12,7 @@ import {
 } from '@/lib/x402-facilitator-verify';
 import { parseX402UpstreamErrorDetailed } from '@/lib/x402-upstream-error';
 import { SPACE_FUND_X402_CREDIT_USD } from '@/lib/x402-config';
-import { normalizeAddr } from '@/lib/utils';
+import { normalizeAddr, getWalletFromRequest } from '@/lib/utils';
 import { getCommunity } from '@/lib/db';
 import { mergeCommunityDefaults } from '@/lib/community-posts';
 
@@ -25,6 +27,7 @@ type RouteParams = { params: Promise<{ address: string }> };
 export async function POST(req: Request, { params }: RouteParams) {
   const { address } = await params;
   const tokenAddress = normalizeAddr(address);
+  const wallet = getWalletFromRequest(req);
   const [beneficiaryWallet, community] = await Promise.all([
     getTokenBeneficiaryWallet(tokenAddress),
     getCommunity(tokenAddress),
@@ -63,6 +66,17 @@ export async function POST(req: Request, { params }: RouteParams) {
   }
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     return NextResponse.json({ error: 'amountUsd must be a positive number' }, { status: 400 });
+  }
+
+  if (isRaffleX402CampaignId(campaignId)) {
+    const payerCheck = await assertRaffleFundingPayer(
+      tokenAddress,
+      wallet,
+      xPayment || undefined
+    );
+    if (!payerCheck.ok) {
+      return NextResponse.json({ error: payerCheck.error }, { status: payerCheck.status });
+    }
   }
 
   try {
@@ -133,6 +147,36 @@ export async function POST(req: Request, { params }: RouteParams) {
       Number(data.goalUsd) > 0;
     if (handlerCredited) {
       return NextResponse.json(data, { status: 200 });
+    }
+
+    if (isRaffleX402CampaignId(campaignId)) {
+      const raffleCreditUsd = spaceCreditUsd;
+      const credit = await applyRaffleCredit(tokenAddress, campaignId, raffleCreditUsd);
+      if (!credit.success) {
+        console.error('raffle x402 credit after payment', credit.error);
+        return NextResponse.json(
+          {
+            error:
+              credit.error ||
+              'Payment succeeded but crediting the raffle failed. Contact support.',
+            paymentTaken: true,
+          },
+          { status: credit.status >= 500 ? 502 : credit.status }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        message: `Thank you — $${raffleCreditUsd} credited toward raffle prize pool`,
+        token: tokenAddress,
+        raffleId: credit.raffle.id,
+        campaignId,
+        raisedUsd: credit.raisedUsd,
+        goalUsd: credit.goalUsd,
+        funded: credit.funded,
+        raffle: credit.raffle,
+        x402UsedFallback: usedFallback,
+        spaceUrl: `https://www.bankr.space/community/${tokenAddress}`,
+      });
     }
 
     const credit = await applyFundraisingCredit(

@@ -14,6 +14,7 @@ import {
   X402_PAYMENT_TOKEN_ADDRESS,
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
+import { raffleX402CampaignId } from '@/lib/community-raffles';
 import { X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
 import { x402AcceptsIncludeToken } from '@/lib/x402-upstream';
 
@@ -158,11 +159,15 @@ async function proxyX402(
   xPayment?: string,
   pinFundBase?: string,
   pinFundUrl?: string,
-  pinPaymentRequiredHeader?: string
+  pinPaymentRequiredHeader?: string,
+  payerWallet?: string
 ): Promise<{ status: number; data: unknown }> {
   const res = await fetch(`/api/communities/${tokenAddress}/fundraising/x402`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(payerWallet ? { 'x-wallet-address': payerWallet } : {}),
+    },
     body: JSON.stringify({
       campaignId,
       amountUsd,
@@ -191,38 +196,6 @@ async function proxyAgentPoolX402(
     body: JSON.stringify({ skillId, amountUsd, xPayment }),
   });
   const data = await res.json().catch(() => ({}));
-  return { status: res.status, data };
-}
-
-async function proxyRaffleX402(
-  tokenAddress: string,
-  raffleId: string,
-  amountUsd: number,
-  payerWallet: string,
-  xPayment?: string,
-  pinFundBase?: string,
-  pinFundUrl?: string,
-  pinPaymentRequiredHeader?: string
-): Promise<{ status: number; data: unknown }> {
-  const res = await fetch(`/api/communities/${tokenAddress}/raffles/x402`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wallet-address': payerWallet,
-    },
-    body: JSON.stringify({
-      raffleId,
-      amountUsd,
-      xPayment,
-      pinFundBase,
-      pinFundUrl,
-      pinPaymentRequiredHeader,
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.status >= 400 && xPayment) {
-    console.error('[x402] raffle payment failed', { status: res.status, ...data });
-  }
   return { status: res.status, data };
 }
 
@@ -289,7 +262,8 @@ async function signAndPay(
   const payload = await createBankrExactPermit2PaymentPayload(
     walletAddress,
     pinnedRequired,
-    rawAccepted
+    rawAccepted,
+    fundBase
   );
   const xPayment = encodePaymentSignatureHeader(payload);
 
@@ -312,7 +286,8 @@ export async function paySpaceFund(
   campaignId: string,
   amountUsd: number,
   onProgress?: (message: string) => void,
-  customPaymentToken?: { address: string; symbol: string; isCustom?: boolean }
+  customPaymentToken?: { address: string; symbol: string; isCustom?: boolean },
+  requireFeeRecipientHeader?: boolean
 ): Promise<PayResult> {
   const isCustom = !!(customPaymentToken?.isCustom && customPaymentToken.address);
   const payTokenAddress = (isCustom ? customPaymentToken!.address : X402_PAYMENT_TOKEN_ADDRESS) as Address;
@@ -343,7 +318,16 @@ export async function paySpaceFund(
       quoteData,
       amountUsd,
       (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
-        proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader),
+        proxyX402(
+          tokenAddress,
+          campaignId,
+          amountUsd,
+          xPayment,
+          pinFundBase,
+          pinFundUrl,
+          pinPaymentRequiredHeader,
+          requireFeeRecipientHeader ? walletAddress : undefined
+        ),
       onProgress,
       payTokenAddress
     );
@@ -366,7 +350,16 @@ export async function paySpaceFund(
   onProgress?.(`Checking $${payTokenSymbol} balance…`);
   await assertSpaceFundPreflight(walletAddress, amountUsd, X402_FUND_MAX_AUTHORIZE_ATOMIC, payTokenAddress);
 
-  const { status, data } = await proxyX402(tokenAddress, campaignId, amountUsd);
+  const { status, data } = await proxyX402(
+    tokenAddress,
+    campaignId,
+    amountUsd,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    requireFeeRecipientHeader ? walletAddress : undefined
+  );
 
   const body = data as { requiresPayment?: boolean };
   const isQuote = status === 402 || (status === 200 && body.requiresPayment);
@@ -382,7 +375,16 @@ export async function paySpaceFund(
     data,
     amountUsd,
     (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
-      proxyX402(tokenAddress, campaignId, amountUsd, xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader),
+      proxyX402(
+        tokenAddress,
+        campaignId,
+        amountUsd,
+        xPayment,
+        pinFundBase,
+        pinFundUrl,
+        pinPaymentRequiredHeader,
+        requireFeeRecipientHeader ? walletAddress : undefined
+      ),
     onProgress
   );
 }
@@ -423,7 +425,7 @@ export async function payAgentPoolFund(
   );
 }
 
-/** Fund a community raffle prize pool — fee recipient x402 via beneficiary fund URL. */
+/** Fund a community raffle prize pool — same x402 path as fundraising Contribute. */
 export async function payRaffleFund(
   walletAddress: Address,
   tokenAddress: string,
@@ -431,59 +433,14 @@ export async function payRaffleFund(
   amountUsd: number,
   onProgress?: (message: string) => void
 ): Promise<PayResult> {
-  onProgress?.('Checking Permit2 allowance for $Space…');
-  const allowance = await ensurePermit2TokenAllowance(
+  return paySpaceFund(
     walletAddress,
-    X402_PAYMENT_TOKEN_ADDRESS as Address,
-    X402_FUND_MAX_AUTHORIZE_ATOMIC,
-    onProgress
-  );
-  if (allowance === 'approved') {
-    onProgress?.('Permit2 approved on-chain — checking balance…');
-  } else {
-    onProgress?.('Permit2 already approved — checking balance…');
-  }
-
-  onProgress?.('Checking $Space balance…');
-  await assertSpaceFundPreflight(
-    walletAddress,
-    amountUsd,
-    X402_FUND_MAX_AUTHORIZE_ATOMIC,
-    X402_PAYMENT_TOKEN_ADDRESS as Address
-  );
-
-  const { status, data } = await proxyRaffleX402(
     tokenAddress,
-    raffleId,
+    raffleX402CampaignId(raffleId),
     amountUsd,
-    walletAddress
-  );
-
-  const body = data as { requiresPayment?: boolean };
-  const isQuote = status === 402 || (status === 200 && body.requiresPayment);
-  if (!isQuote) {
-    if (status >= 400) {
-      throw new Error(formatPayError(data, status));
-    }
-    return data as PayResult;
-  }
-
-  return signAndPay(
-    walletAddress,
-    data,
-    amountUsd,
-    (xPayment, pinFundBase, pinFundUrl, pinPaymentRequiredHeader) =>
-      proxyRaffleX402(
-        tokenAddress,
-        raffleId,
-        amountUsd,
-        walletAddress,
-        xPayment,
-        pinFundBase,
-        pinFundUrl,
-        pinPaymentRequiredHeader
-      ),
-    onProgress
+    onProgress,
+    undefined,
+    true
   );
 }
 
