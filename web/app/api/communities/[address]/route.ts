@@ -42,6 +42,11 @@ import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
+import { fetchPublicBankrAgentProfile } from '@/lib/bankr-agent-profile';
+import {
+  normalizeBankrProjectSettings,
+  syncCommunityToBankrProfile,
+} from '@/lib/bankr-project-sync';
 import type { SocialLinks } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -96,9 +101,10 @@ export async function GET(_req: Request, { params }: RouteParams) {
       await saveCommunity(normalized);
     }
 
-    const [beneficiary, market] = await Promise.all([
+    const [beneficiary, market, bankrAgentProfile] = await Promise.all([
       getBeneficiaryInfo(tokenAddress, normalized.chain),
       fetchTokenMarketStats(tokenAddress, normalized.chain),
+      fetchPublicBankrAgentProfile(tokenAddress),
     ]);
 
     const withDisplay = withResolvedProfile(normalized);
@@ -106,6 +112,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
     return NextResponse.json({
       community: withDisplay,
       market,
+      bankrAgentProfile,
       posts: sortPostsWithPinned(posts, normalized.pinnedPosts || []),
       beneficiary,
     });
@@ -198,11 +205,15 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       );
     }
 
+    const touchesBankrProject =
+      body.bankrProject !== undefined || body.bankrProjectApiKey !== undefined;
+
     if (
       !touchesProfile &&
       !touchesAgent &&
       !touchesModeration &&
       !touchesAgentPool &&
+      !touchesBankrProject &&
       body.fundraising === undefined &&
       body.x402Config === undefined &&
       body.allowDeployerEdit === undefined &&
@@ -217,6 +228,13 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     ) {
       return NextResponse.json(
         { error: 'Only the fee recipient can manage fundraisers and payment settings' },
+        { status: 403 }
+      );
+    }
+
+    if (touchesBankrProject && !(await canActAsFeeRecipient(wallet, tokenAddress))) {
+      return NextResponse.json(
+        { error: 'Only the fee recipient can configure Bankr project sync' },
         { status: 403 }
       );
     }
@@ -354,6 +372,32 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       });
     }
 
+    let nextBankrProject = current.bankrProject;
+    let nextBankrProjectApiKey = current.bankrProjectApiKey;
+    if (touchesBankrProject) {
+      try {
+        const bankrSave = normalizeBankrProjectSettings(current.bankrProject, body);
+        nextBankrProject = bankrSave.bankrProject;
+        if (bankrSave.apiKey) {
+          nextBankrProjectApiKey = bankrSave.apiKey;
+        }
+        if (
+          nextBankrProject.enabled &&
+          !(nextBankrProjectApiKey || current.bankrProjectApiKey?.trim())
+        ) {
+          return NextResponse.json(
+            { error: 'Bankr API key required to enable project sync' },
+            { status: 400 }
+          );
+        }
+      } catch (err) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : 'Invalid Bankr project settings' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
@@ -383,19 +427,27 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       fundraising: nextFundraising,
       agentPool: nextAgentPool,
       x402Config: nextX402Config,
+      bankrProject: nextBankrProject,
+      ...(nextBankrProjectApiKey ? { bankrProjectApiKey: nextBankrProjectApiKey } : {}),
     });
 
     const synced = await syncCommunityProfile(updated, { force: true });
-    communities[index] = synced;
+    const bankrSynced = await syncCommunityToBankrProfile(synced);
+    communities[index] = bankrSynced.community;
     await setCommunities(communities);
 
-    const market = await fetchTokenMarketStats(tokenAddress, synced.chain);
-    const community = withResolvedProfile(synced);
+    const market = await fetchTokenMarketStats(tokenAddress, bankrSynced.community.chain);
+    const community = withResolvedProfile(bankrSynced.community);
 
     return NextResponse.json({
       success: true,
       community,
       market,
+      bankrProfileSync: bankrSynced.profile
+        ? { ok: true, slug: bankrSynced.profile.slug }
+        : bankrSynced.error
+          ? { ok: false, error: bankrSynced.error }
+          : undefined,
       links: {
         communityPage: communityUrl(tokenAddress),
       },

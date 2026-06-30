@@ -10,9 +10,11 @@ import { Footer, Header } from '@/components/Header';
 import { CommunityProfile } from '@/components/CommunityProfile';
 import { PetitionBackersPanel } from '@/components/PetitionBackersPanel';
 import { PostFeed, PostForm } from '@/components/PostFeed';
+import { BankrProjectPanel } from '@/components/BankrProjectPanel';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
 import type { BeneficiaryInfo, Community, Post } from '@/lib/types';
+import type { BankrAgentProfile } from '@/lib/bankr-agent-profile';
 import { apiFetch } from '@/lib/wagmi';
 
 export default function CommunityPage({ params }: { params: { address: string } }) {
@@ -28,6 +30,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const embed = useEmbeddedBankr();
   const [community, setCommunity] = useState<Community | null>(null);
   const [beneficiary, setBeneficiary] = useState<BeneficiaryInfo | null>(null);
+  const [bankrAgentProfile, setBankrAgentProfile] = useState<BankrAgentProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [holder, setHolder] = useState<{
     holds: boolean;
@@ -61,6 +64,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
       if (!res.ok) throw new Error(data.error);
       setCommunity(data.community);
       setBeneficiary(data.beneficiary || null);
+      setBankrAgentProfile(data.bankrAgentProfile || null);
       setPosts(data.posts || []);
     } catch {
       setCommunity(null);
@@ -216,6 +220,8 @@ export default function CommunityPage({ params }: { params: { address: string } 
         onUpdated={load}
       />
 
+      <BankrProjectPanel community={community} profile={bankrAgentProfile} />
+
       {!community.verified && canVerify ? (
         <button
           type="button"
@@ -293,7 +299,24 @@ export default function CommunityPage({ params }: { params: { address: string } 
       ) : null}
 
       {canPost ? (
-        <PostForm tokenAddress={tokenAddress} onPosted={load} />
+        <PostForm
+          tokenAddress={tokenAddress}
+          onPosted={load}
+          syncToBankrProject={
+            !!(
+              community.bankrProject?.enabled &&
+              community.bankrProject?.syncPosts &&
+              holder?.canEditProfile
+            )
+          }
+          showBankrProjectSyncToggle={
+            !!(
+              community.bankrProject?.enabled &&
+              community.bankrProject?.syncPosts &&
+              holder?.canEditProfile
+            )
+          }
+        />
       ) : isConnected ? null : (
         <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">
           👀 View-only mode —{' '}

@@ -14,6 +14,7 @@ import { parsePostSource } from '@/lib/post-source';
 import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
 import { buildPostReplyText } from '@/lib/agent-reply';
+import { syncPostToBankrProject } from '@/lib/bankr-project-sync';
 import type { Post } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -118,6 +119,20 @@ export async function POST(req: Request, { params }: RouteParams) {
     await setPostsForToken(tokenAddress, posts);
     await updateCommunityCounts(tokenAddress, posts);
 
+    const wantsBankrSync =
+      body.syncToBankrProject === true ||
+      (body.syncToBankrProject !== false &&
+        normalized.bankrProject?.enabled &&
+        normalized.bankrProject?.syncPosts);
+
+    const syncToBankrProject =
+      wantsBankrSync && permissions.canEditProfile && !parentPostId;
+
+    let bankrProjectUpdate: { synced: boolean; error?: string } | undefined;
+    if (syncToBankrProject) {
+      bankrProjectUpdate = await syncPostToBankrProject(normalized, content);
+    }
+
     return NextResponse.json({
       success: true,
       postId,
@@ -125,6 +140,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       post: newPost,
       communityLink: communityUrl(tokenAddress),
       replyText: buildPostReplyText(community.symbol, content, tokenAddress),
+      bankrProjectUpdate,
       links: {
         communityPage: communityUrl(tokenAddress),
       },

@@ -72,6 +72,11 @@ export function mergeCommunityDefaults(community: Community): Community {
     usePlatformAgent: community.usePlatformAgent ?? false,
     platformAgentSkills: community.platformAgentSkills ?? false,
     blockedKeywords: community.blockedKeywords ?? [],
+    bankrProject: community.bankrProject ?? {
+      enabled: false,
+      syncProfile: true,
+      syncPosts: true,
+    },
     pinnedPosts,
     pinnedPostId: pinnedPosts[0]?.postId ?? null,
   };

@@ -493,6 +493,16 @@ export function CommunityProfile({
   const [x402CreditUsd, setX402CreditUsd] = useState<number>(
     community.x402Config?.creditUsd ?? 1
   );
+  const [bankrProjectEnabled, setBankrProjectEnabled] = useState(
+    community.bankrProject?.enabled ?? false
+  );
+  const [bankrProjectSyncProfile, setBankrProjectSyncProfile] = useState(
+    community.bankrProject?.syncProfile ?? true
+  );
+  const [bankrProjectSyncPosts, setBankrProjectSyncPosts] = useState(
+    community.bankrProject?.syncPosts ?? true
+  );
+  const [bankrProjectApiKey, setBankrProjectApiKey] = useState('');
   const [resolvingAgentIndex, setResolvingAgentIndex] = useState<number | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -541,6 +551,10 @@ export function CommunityProfile({
     setAgentPoolCampaigns(
       community.agentPool?.campaigns || DEFAULT_AGENT_POOL_CAMPAIGNS.map((c) => ({ ...c }))
     );
+    setBankrProjectEnabled(community.bankrProject?.enabled ?? false);
+    setBankrProjectSyncProfile(community.bankrProject?.syncProfile ?? true);
+    setBankrProjectSyncPosts(community.bankrProject?.syncPosts ?? true);
+    setBankrProjectApiKey('');
   }, [community]);
 
   useEffect(() => {
@@ -579,6 +593,10 @@ export function CommunityProfile({
     setAgentPoolCampaigns(
       community.agentPool?.campaigns || DEFAULT_AGENT_POOL_CAMPAIGNS.map((c) => ({ ...c }))
     );
+    setBankrProjectEnabled(community.bankrProject?.enabled ?? false);
+    setBankrProjectSyncProfile(community.bankrProject?.syncProfile ?? true);
+    setBankrProjectSyncPosts(community.bankrProject?.syncPosts ?? true);
+    setBankrProjectApiKey('');
   }
 
   function parseBlockedKeywordsFromText(): string[] {
@@ -757,6 +775,18 @@ export function CommunityProfile({
                   priceLabel: x402PriceLabel.trim() || null,
                   creditUsd: x402CreditUsd || 1,
                 },
+              }
+            : {}),
+          ...(canEditFundraising
+            ? {
+                bankrProject: {
+                  enabled: bankrProjectEnabled,
+                  syncProfile: bankrProjectSyncProfile,
+                  syncPosts: bankrProjectSyncPosts,
+                },
+                ...(bankrProjectApiKey.trim()
+                  ? { bankrProjectApiKey: bankrProjectApiKey.trim() }
+                  : {}),
               }
             : {}),
           ...(canManageTeamAccess
@@ -1324,6 +1354,95 @@ export function CommunityProfile({
                     onPriceLabel={setX402PriceLabel}
                     onCreditUsd={setX402CreditUsd}
                   />
+                </EditSection>
+              ) : null}
+
+              {canEditFundraising ? (
+                <EditSection
+                  title="Bankr project sync"
+                  hint="Mirror this Space on bankr.bot/agents — profile fields and posts become project updates. Uses your fee-recipient Bankr API key (bankr.bot/api-keys)."
+                >
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={bankrProjectEnabled}
+                      onChange={(e) => setBankrProjectEnabled(e.target.checked)}
+                    />
+                    <span>
+                      <span className="font-medium">Sync Space ↔ Bankr project</span>
+                      <span className="block text-xs text-muted mt-0.5">
+                        When enabled, saving profile pushes name, description, website, and products.
+                        Posts from profile editors can publish to the project update feed.
+                      </span>
+                    </span>
+                  </label>
+                  {bankrProjectEnabled ? (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Bankr API key</label>
+                        <input
+                          type="password"
+                          autoComplete="off"
+                          placeholder={
+                            community.bankrProject?.apiKeyConfigured
+                              ? 'Saved — paste to replace'
+                              : 'bk_… from bankr.bot/api-keys'
+                          }
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
+                          value={bankrProjectApiKey}
+                          onChange={(e) => setBankrProjectApiKey(e.target.value)}
+                        />
+                      </div>
+                      <label className="flex items-start gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={bankrProjectSyncProfile}
+                          onChange={(e) => setBankrProjectSyncProfile(e.target.checked)}
+                        />
+                        <span>
+                          <span className="font-medium">Sync profile on save</span>
+                          <span className="block text-xs text-muted mt-0.5">
+                            Description, website, icon, token, and enabled fundraisers/goals.
+                          </span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={bankrProjectSyncPosts}
+                          onChange={(e) => setBankrProjectSyncPosts(e.target.checked)}
+                        />
+                        <span>
+                          <span className="font-medium">Publish posts as project updates</span>
+                          <span className="block text-xs text-muted mt-0.5">
+                            Profile editors&apos; top-level posts also appear on bankr.bot/agents.
+                          </span>
+                        </span>
+                      </label>
+                      {community.bankrProject?.lastSyncedAt ? (
+                        <p className="text-xs text-muted">
+                          Last profile sync:{' '}
+                          {new Date(community.bankrProject.lastSyncedAt).toLocaleString()}
+                        </p>
+                      ) : null}
+                      {community.bankrProject?.lastSyncError ? (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          {community.bankrProject.lastSyncError}
+                        </p>
+                      ) : null}
+                      <a
+                        href="https://docs.bankr.bot/agent-profiles/overview"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent-hover hover:underline"
+                      >
+                        Agent Profiles docs →
+                      </a>
+                    </div>
+                  ) : null}
                 </EditSection>
               ) : null}
 
