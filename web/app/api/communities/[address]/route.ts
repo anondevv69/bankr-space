@@ -47,6 +47,7 @@ import {
   normalizeBankrProjectSettings,
   syncCommunityToBankrProfile,
 } from '@/lib/bankr-project-sync';
+import { resolveTweetMediaFromStatusUrl } from '@/lib/tweet-media';
 import type { SocialLinks } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -152,6 +153,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       body.socialLinks !== undefined ||
       body.customIconUrl !== undefined ||
       body.customBannerUrl !== undefined ||
+      body.tweetBannerFrom !== undefined ||
+      body.tweetIconFrom !== undefined ||
       body.useBankrImage !== undefined ||
       body.useDexIcon !== undefined ||
       body.useDexBanner !== undefined ||
@@ -398,6 +401,75 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       }
     }
 
+    let nextCustomIconUrl =
+      body.customIconUrl !== undefined
+        ? normalizeBannerUrl(body.customIconUrl)
+        : current.customIconUrl ?? null;
+    let nextCustomBannerUrl =
+      body.customBannerUrl !== undefined
+        ? normalizeBannerUrl(body.customBannerUrl)
+        : current.customBannerUrl ?? null;
+
+    const tweetImageIndex =
+      body.tweetImageIndex !== undefined && Number.isFinite(Number(body.tweetImageIndex))
+        ? Math.max(0, Math.floor(Number(body.tweetImageIndex)))
+        : undefined;
+
+    let tweetMediaApplied:
+      | {
+          bannerFrom?: string;
+          bannerUrl?: string | null;
+          iconFrom?: string;
+          iconUrl?: string | null;
+        }
+      | undefined;
+
+    if (body.tweetBannerFrom !== undefined) {
+      const statusUrl = String(body.tweetBannerFrom || '').trim();
+      if (!statusUrl) {
+        nextCustomBannerUrl = null;
+      } else {
+        const resolved = await resolveTweetMediaFromStatusUrl(statusUrl, {
+          index: tweetImageIndex,
+        });
+        if (!resolved?.suggested.banner) {
+          return NextResponse.json(
+            { error: 'No banner image found on that tweet' },
+            { status: 400 }
+          );
+        }
+        nextCustomBannerUrl = normalizeBannerUrl(resolved.suggested.banner);
+        tweetMediaApplied = {
+          ...(tweetMediaApplied || {}),
+          bannerFrom: statusUrl,
+          bannerUrl: nextCustomBannerUrl,
+        };
+      }
+    }
+
+    if (body.tweetIconFrom !== undefined) {
+      const statusUrl = String(body.tweetIconFrom || '').trim();
+      if (!statusUrl) {
+        nextCustomIconUrl = null;
+      } else {
+        const resolved = await resolveTweetMediaFromStatusUrl(statusUrl, {
+          index: tweetImageIndex,
+        });
+        if (!resolved?.suggested.icon) {
+          return NextResponse.json(
+            { error: 'No icon image found on that tweet' },
+            { status: 400 }
+          );
+        }
+        nextCustomIconUrl = normalizeBannerUrl(resolved.suggested.icon);
+        tweetMediaApplied = {
+          ...(tweetMediaApplied || {}),
+          iconFrom: statusUrl,
+          iconUrl: nextCustomIconUrl,
+        };
+      }
+    }
+
     const updated = mergeCommunityDefaults({
       ...current,
       description: nextDescription,
@@ -411,14 +483,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         body.blockedKeywords !== undefined
           ? normalizeBlockedKeywords(body.blockedKeywords)
           : current.blockedKeywords ?? [],
-      customIconUrl:
-        body.customIconUrl !== undefined
-          ? normalizeBannerUrl(body.customIconUrl)
-          : current.customIconUrl ?? null,
-      customBannerUrl:
-        body.customBannerUrl !== undefined
-          ? normalizeBannerUrl(body.customBannerUrl)
-          : current.customBannerUrl ?? null,
+      customIconUrl: nextCustomIconUrl,
+      customBannerUrl: nextCustomBannerUrl,
       useBankrImage: boolField(body, 'useBankrImage', current.useBankrImage ?? true),
       useDexIcon: boolField(body, 'useDexIcon', current.useDexIcon ?? true),
       useDexBanner: boolField(body, 'useDexBanner', current.useDexBanner ?? true),
@@ -448,6 +514,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         : bankrSynced.error
           ? { ok: false, error: bankrSynced.error }
           : undefined,
+      tweetMediaApplied,
       links: {
         communityPage: communityUrl(tokenAddress),
       },

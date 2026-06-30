@@ -58,6 +58,7 @@ Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bank
 | `TERMINOLOGY.md` | **community vs space** — read first |
 | `ONE-LINE-INTENTS.md` | Intent → API table |
 | `BENEFICIARY-ACTIONS.md` | Verify, profile, pin, post+pin |
+| `X-TWEET-IMAGE-PROFILE.md` | Banner/icon from X tweet (hotlink) |
 | `INSTANT-LINK-REPLIES.md` | TMP/ARCHIVE links — no HTTP |
 | `FUNDRAISING.md` | Discover fundraisers, guide x402 contributions |
 | `community-autopilot.md` | Step-by-step flows |

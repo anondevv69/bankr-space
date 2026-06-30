@@ -76,12 +76,16 @@ Read **`HOLDER-VOTES.md`** — `GET /api/holders/{token}?wallet={linked}` → `c
 @bankrbot set TMP space description: Token marketplace for holders
 @bankrbot enable Dex banner on Space space
 @bankrbot set Space space banner to https://example.com/banner.png
+@bankrbot use this as Space banner          ← reply to tweet with image (see X-TWEET-IMAGE-PROFILE.md)
+@bankrbot set this photo as $TMP space icon
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
 **Editable fields:** `description`, `socialLinks`, `customIconUrl` (square **1024×1024px max**, 1:1 — matches Bankr launches), `customBannerUrl` (**exactly 1500×500px**, 3:1), source toggles (all default **on**): `useBankrImage`, `useDexIcon`, `useDexBanner`, `useDexDescription`, `useDexLinks`
 
 **Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
+
+**X tweet images (hotlink):** When user replies to an image tweet (“use this as banner”), read **`X-TWEET-IMAGE-PROFILE.md`** — `GET /api/oembed/tweet/media?url={parent}` then `PATCH` with `tweetBannerFrom` / `tweetIconFrom` (stores `pbs.twimg.com` URL, **no IPFS**). Do **not** use `/api/upload/banner` unless user asks to pin to IPFS.
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 
@@ -261,6 +265,7 @@ These phrases MUST load `bankr-communities` **before** tool selection — same a
 
 - verify space / verify $TICKER
 - update profile / add links / add website / set description + space/community or token
+- banner / icon / photo / image + space (see **X-TWEET-IMAGE-PROFILE.md**)
 - pin post / pin it / unpin + space/community
 - post in space + pin
 - enable / start / turn on + fundraiser / fundraising + space

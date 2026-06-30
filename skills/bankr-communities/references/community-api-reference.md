@@ -41,7 +41,8 @@ Returns: `community`, `stats`, `recentPosts`, `fundraising`, `opportunities`, `l
 ```
 GET   /api/communities
 GET   /api/communities/{tokenAddress}
-PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks? }  ← fee beneficiary
+PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex? }  ← fee beneficiary
+GET   /api/oembed/tweet/media?url={status_url}&index=0   ← resolve pbs.twimg.com from tweet (hotlink, no pin)
 POST  /api/communities/{tokenAddress}     body: { description? }
 POST  /api/communities/{tokenAddress}/verify
 POST  /api/communities/{tokenAddress}/posts   body: { content, source? }  → returns postId
