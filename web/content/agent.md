@@ -263,6 +263,8 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 
 **X reply → banner/icon from tweet:** Skill **`X-TWEET-IMAGE-PROFILE.md`** — parent status URL → `PATCH tweetBannerFrom` / `tweetIconFrom` (no IPFS upload).
 
+**Bankr project sync:** Skill **`BANKR-PROJECT-SYNC.md`** — profile/post writes sync to bankr.bot/agents after fee recipient enables API key on site.
+
 **X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):
 - **"post this/that in $TICKER space"** (replying to a tweet) → parent status URL (shows tweet card on site)
 - **`post in TICKER: text`** or **`post {words} in TICKER space`** → user's text only

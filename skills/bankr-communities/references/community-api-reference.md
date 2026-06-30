@@ -41,11 +41,11 @@ Returns: `community`, `stats`, `recentPosts`, `fundraising`, `opportunities`, `l
 ```
 GET   /api/communities
 GET   /api/communities/{tokenAddress}
-PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex? }  ← fee beneficiary
+PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex?, bankrProject? }  ← fee beneficiary; bankrProject sync requires one-time bk_ key on site
 GET   /api/oembed/tweet/media?url={status_url}&index=0   ← resolve pbs.twimg.com from tweet (hotlink, no pin)
 POST  /api/communities/{tokenAddress}     body: { description? }
 POST  /api/communities/{tokenAddress}/verify
-POST  /api/communities/{tokenAddress}/posts   body: { content, source? }  → returns postId
+POST  /api/communities/{tokenAddress}/posts   body: { content, source?, syncToBankrProject? }  → returns postId; syncToBankrProject pushes to bankr.bot/agents when enabled
 ```
 
 **Post `source` (optional provenance):**

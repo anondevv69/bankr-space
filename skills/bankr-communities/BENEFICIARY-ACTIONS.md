@@ -218,11 +218,13 @@ Read **`FUNDRAISING.md`** for discovery / contribute flows (reads + donor guidan
        "viaAgent": true,
        "agentId": "bankrbot",
        "externalRef": "{id_if_known}"
-     }
+     },
+     "syncToBankrProject": true
    }
    headers: x-wallet-address, x-client: agent
    → save postId from response
    See POST-SOURCE.md for trigger selection.
+   If Space has Bankr project post sync on, include `"syncToBankrProject": true` unless user says space-only. See **BANKR-PROJECT-SYNC.md**.
 3. If user asked to pin:
    - GET /api/holders/{token}?wallet={linked} again → if canPinPosts:
      POST /api/communities/{tokenAddress}/pin-post  body: { "postId": "{postId}", "action": "pin" }
