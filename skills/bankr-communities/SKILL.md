@@ -60,6 +60,8 @@ If skill version < 1.23 or HOLDER-VOTES missing → **re-install skill from GitH
 
 User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`X-REPLY-POST-CONTENT.md`** (X reply vs explicit text) and **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
+User says **banner / icon / photo from tweet** → read **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media` or `PATCH` `tweetBannerFrom` / `tweetIconFrom` (hotlink `pbs.twimg.com`, no IPFS).
+
 | User says | Agent does |
 |-----------|------------|
 | **verify** the **TMP** space (or community) | `POST …/verify` (fee beneficiary wallet) |
@@ -281,6 +283,7 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 |------|---------|
 | `TERMINOLOGY.md` | **community vs space** — read first |
 | `X-REPLY-POST-CONTENT.md` | **X reply: post THIS = parent tweet; explicit text = user words** |
+| `X-TWEET-IMAGE-PROFILE.md` | **X reply: banner/icon from tweet → pbs.twimg.com hotlink (no IPFS)** |
 | `POST-SOURCE.md` | **Mandatory `source` on every agent post** (X DM, mention, terminal) |
 | `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin, enable fundraisers — tweet + terminal** |
 | `FUNDRAISING.md` | **Discover open/completed fundraisers, guide USDC x402 contributions** |

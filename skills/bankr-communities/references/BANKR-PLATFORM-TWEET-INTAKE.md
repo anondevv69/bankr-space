@@ -12,6 +12,7 @@
 @bankrbot post in TMP space: hello holders
 @bankrbot verify the TMP space
 @bankrbot add website https://example.com to TMP space profile
+@bankrbot use this as Space banner
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
@@ -31,7 +32,7 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 On tweet/DM matching space intent (user may say community):
 
 ```
-1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER, **enable/start fundraiser**, **custom fundraiser**, contribute, fundraising + space)
+1. MATCH trigger (link, verify, post in, pin, update profile, add links, **banner/icon/photo from tweet**, members, latest on $TICKER, **enable/start fundraiser**, **custom fundraiser**, contribute, fundraising + space)
 2. use_skill("bankr-communities")     ← BEFORE tool selection (before swaps/deploys)
 3. Writes → BENEFICIARY-ACTIONS.md → GET /api/holders?wallet= → POST/PATCH/pin-post
 4. Link question → GET /api/agent/link?q={TICKER} or instant table
@@ -41,6 +42,9 @@ On tweet/DM matching space intent (user may say community):
 
 **Write acceptance test:** `@bankrbot verify the TMP space`  
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
+
+**Write acceptance test:** `@bankrbot use this as Space banner` (reply to tweet with image)  
+Must log: `GET …/api/oembed/tweet/media?url={parent}` then `PATCH …/communities/{token}` with `tweetBannerFrom` (pbs.twimg.com hotlink — **not** `/api/upload/banner`).
 
 **Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
 Must log: `POST …/posts` **with `source`** (see POST-SOURCE.md) then `POST …/pin-post` if verified beneficiary.
