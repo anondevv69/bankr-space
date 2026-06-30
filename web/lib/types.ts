@@ -73,6 +73,21 @@ export interface FundraisingState {
  * Per-space x402 payment configuration set by the fee recipient.
  * If absent, the global $Space token + platform fund URL is used.
  */
+/** Bankr Agent Profile sync — mirrors bankr.bot/agents project fields. */
+export interface BankrProjectSync {
+  /** Master switch for profile + post sync */
+  enabled?: boolean;
+  /** Push description, website, products on space save */
+  syncProfile?: boolean;
+  /** Push privileged top-level posts as project updates */
+  syncPosts?: boolean;
+  /** Set on API responses — key stored server-side only */
+  apiKeyConfigured?: boolean;
+  lastSyncedAt?: number | null;
+  lastSyncError?: string | null;
+  slug?: string | null;
+}
+
 export interface SpaceX402Config {
   /** ERC-20 token address to accept for contributions (null = $Space default) */
   tokenAddress?: string | null;
@@ -224,6 +239,10 @@ export interface Community {
   agentPool?: AgentPoolState;
   /** POIDH open bounties — on-chain crowdfunding (no x402). */
   poidhBounties?: PoidhBountyState;
+  /** Sync Space profile + posts to bankr.bot/agents project (fee recipient API key). */
+  bankrProject?: BankrProjectSync;
+  /** Server-only — never returned to clients */
+  bankrProjectApiKey?: string;
   /** @deprecated use pinnedPosts */
   pinnedPostId?: string | null;
   pinnedPosts?: PinnedPost[];

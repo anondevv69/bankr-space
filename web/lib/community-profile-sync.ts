@@ -175,12 +175,18 @@ export function resolveCommunityProfile(community: Community): ResolvedCommunity
 
 export function withResolvedProfile(community: Community): Community {
   const resolved = resolveCommunityProfile(community);
+  const { bankrProjectApiKey: _key, ...rest } = community;
+  const configured = Boolean(community.bankrProjectApiKey?.trim());
   return {
-    ...community,
+    ...rest,
     description: resolved.description,
     imageUrl: resolved.imageUrl,
     bannerUrl: resolved.bannerUrl,
     displaySocialLinks: resolved.displaySocialLinks,
+    bankrProject: {
+      ...(community.bankrProject || {}),
+      apiKeyConfigured: configured,
+    },
   };
 }
 
