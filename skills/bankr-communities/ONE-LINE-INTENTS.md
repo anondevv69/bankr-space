@@ -36,6 +36,9 @@
 | **start** / **create** space for **$TMP** | search → `POST /api/communities/{token}` `{ description? }` + header `x-wallet-address: {linked}` |
 | **verify** **$TMP** space | `GET /api/holders/{token}?wallet={linked}` → `POST /api/communities/{token}/verify` (fee beneficiary) |
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
+| **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media?url={parent}` → `PATCH` `{ tweetBannerFrom }` |
+| **set banner** to **pbs.twimg.com** URL on **TMP** | `PATCH` `{ customBannerUrl: "https://pbs.twimg.com/…" }` (hotlink, no IPFS) |
+| **post** in **Space** (project sync on) | `POST …/posts` `{ content, syncToBankrProject: true, source }` → Space + bankr.bot/agents update |
 | **enable** / **start** **custom** fundraiser **"title"** **$10** on **SPACE** | **`BENEFICIARY-ACTIONS.md`** → holders → GET community → merge `raisedUsd` → `PATCH …/communities/{token}` `{ fundraising: { campaigns } }` |
 | **enable** Dex profile / Dex boost fundraiser on **TMP** | same PATCH — `id`: `dex-profile` or `dex-boost`, preset labels/goals |
 | **pin** post in **TMP** / **pin it** after post | `POST /api/communities/{token}/pin-post` `{ postId, action: "pin" }` (verified beneficiary) |
@@ -57,6 +60,7 @@
 @bankrbot what's the latest on the TMP community?   ← same intent
 @bankrbot verify the TMP space
 @bankrbot add website https://tokenmarketplace.shop to TMP space profile
+@bankrbot use this as Space banner
 @bankrbot post in TMP space: launch update — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot post in TMP space: gm holders

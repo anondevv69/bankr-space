@@ -1,7 +1,7 @@
 {
   "name": "bankr-communities",
   "displayName": "Bankr Space",
-  "skillVersion": "1.23.0",
+  "skillVersion": "1.24.0",
   "defaultSiteUrl": "https://bankr.space",
   "COMMUNITIES_SITE_URL": "https://bankr.space",
   "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
@@ -36,6 +36,8 @@
     "PLATFORM-AGENT.md",
     "POST-SOURCE.md",
     "X-REPLY-POST-CONTENT.md",
+    "X-TWEET-IMAGE-PROFILE.md",
+    "BANKR-PROJECT-SYNC.md",
     "INSTANT-LINK-REPLIES.md",
     "GET-LINK.md",
     "LINK-INTENT-ONLY.md",
@@ -48,7 +50,7 @@
     "references/community-api-reference.md",
     "references/dm-intents.md"
   ],
-  "bankrNote": "Writes: verify, PATCH profile, post, pin, fundraising, holder votes. Start vote: POST /api/agent/start-vote { symbol, prompt } — Space token = 0xef703b… when user says Space/$SPACE. Never say no poll feature. Petition spaces: unit holders vote only. Use linked wallet in x-wallet-address.",
+  "bankrNote": "Writes: verify, PATCH profile (incl. tweetBannerFrom/tweetIconFrom hotlink), post (+ optional Bankr project update), pin, fundraising, holder votes. Bankr project sync: one-time API key on site — then PATCH/post auto-sync to bankr.bot/agents. Start vote: POST /api/agent/start-vote { symbol, prompt } — Space token = 0xef703b… when user says Space/$SPACE. Never say no poll feature. Petition spaces: unit holders vote only. Use linked wallet in x-wallet-address.",
   "routingKeywords": [
     "space",
     "community",
@@ -62,6 +64,12 @@
     "verify space",
     "post in",
     "pin post",
+    "banner",
+    "icon",
+    "photo",
+    "use this as banner",
+    "bankr project",
+    "project update",
     "bankr.space"
   ]
 }
