@@ -42,7 +42,7 @@ import { getWalletFromRequest, normalizeAddr } from '@/lib/utils';
 import { communityUrl } from '@/lib/site-url';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
-import { fetchPublicBankrAgentProfile } from '@/lib/bankr-agent-profile';
+import { fetchBankrAgentProfileBundle } from '@/lib/bankr-agent-profile';
 import {
   normalizeBankrProjectSettings,
   syncCommunityToBankrProfile,
@@ -102,10 +102,10 @@ export async function GET(_req: Request, { params }: RouteParams) {
       await saveCommunity(normalized);
     }
 
-    const [beneficiary, market, bankrAgentProfile] = await Promise.all([
+    const [beneficiary, market, bankrBundle] = await Promise.all([
       getBeneficiaryInfo(tokenAddress, normalized.chain),
       fetchTokenMarketStats(tokenAddress, normalized.chain),
-      fetchPublicBankrAgentProfile(tokenAddress),
+      fetchBankrAgentProfileBundle(tokenAddress),
     ]);
 
     const withDisplay = withResolvedProfile(normalized);
@@ -113,7 +113,9 @@ export async function GET(_req: Request, { params }: RouteParams) {
     return NextResponse.json({
       community: withDisplay,
       market,
-      bankrAgentProfile,
+      bankrAgentProfile: bankrBundle.profile,
+      bankrProfileTweets: bankrBundle.tweets,
+      bankrOriginalTweet: bankrBundle.originalTweet,
       posts: sortPostsWithPinned(posts, normalized.pinnedPosts || []),
       beneficiary,
     });
@@ -498,7 +500,9 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     });
 
     const synced = await syncCommunityProfile(updated, { force: true });
-    const bankrSynced = await syncCommunityToBankrProfile(synced);
+    const bankrSynced = body.skipBankrProjectSync
+      ? { community: synced }
+      : await syncCommunityToBankrProfile(synced);
     communities[index] = bankrSynced.community;
     await setCommunities(communities);
 

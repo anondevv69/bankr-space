@@ -35,8 +35,9 @@
 |-----------|------|
 | **start** / **create** space for **$TMP** | search → `POST /api/communities/{token}` `{ description? }` + header `x-wallet-address: {linked}` |
 | **verify** **$TMP** space | `GET /api/holders/{token}?wallet={linked}` → `POST /api/communities/{token}/verify` (fee beneficiary) |
-| **create Bankr project from** **$SPACE** space | **`BANKR-PROJECT-SYNC.md`** Path B → `GET /api/agent/bankr-project-payload?symbol=SPACE` → `POST` same with `X-API-Key` (fee recipient) |
-| **sync** **TMP** **to bankr** project / agents | same Path B refresh from latest Space data |
+| **update Space from** my **Bankr project** | **`BANKR-PROJECT-SYNC.md`** Path C → `POST /api/agent/space-from-bankr-project` |
+| **sync Bankr project to** **$TMP** space | same Path C |
+| **create Bankr project from** **$SPACE** space | **`BANKR-PROJECT-SYNC.md`** Path B → `GET/POST /api/agent/bankr-project-payload` |
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
 | **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media?url={parent}` → `PATCH` `{ tweetBannerFrom }` |
 | **set banner** to **pbs.twimg.com** URL on **TMP** | `PATCH` `{ customBannerUrl: "https://pbs.twimg.com/…" }` (hotlink, no IPFS) |
