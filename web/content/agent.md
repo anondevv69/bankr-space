@@ -260,12 +260,11 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 @bankrbot vote yes on the TMP space poll
 @bankrbot use this as Space banner          ← X reply to image tweet (hotlinks pbs.twimg.com)
 @bankrbot create Bankr project from Space space
+@bankrbot update my Space from my Bankr project
 @bankrbot sync my Space to bankr.bot agents
 ```
 
-**Create/sync Bankr project from Space:** Skill **`BANKR-PROJECT-SYNC.md`** Path B — `GET /api/agent/bankr-project-payload` → upsert with user's Bankr API key on platform.
-
-**Bankr project sync (site auto):** Skill **`BANKR-PROJECT-SYNC.md`** Path A — optional key on bankr.space.
+**Two-way Bankr project sync:** **`BANKR-PROJECT-SYNC.md`** — Space → project (Path B), project → Space (Path C). Original tweets via Bankr [`/agent-profiles/:id/tweets`](https://docs.bankr.bot/agent-profiles/rest-api#get-agent-profilestweets).
 
 **X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):
 - **"post this/that in $TICKER space"** (replying to a tweet) → parent status URL (shows tweet card on site)

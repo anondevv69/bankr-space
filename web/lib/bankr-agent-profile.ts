@@ -199,3 +199,55 @@ export function bankrAgentProfileUrl(profile: Pick<BankrAgentProfile, 'slug' | '
   }
   return null;
 }
+
+export type BankrProfileTweet = {
+  id: string;
+  text: string;
+  createdAt?: string;
+  url?: string;
+  metrics?: {
+    likes?: number;
+    retweets?: number;
+    replies?: number;
+  };
+};
+
+export async function fetchBankrAgentProfileTweets(
+  identifier: string
+): Promise<BankrProfileTweet[]> {
+  const id = encodeURIComponent(identifier.trim());
+  const { ok, data } = await bankrProfileFetch<{ tweets?: BankrProfileTweet[] }>(
+    `/agent-profiles/${id}/tweets`,
+    { method: 'GET' }
+  );
+  if (!ok) return [];
+  const tweets = Array.isArray(data.tweets) ? data.tweets : [];
+  return tweets.filter((t) => t && t.id && t.text);
+}
+
+/** Oldest original tweet — matches Bankr discover "Original tweet" (launch / first post). */
+export function pickOriginalBankrProfileTweet(
+  tweets: BankrProfileTweet[]
+): BankrProfileTweet | null {
+  if (!tweets.length) return null;
+  return [...tweets].sort(
+    (a, b) =>
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+  )[0];
+}
+
+export async function fetchBankrAgentProfileBundle(identifier: string): Promise<{
+  profile: BankrAgentProfile | null;
+  tweets: BankrProfileTweet[];
+  originalTweet: BankrProfileTweet | null;
+}> {
+  const [profile, tweets] = await Promise.all([
+    fetchPublicBankrAgentProfile(identifier),
+    fetchBankrAgentProfileTweets(identifier),
+  ]);
+  return {
+    profile,
+    tweets,
+    originalTweet: pickOriginalBankrProfileTweet(tweets),
+  };
+}

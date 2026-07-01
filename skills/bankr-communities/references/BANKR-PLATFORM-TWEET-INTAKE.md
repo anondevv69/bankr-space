@@ -14,6 +14,7 @@
 @bankrbot add website https://example.com to TMP space profile
 @bankrbot use this as Space banner
 @bankrbot create Bankr project from Space space
+@bankrbot update my Space from my Bankr project
 @bankrbot sync my Space to bankr.bot agents
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
@@ -44,6 +45,9 @@ On tweet/DM matching space intent (user may say community):
 
 **Write acceptance test:** `@bankrbot verify the TMP space`  
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
+
+**Write acceptance test:** `@bankrbot update my Space from my Bankr project`  
+Must log: `GET …/api/agent/space-from-bankr-project?symbol=…` then `POST` same with user `X-API-Key` + linked wallet. Reply includes communityLink + bankr.bot/agents URL.
 
 **Write acceptance test:** `@bankrbot create Bankr project from Space space`  
 Must log: `GET …/api/agent/bankr-project-payload?symbol=Space` then `POST` same (or `POST/PUT api.bankr.bot/agent/profile`) with user `X-API-Key` + linked wallet. Reply includes bankr.bot/agents URL + communityLink.

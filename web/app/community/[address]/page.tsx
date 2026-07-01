@@ -14,7 +14,7 @@ import { BankrProjectPanel } from '@/components/BankrProjectPanel';
 import { isNativeSpaceCommunity } from '@/lib/featured-community';
 import { isSiteAdminWallet } from '@/lib/site-admin';
 import type { BeneficiaryInfo, Community, Post } from '@/lib/types';
-import type { BankrAgentProfile } from '@/lib/bankr-agent-profile';
+import type { BankrAgentProfile, BankrProfileTweet } from '@/lib/bankr-agent-profile';
 import { apiFetch } from '@/lib/wagmi';
 
 export default function CommunityPage({ params }: { params: { address: string } }) {
@@ -31,6 +31,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
   const [community, setCommunity] = useState<Community | null>(null);
   const [beneficiary, setBeneficiary] = useState<BeneficiaryInfo | null>(null);
   const [bankrAgentProfile, setBankrAgentProfile] = useState<BankrAgentProfile | null>(null);
+  const [bankrOriginalTweet, setBankrOriginalTweet] = useState<BankrProfileTweet | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [holder, setHolder] = useState<{
     holds: boolean;
@@ -65,6 +66,7 @@ export default function CommunityPage({ params }: { params: { address: string } 
       setCommunity(data.community);
       setBeneficiary(data.beneficiary || null);
       setBankrAgentProfile(data.bankrAgentProfile || null);
+      setBankrOriginalTweet(data.bankrOriginalTweet || null);
       setPosts(data.posts || []);
     } catch {
       setCommunity(null);
@@ -220,7 +222,11 @@ export default function CommunityPage({ params }: { params: { address: string } 
         onUpdated={load}
       />
 
-      <BankrProjectPanel community={community} profile={bankrAgentProfile} />
+      <BankrProjectPanel
+        community={community}
+        profile={bankrAgentProfile}
+        originalTweet={bankrOriginalTweet}
+      />
 
       {!community.verified && canVerify ? (
         <button

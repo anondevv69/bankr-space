@@ -1,107 +1,122 @@
 # Bankr Agent Profile sync (Space ↔ bankr.bot/agents)
 
-Spaces mirror to **[Bankr Agent Profiles](https://docs.bankr.bot/agent-profiles/overview)** at `bankr.bot/agents`.
+Two-way sync between **[Bankr Spaces](https://bankr.space)** and **[Agent Profiles](https://docs.bankr.bot/agent-profiles/overview)** at `bankr.bot/agents`.
 
-**Two paths** — use **Path B on X** (no API key on bankr.space).
+| Direction | Path | On X |
+|-----------|------|------|
+| **Space → Bankr project** | B | ✅ `@bankrbot create/sync project from Space` |
+| **Bankr project → Space** | C | ✅ `@bankrbot update Space from my Bankr project` |
+| **Site auto-sync** | A | Optional `bk_…` on bankr.space |
+
+Bankr also exposes linked **original tweets** on token pages — Spaces pull these via [`GET /agent-profiles/:id/tweets`](https://docs.bankr.bot/agent-profiles/rest-api#get-agent-profilestweets).
 
 ---
 
 ## Path A — Space site auto-sync (optional)
 
-Fee recipient on bankr.space: Edit profile → **Bankr project sync** → paste `bk_…` → enable profile/post sync.
-
-After that, `PATCH` / `POST` on bankr.space auto-call Bankr profile API server-side.
+Fee recipient: Edit profile → **Bankr project sync** → `bk_…` → enable profile/post sync.  
+`PATCH` / `POST` on bankr.space auto-push to Bankr API.
 
 ---
 
-## Path B — @bankrbot reads Space → writes Bankr project (preferred on X)
-
-Bankr platform already has the user's **linked wallet** + **`bk_…` API key**. bankr.space only **serves** mapped profile data.
-
-### User says
+## Path B — Space → Bankr project (@bankrbot)
 
 ```text
 @bankrbot create Bankr project from Space space
 @bankrbot sync my Space to bankr.bot agents
-@bankrbot add $TMP space as my Bankr project
-@bankrbot update my Bankr project from ARCHIVE space
 ```
 
-### Steps (@bankrbot)
-
 ```
-1. use_skill("bankr-communities") → read this doc
-2. Resolve token (SPACE → 0xef703b860a6d422fa00cc67bbbb2662297cb6ba3)
-3. GET /api/holders/{token}?wallet={linked} → must be fee recipient → else 403 message + communityLink
-4. GET /api/agent/bankr-project-payload?symbol=SPACE
-   Header (optional): x-wallet-address: {linked}
-   → bankrProfilePayload, communityLink, existingBankrProfile
-5. Upsert on Bankr (user's API key — on Bankr platform, NEVER in tweet):
-
-   Option A — one-shot via bankr.space (forwards to api.bankr.bot):
-   POST /api/agent/bankr-project-payload?symbol=SPACE
+1. GET /api/holders/{token}?wallet={linked} → fee recipient
+2. GET /api/agent/bankr-project-payload?symbol=SPACE
+3. POST /api/agent/bankr-project-payload?symbol=SPACE
    Headers: X-API-Key: {user_bk_key}, x-wallet-address: {linked}
-
-   Option B — direct Bankr API (same payload from step 4):
-   POST https://api.bankr.bot/agent/profile     (if no profile)
-   PUT  https://api.bankr.bot/agent/profile     (if existingBankrProfile)
-   Headers: X-API-Key: {user_bk_key}
-   Body: bankrProfilePayload from step 4
-
-6. Reply paste tweetReply from POST response, or:
-   "Bankr project created/updated from $SYMBOL Space ✓"
-   https://bankr.bot/agents/{slug or token}
-   https://bankr.space/community/0x…
 ```
 
-### Payload mapping (from Space GET)
-
-| `bankrProfilePayload` field | Source on Space |
-|----------------------------|-----------------|
-| `projectName` | token name |
-| `description` | merged profile description |
-| `tokenAddress` | contract |
-| `website` | social website or Space URL |
-| `profileImageUrl` | HTTPS icon (incl. pbs.twimg.com hotlink) |
-| `products[]` | enabled fundraisers + agent pool goals |
-| `revenueSources[]` | trading fees + Space link |
+Or call `POST/PUT https://api.bankr.bot/agent/profile` directly with `bankrProfilePayload`.
 
 ---
 
-## Ongoing sync on X (after project exists)
+## Path C — Bankr project → Space (@bankrbot) ← NEW
 
-| User tweet | Agent does |
-|------------|------------|
-| Profile/banner/description update | `PATCH` bankr.space (BENEFICIARY-ACTIONS) **then** repeat Path B step 5 (or enable Path A on site) |
-| Post in space | `POST …/posts` + `POST api.bankr.bot/agent/profile/update` with post text |
-| "sync project from space" only | Path B steps 4–5 (refresh from latest Space data) |
-
-**Post → project update (direct Bankr):**
-
-```http
-POST https://api.bankr.bot/agent/profile/update
-X-API-Key: bk_…
-{ "title": "first line of post", "content": "full post text" }
+```text
+@bankrbot update my Space from my Bankr project
+@bankrbot use my Bankr project to update Space space
+@bankrbot sync Bankr project to $TMP space
 ```
 
-Or include in one-shot:
-
-```http
-POST /api/agent/bankr-project-payload?symbol=SPACE
-X-API-Key: bk_…
-x-wallet-address: 0x…
-{ "projectUpdateTitle": "…", "projectUpdateContent": "…" }
 ```
+1. use_skill("bankr-communities")
+2. Resolve token
+3. GET /api/holders/{token}?wallet={linked} → fee recipient
+4. GET /api/agent/space-from-bankr-project?symbol=SPACE
+   Optional header X-API-Key (owner profile if unapproved)
+   → spacePatch, originalTweet, tweets[]
+5. POST /api/agent/space-from-bankr-project?symbol=SPACE
+   Headers: X-API-Key: {user_bk_key}, x-wallet-address: {linked}
+   Body (optional): { "importOriginalTweetAsPost": true }
+6. Reply tweetReply — Space URL + bankr.bot/agents URL
+```
+
+### Profile → Space field mapping
+
+| Bankr project | Space |
+|---------------|--------|
+| `description` | `description` (`useDexDescription: false`) |
+| `website` | `socialLinks.website` |
+| `twitterUsername` | `socialLinks.x` |
+| `profileImageUrl` | `customIconUrl` (HTTPS hotlink) |
+
+Token **name/symbol** stay from Bankr launch — not overwritten.
+
+`importOriginalTweetAsPost: true` — posts the **oldest** linked tweet (launch tweet) to the Space feed as a tweet card URL.
+
+---
+
+## Original tweets on Space UI
+
+Public: `GET https://api.bankr.bot/agent-profiles/{token}/tweets`  
+Spaces show **Original tweet** on the community page (same source as [Bankr discover](https://bankr.bot/terminal/discover/{token})).
+
+bankr.space `GET /api/communities/{token}` includes:
+
+- `bankrProfileTweets[]`
+- `bankrOriginalTweet` — oldest tweet by `createdAt`
+
+---
+
+## Two-way workflow examples
+
+**Project first, then Space:**
+
+```text
+@bankrbot create Bankr project from CLI/site
+@bankrbot update Space space from my Bankr project
+```
+
+**Space first, then project:**
+
+```text
+@bankrbot set Space space description: …
+@bankrbot create Bankr project from Space space
+```
+
+**Keep both in sync:**
+
+- Edit Space on X → Path B refresh project  
+- Edit project on Bankr → Path C refresh Space  
+- Or enable Path A on site for automatic Space → project on every save
 
 ---
 
 ## API reference (bankr.space)
 
 ```http
-GET  /api/agent/bankr-project-payload?symbol=SPACE
-GET  /api/agent/bankr-project-payload?token=0x…
-POST /api/agent/bankr-project-payload?symbol=SPACE
-     Headers: X-API-Key, x-wallet-address
+GET  /api/agent/bankr-project-payload?symbol=SPACE      # Space → project preview
+POST /api/agent/bankr-project-payload?symbol=SPACE        # Space → project upsert
+
+GET  /api/agent/space-from-bankr-project?symbol=SPACE     # project → Space preview
+POST /api/agent/space-from-bankr-project?symbol=SPACE     # project → Space apply
 ```
 
 [Bankr Agent Profiles REST API](https://docs.bankr.bot/agent-profiles/rest-api)
@@ -110,10 +125,10 @@ POST /api/agent/bankr-project-payload?symbol=SPACE
 
 ## Fail rules
 
-- **Never** ask user to paste `bk_…` in a tweet — Bankr platform uses stored key.
-- **Never** say "enable sync on bankr.space first" if user asked **create project from Space** — use Path B.
-- Fee recipient only for writes.
-- 409 on create → `PUT /agent/profile` instead.
-- Profile `approved: false` until Bankr admin review — still reply with profile URL.
+- **Never** paste `bk_…` in a tweet.
+- Fee recipient only for Path B/C writes.
+- Profile token must match Space token.
+- Path C does **not** re-push to Bankr (no ping-pong).
+- `approved: false` profiles: use `X-API-Key` on GET for owner's unapproved profile.
 
 See also: **BENEFICIARY-ACTIONS.md**, **X-TWEET-IMAGE-PROFILE.md**

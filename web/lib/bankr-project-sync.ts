@@ -3,11 +3,15 @@ import {
   upsertBankrAgentProfile,
   type BankrAgentProfile,
   type BankrProfileProduct,
+  type BankrProfileTweet,
+  pickOriginalBankrProfileTweet,
 } from './bankr-agent-profile';
 import { resolveCommunityProfile } from './community-profile-sync';
 import { AGENT_POOL_SKILL_META } from './agent-pool';
+import { normalizeBannerUrl } from './banner-url';
+import { normalizeSocialLinks } from './social-links';
 import { communityUrl } from './site-url';
-import type { Community } from './types';
+import type { Community, SocialLinks } from './types';
 
 export function getCommunityBankrApiKey(community: Community): string | null {
   const key = community.bankrProjectApiKey?.trim();
@@ -65,6 +69,84 @@ export function buildProductsFromCommunity(community: Community): BankrProfilePr
 
   return products.slice(0, 20);
 }
+
+export type SpacePatchFromBankrProfile = {
+  description?: string;
+  socialLinks?: SocialLinks;
+  customIconUrl?: string | null;
+  useDexDescription?: boolean;
+  useBankrImage?: boolean;
+  useDexIcon?: boolean;
+};
+
+export function buildSpacePatchFromBankrProfile(
+  profile: BankrAgentProfile,
+  current?: Community
+): SpacePatchFromBankrProfile {
+  const patch: SpacePatchFromBankrProfile = {};
+  const prevLinks = normalizeSocialLinks(current?.socialLinks || {});
+
+  const description = String(profile.description || '').trim();
+  if (description) {
+    patch.description = description.slice(0, 2000);
+    patch.useDexDescription = false;
+  }
+
+  const website = String(profile.website || '').trim();
+  const twitter = String(profile.twitterUsername || '').trim().replace(/^@/, '');
+  const nextLinks: SocialLinks = { ...prevLinks };
+
+  if (website.startsWith('http')) {
+    nextLinks.website = website.slice(0, 500);
+  }
+  if (twitter) {
+    nextLinks.x = `https://x.com/${twitter}`;
+  }
+  if (website || twitter) {
+    patch.socialLinks = normalizeSocialLinks(nextLinks);
+  }
+
+  const icon = String(profile.profileImageUrl || '').trim();
+  if (icon.startsWith('https://')) {
+    patch.customIconUrl = normalizeBannerUrl(icon);
+    patch.useBankrImage = false;
+    patch.useDexIcon = false;
+  }
+
+  return patch;
+}
+
+export function applyBankrProfilePatchToCommunity(
+  community: Community,
+  profile: BankrAgentProfile
+): Community {
+  const patch = buildSpacePatchFromBankrProfile(profile, community);
+  return {
+    ...community,
+    ...(patch.description !== undefined ? { description: patch.description } : {}),
+    ...(patch.socialLinks !== undefined ? { socialLinks: patch.socialLinks } : {}),
+    ...(patch.customIconUrl !== undefined ? { customIconUrl: patch.customIconUrl } : {}),
+    ...(patch.useDexDescription !== undefined
+      ? { useDexDescription: patch.useDexDescription }
+      : {}),
+    ...(patch.useBankrImage !== undefined ? { useBankrImage: patch.useBankrImage } : {}),
+    ...(patch.useDexIcon !== undefined ? { useDexIcon: patch.useDexIcon } : {}),
+    bankrProject: {
+      ...(community.bankrProject || {}),
+      slug: profile.slug || community.bankrProject?.slug || null,
+      lastSyncedAt: Date.now(),
+      lastSyncError: null,
+    },
+  };
+}
+
+export function originalTweetPostContent(tweet: BankrProfileTweet): string {
+  const url = String(tweet.url || '').trim();
+  if (url) return url;
+  return tweet.text.trim().slice(0, 2000);
+}
+
+export { pickOriginalBankrProfileTweet };
 
 export function buildBankrProfilePayload(community: Community): {
   projectName: string;
