@@ -41,7 +41,9 @@ Returns: `community`, `stats`, `recentPosts`, `fundraising`, `opportunities`, `l
 ```
 GET   /api/communities
 GET   /api/communities/{tokenAddress}
-PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex?, bankrProject? }  ← fee beneficiary; bankrProject sync requires one-time bk_ key on site
+GET   /api/agent/bankr-project-payload?symbol=SPACE   ← mapped body for api.bankr.bot/agent/profile (Path B on X)
+POST  /api/agent/bankr-project-payload?symbol=SPACE   ← upsert project; headers X-API-Key + x-wallet-address (fee recipient)
+PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex?, bankrProject? }  ← fee beneficiary; bankrProject = site auto-sync Path A
 GET   /api/oembed/tweet/media?url={status_url}&index=0   ← resolve pbs.twimg.com from tweet (hotlink, no pin)
 POST  /api/communities/{tokenAddress}     body: { description? }
 POST  /api/communities/{tokenAddress}/verify

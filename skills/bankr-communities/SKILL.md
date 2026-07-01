@@ -1,8 +1,9 @@
 ---
 name: bankr-communities
-version: 1.24.0
+version: 1.25.0
 description: >-
-  Bankr Space on bankr.space. X tweet images → banner/icon hotlink (X-TWEET-IMAGE-PROFILE.md). Bankr Agent Profile sync to bankr.bot/agents (BANKR-PROJECT-SYNC.md).
+  Bankr Space on bankr.space. @bankrbot can create Bankr projects from Space data (BANKR-PROJECT-SYNC.md Path B).
+  X tweet images → banner/icon hotlink (X-TWEET-IMAGE-PROFILE.md).
   Holder votes: yes/no or multiple-choice polls (1–24h) — HOLDER-VOTES.md (never say no poll feature).
   Agents: POST /api/agent/start-vote with symbol Space. Petition spaces: fee-right unit holders only.
   POIDH: create/list on bankr.space; fund/claim/vote on poidh.xyz. NOT Twitter audio Spaces.
@@ -63,10 +64,12 @@ User says **verify**, **post**, **pin**, **add links**, **update profile** → r
 
 User says **banner / icon / photo from tweet** → read **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media` or `PATCH` `tweetBannerFrom` / `tweetIconFrom` (hotlink `pbs.twimg.com`, no IPFS).
 
-User asks about **Bankr project** / **project updates** / sync to **bankr.bot/agents** → read **`BANKR-PROJECT-SYNC.md`** — one-time API key on site; then PATCH/post auto-sync.
+User asks about **Bankr project** / **create project from Space** / **sync to bankr.bot/agents** → read **`BANKR-PROJECT-SYNC.md`** Path B → `GET /api/agent/bankr-project-payload` → `POST` same or `api.bankr.bot/agent/profile` with user's API key on Bankr platform.
 
 | User says | Agent does |
 |-----------|------------|
+| **create Bankr project from** **Space** / **$TMP** space | **`BANKR-PROJECT-SYNC.md`** Path B → payload GET → Bankr profile upsert |
+| **sync** Space **to bankr** project / agents | same Path B refresh |
 | **verify** the **TMP** space (or community) | `POST …/verify` (fee beneficiary wallet) |
 | **add website** / **update profile** for **TMP** | `PATCH …/communities/{token}` `{ socialLinks, description }` |
 | **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `PATCH` `{ tweetBannerFrom: parent_status_url }` |
