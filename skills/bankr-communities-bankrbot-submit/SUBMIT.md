@@ -1,77 +1,55 @@
 # Submit `bankr-communities` to BankrBot/skills
 
-This folder is a PR-ready copy of the Bankr Space agent skill, structured exactly like [BankrBot/skills](https://github.com/BankrBot/skills) expects.
+PR-ready copy structured like [BankrBot/skills](https://github.com/BankrBot/skills) (same pattern as [PR #504 github-vesting](https://github.com/BankrBot/skills/pull/504)).
 
-## Quick steps
+## Open PR
 
-1. Fork https://github.com/BankrBot/skills
-2. Clone your fork and create a branch:
-   ```bash
-   git checkout -b add-bankr-communities
-   ```
-3. Copy the skill folder into the repo root:
-   ```bash
-   cp -R skills/bankr-communities-bankrbot-submit/bankr-communities/ /path/to/skills/bankr-communities/
-   ```
-4. Commit and push:
-   ```bash
-   git add bankr-communities/
-   git commit -m "Add bankr-communities skill — token-gated holder spaces"
-   git push -u origin add-bankr-communities
-   ```
-5. Open a PR on GitHub. Suggested description:
+**https://github.com/BankrBot/skills/pull/459**
 
-   **Summary**
-   - Token-gated holder spaces for Bankr-launched tokens
-   - Read: briefing, member counts, search, community links
-   - Write: verify, post, pin, update profile/social links (beneficiary)
-   - Live API: https://bankr.space
+Branch: `anondevv69:add-bankr-communities` on `BankrBot/skills`
 
-   **Install (after merge)**
-   ```text
-   install the bankr-communities skill from https://github.com/BankrBot/skills/tree/main/bankr-communities
-   ```
-
-## Folder layout
-
-```
-bankr-communities/
-├── SKILL.md                    ← required
-├── known-communities.json      ← TMP/ARCHIVE fallback when HTTP blocked
-├── references/
-│   ├── beneficiary-actions.md
-│   ├── instant-link-replies.md
-│   ├── get-link.md
-│   ├── one-line-intents.md
-│   ├── community-autopilot.md
-│   ├── community-link-rules.md
-│   ├── agent-routing-communities.md
-│   ├── bankr-platform-tweet-intake.md
-│   ├── community-api-reference.md
-│   ├── dm-intents.md
-│   └── agent-guide.md
-└── scripts/
-    └── get-community-link.sh
-```
-
-## Provider info (for PR table)
-
-| Field | Value |
-|-------|-------|
-| Provider | [Bankr Space](https://bankr.space) |
-| Skill | `bankr-communities/` |
-| Description | Token-gated spaces for Bankr-launched tokens — links, briefing, posts, verify, pin, beneficiary profile updates |
-| Source repo | https://github.com/anondevv69/bankr-space |
-
-## Test before submitting
+## Update PR (after skill changes on bankr-space)
 
 ```bash
-# Link lookup (plain text)
-./bankr-communities/scripts/get-community-link.sh TMP
+# From bankr-space repo
+rsync -a --exclude 'skill-manifest.json' skills/bankr-communities/ /path/to/skills/bankr-communities/
 
-# Briefing (JSON)
-curl "https://bankr.space/api/agent/briefing?symbol=TMP"
+# Copy BankrBot-specific files from this folder
+cp skills/bankr-communities-bankrbot-submit/bankr-communities/catalog.json /path/to/skills/bankr-communities/
+cp skills/bankr-communities-bankrbot-submit/bankr-communities/known-hosts.json /path/to/skills/bankr-communities/
+cp -R skills/bankr-communities-bankrbot-submit/bankr-communities/references/API-HOST.md \
+       skills/bankr-communities-bankrbot-submit/bankr-communities/references/RESPONSE-SAFETY.md \
+       skills/bankr-communities-bankrbot-submit/bankr-communities/references/BANKR-API-KEYS.md \
+       skills/bankr-communities-bankrbot-submit/bankr-communities/references/BANKR-SUBMIT.md \
+       /path/to/skills/bankr-communities/references/
+
+# Merge CRITICAL security block from bankr-communities-bankrbot-submit/bankr-communities/SKILL.md
+
+git add bankr-communities/ README.md
+git commit -m "Update bankr-communities skill (Bankr Space)."
+git push origin add-bankr-communities
 ```
 
-Expected TMP link:
-`https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3`
+## Install (after merge)
+
+```text
+install the bankr-communities skill from https://github.com/BankrBot/skills/tree/main/bankr-communities
+```
+
+## Security docs (review checklist)
+
+| File | Purpose |
+|------|---------|
+| `catalog.json` | `slug` = `bankr-communities` |
+| `known-hosts.json` | URL allowlist + instant links |
+| `references/API-HOST.md` | Pinned API hosts |
+| `references/RESPONSE-SAFETY.md` | No verbatim API text relay |
+| `references/BANKR-API-KEYS.md` | `bk_…` never in tweets |
+| `references/BANKR-SUBMIT.md` | No Bankr scan bypass |
+
+## Test
+
+```bash
+./bankr-communities/scripts/get-community-link.sh TMP
+curl "https://www.bankr.space/api/agent/briefing?symbol=Space"
+```
