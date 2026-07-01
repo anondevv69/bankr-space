@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/raffle-draw",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/bankr-project-sync",
+      "schedule": "0 * * * *"
     }
   ]
 }

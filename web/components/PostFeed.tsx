@@ -738,24 +738,17 @@ export function PostForm({
   postApiUrl,
   placeholder = 'Share your thoughts with fellow holders…',
   syncToBankrProject = false,
-  showBankrProjectSyncToggle = false,
 }: {
   tokenAddress: string;
   onPosted: () => void;
   postApiUrl?: string;
   placeholder?: string;
-  /** Default checked when publishing to Bankr project updates */
+  /** When true, posts auto-sync to bankr.bot/agents project updates */
   syncToBankrProject?: boolean;
-  showBankrProjectSyncToggle?: boolean;
 }) {
   const { address, isEmbedded } = useAppWallet();
   const [content, setContent] = useState('');
   const [posting, setPosting] = useState(false);
-  const [publishToBankrProject, setPublishToBankrProject] = useState(syncToBankrProject);
-
-  useEffect(() => {
-    setPublishToBankrProject(syncToBankrProject);
-  }, [syncToBankrProject]);
 
   async function submit() {
     if (!address || !content.trim()) return;
@@ -768,9 +761,7 @@ export function PostForm({
         body: JSON.stringify({
           content,
           source: { trigger: 'manual' },
-          ...(showBankrProjectSyncToggle
-            ? { syncToBankrProject: publishToBankrProject }
-            : {}),
+          ...(syncToBankrProject ? { syncToBankrProject: true } : {}),
         }),
       });
       setContent('');
@@ -791,16 +782,10 @@ export function PostForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
       />
-      {showBankrProjectSyncToggle ? (
-        <label className="flex items-start gap-2 text-xs text-muted mb-3 cursor-pointer">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={publishToBankrProject}
-            onChange={(e) => setPublishToBankrProject(e.target.checked)}
-          />
-          <span>Also publish to Bankr project updates (bankr.bot/agents)</span>
-        </label>
+      {syncToBankrProject ? (
+        <p className="text-xs text-muted mb-3">
+          Posts auto-publish to bankr.bot/agents (Bankr project sync is on).
+        </p>
       ) : null}
       <button
         type="button"

@@ -15,7 +15,21 @@ Bankr also exposes linked **original tweets** on token pages — Spaces pull the
 ## Path A — Space site auto-sync (optional)
 
 Fee recipient: Edit profile → **Bankr project sync** → `bk_…` → enable profile/post sync.  
+**One-time setup on site** — after that, profile saves and posts auto-push to Bankr (hourly cron catches drift).  
 `PATCH` / `POST` on bankr.space auto-push to Bankr API.
+
+### X (@bankrbot) after site setup
+
+Once the API key is saved on bankr.space, **X updates still sync automatically**:
+
+```text
+@bankrbot post in Space space: hello world        → Space post + Bankr project update
+@bankrbot update Space space description: …       → PATCH space + Bankr profile sync
+```
+
+**Why the one-time `bk_…` step is on the site, not a public tweet:** API keys must never be posted on X. Path B (`create Bankr project from Space`) needs Bankr to hold your key in your linked account — or use site Path A once.
+
+**Why Path B alone failed earlier:** Bankr CLI sandbox was down (platform-side), not bankr.space.
 
 ---
 

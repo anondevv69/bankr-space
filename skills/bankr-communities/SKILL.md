@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.27.0
+version: 1.28.0
 description: >-
   Bankr Space ↔ bankr.bot/agents two-way sync (BANKR-PROJECT-SYNC.md Paths B+C).
   Original tweets from GET /agent-profiles/:id/tweets shown on Spaces.
