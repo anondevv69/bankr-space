@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.27.0
+version: 1.28.0
 description: >-
   Bankr Space ↔ bankr.bot/agents two-way sync (BANKR-PROJECT-SYNC.md Paths B+C).
   Original tweets from GET /agent-profiles/:id/tweets shown on Spaces.
@@ -67,6 +67,8 @@ User says **banner / icon / photo from tweet** → read **`X-TWEET-IMAGE-PROFILE
 User asks **create Bankr project from Space** / **sync Space to bankr.bot** → **`BANKR-PROJECT-SYNC.md`** Path B. If CLI sandbox fails → **`BANKR-PROJECT-FALLBACK.md`**.
 
 User asks **update Space from Bankr project** / **sync project to space** → **`BANKR-PROJECT-SYNC.md`** Path C → `GET/POST /api/agent/space-from-bankr-project`.
+
+| User says | Agent does |
 |-----------|------------|
 | **update Space from** my **Bankr project** | **`BANKR-PROJECT-SYNC.md`** Path C → `POST /api/agent/space-from-bankr-project` |
 | **sync Bankr project to** **$TMP** space | same Path C |

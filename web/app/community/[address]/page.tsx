@@ -315,13 +315,6 @@ export default function CommunityPage({ params }: { params: { address: string } 
               holder?.canEditProfile
             )
           }
-          showBankrProjectSyncToggle={
-            !!(
-              community.bankrProject?.enabled &&
-              community.bankrProject?.syncPosts &&
-              holder?.canEditProfile
-            )
-          }
         />
       ) : isConnected ? null : (
         <div className="mb-6 p-4 text-center text-muted text-sm border border-dashed border-border rounded-xl bg-surface">

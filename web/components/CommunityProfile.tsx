@@ -1360,7 +1360,7 @@ export function CommunityProfile({
               {canEditFundraising ? (
                 <EditSection
                   title="Bankr project sync"
-                  hint="Mirror this Space on bankr.bot/agents — profile fields and posts become project updates. Uses your fee-recipient Bankr API key (bankr.bot/api-keys)."
+                  hint="One-time setup: paste your fee-recipient Bankr API key (bankr.bot/api-keys). After save, profile edits and posts auto-sync to bankr.bot/agents — including updates via @bankrbot on X."
                 >
                   <label className="flex items-start gap-2 text-sm cursor-pointer">
                     <input
