@@ -17,6 +17,8 @@
 | **Fundraisers / USDC goals** | **Fee recipient only** — never deployer or delegate | No |
 | **Post / reply (no hold)** | Fee recipient; deployer (before verify or if allowed); trusted delegate (after verify) | No |
 | **Pin / unpin** | Same as profile (not fundraisers) | **Yes** |
+| **Start holder vote** | Same as pin (fee recipient, deployer when allowed, delegate, petition founder) | **Yes** |
+| **Cast vote on poll** | **Token holders only** | N/A |
 | **x402 USDC** | Pays **fee recipient wallet only** | N/A |
 
 **Team access (fee recipient sets after verify):** `allowDeployerEdit` (launcher) + `trustedDelegates[]` (up to 3 wallets). Social/moderation only — **no money**. Tag agent wallets via **`AGENT-WALLETS.md`** (`GET …/resolve-wallet`, `POST …/team/resolve-agents`).
@@ -29,7 +31,19 @@ Check before writes:
 GET /api/holders/{tokenAddress}?wallet={linked}
 ```
 
-Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
+Use: `canEditProfile`, `canPinPosts`, `canPost`, `canCreateQuestion`, `canVoteOnQuestion`, `isBeneficiary`.
+
+---
+
+## Start holder vote (24h poll)
+
+**User says:**
+```text
+@bankrbot start a yes/no vote on TMP space: should we do a Dex boost?
+@bankrbot poll BNKR holders — marketing or product?
+```
+
+Read **`HOLDER-VOTES.md`** — `GET /api/holders/{token}?wallet={linked}` → `canCreateQuestion` → `POST /api/communities/{token}/questions`.
 
 ---
 
@@ -62,12 +76,16 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 @bankrbot set TMP space description: Token marketplace for holders
 @bankrbot enable Dex banner on Space space
 @bankrbot set Space space banner to https://example.com/banner.png
+@bankrbot use this as Space banner          ← reply to tweet with image (see X-TWEET-IMAGE-PROFILE.md)
+@bankrbot set this photo as $TMP space icon
 @bankrbot add these links to TMP token info: x @MyToken github myorg/repo
 ```
 
 **Editable fields:** `description`, `socialLinks`, `customIconUrl` (square **1024×1024px max**, 1:1 — matches Bankr launches), `customBannerUrl` (**exactly 1500×500px**, 3:1), source toggles (all default **on**): `useBankrImage`, `useDexIcon`, `useDexBanner`, `useDexDescription`, `useDexLinks`
 
 **Auto on create:** Bankr icon + Dex icon/banner/description/links sync hourly; images mirrored to IPFS when `PINATA_JWT` is set. Beneficiary can uncheck sources or upload custom (file or URL via Pinata).
+
+**X tweet images (hotlink):** When user replies to an image tweet (“use this as banner”), read **`X-TWEET-IMAGE-PROFILE.md`** — `GET /api/oembed/tweet/media?url={parent}` then `PATCH` with `tweetBannerFrom` / `tweetIconFrom` (stores `pbs.twimg.com` URL, **no IPFS**). Do **not** use `/api/upload/banner` unless user asks to pin to IPFS.
 
 **NOT editable via API:** beneficiary wallet (from Bankr launch data).
 
@@ -200,11 +218,13 @@ Read **`FUNDRAISING.md`** for discovery / contribute flows (reads + donor guidan
        "viaAgent": true,
        "agentId": "bankrbot",
        "externalRef": "{id_if_known}"
-     }
+     },
+     "syncToBankrProject": true
    }
    headers: x-wallet-address, x-client: agent
    → save postId from response
    See POST-SOURCE.md for trigger selection.
+   If Space has Bankr project post sync on, include `"syncToBankrProject": true` unless user says space-only. See **BANKR-PROJECT-SYNC.md**.
 3. If user asked to pin:
    - GET /api/holders/{token}?wallet={linked} again → if canPinPosts:
      POST /api/communities/{tokenAddress}/pin-post  body: { "postId": "{postId}", "action": "pin" }
@@ -247,6 +267,7 @@ These phrases MUST load `bankr-communities` **before** tool selection — same a
 
 - verify space / verify $TICKER
 - update profile / add links / add website / set description + space/community or token
+- banner / icon / photo / image + space (see **X-TWEET-IMAGE-PROFILE.md**)
 - pin post / pin it / unpin + space/community
 - post in space + pin
 - enable / start / turn on + fundraiser / fundraising + space

@@ -7,8 +7,14 @@ import { submitBankrAgentPrompt } from './bankr-agent-client';
 import { communityUrl } from './site-url';
 import { normalizeAddr } from './utils';
 import type { CommunityRaffle, RaffleEntry, RaffleEntryRule } from './types';
+import {
+  isRaffleX402CampaignId,
+  parseRaffleX402CampaignId,
+  raffleX402CampaignId,
+} from './raffle-x402-ids';
 
 export type { CommunityRaffle, RaffleEntry, RaffleEntryRule };
+export { isRaffleX402CampaignId, parseRaffleX402CampaignId, raffleX402CampaignId };
 
 const RAFFLES_KEY = 'community_raffles';
 
@@ -17,23 +23,6 @@ export const MAX_RAFFLE_PRIZE_USD = 500;
 export const RAFFLE_FUND_BUFFER = 1.05;
 export const MIN_RAFFLE_DURATION_HOURS = 1;
 export const MAX_RAFFLE_DURATION_HOURS = 24 * 28;
-
-/** x402 accepts beneficiary `custom-*` campaigns — not `raffle-*`. */
-export function raffleX402CampaignId(raffleId: string): string {
-  const slug = raffleId.toLowerCase().replace(/_/g, '-');
-  return `custom-${slug}`;
-}
-
-export function parseRaffleX402CampaignId(campaignId: string): string | null {
-  const id = campaignId.trim().toLowerCase();
-  if (!id.startsWith('custom-rfl-')) return null;
-  const slug = id.slice('custom-'.length);
-  return slug.length > 0 ? slug : null;
-}
-
-export function isRaffleX402CampaignId(campaignId: string): boolean {
-  return parseRaffleX402CampaignId(campaignId) != null;
-}
 
 function normalizeRaffleId(id: string): string {
   return id.toLowerCase().replace(/_/g, '-');

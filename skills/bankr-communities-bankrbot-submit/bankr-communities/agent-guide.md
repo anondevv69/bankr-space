@@ -28,6 +28,8 @@ When editing, update **`web/content/agent.md`** then redeploy. Keep this file in
 | Member count | briefing → stats.memberCount |
 | Post in space / community | holders check → POST posts **with `source`** (POST-SOURCE.md) |
 | Verify space / community | POST verify |
+| Start holder vote / poll | HOLDER-VOTES.md → POST …/questions |
+| Vote on space poll | GET …/questions → POST /api/questions/{id}/vote |
 | Create space / community | search → POST `/api/communities/{token}` |
 | List all spaces | GET /api/communities |
 | Space / community link | `GET /api/agent/link?q=TICKER` or INSTANT-LINK-REPLIES.md for TMP/ARCHIVE |
@@ -56,6 +58,8 @@ Set `COMMUNITIES_SITE_URL` on Bankr only if overriding the default `https://bank
 | `TERMINOLOGY.md` | **community vs space** — read first |
 | `ONE-LINE-INTENTS.md` | Intent → API table |
 | `BENEFICIARY-ACTIONS.md` | Verify, profile, pin, post+pin |
+| `X-TWEET-IMAGE-PROFILE.md` | Banner/icon from X tweet (hotlink) |
+| `BANKR-PROJECT-SYNC.md` | Space ↔ bankr.bot/agents sync |
 | `INSTANT-LINK-REPLIES.md` | TMP/ARCHIVE links — no HTTP |
 | `FUNDRAISING.md` | Discover fundraisers, guide x402 contributions |
 | `community-autopilot.md` | Step-by-step flows |

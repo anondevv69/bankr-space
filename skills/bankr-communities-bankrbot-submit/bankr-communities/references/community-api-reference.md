@@ -41,10 +41,14 @@ Returns: `community`, `stats`, `recentPosts`, `fundraising`, `opportunities`, `l
 ```
 GET   /api/communities
 GET   /api/communities/{tokenAddress}
-PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks? }  ← fee beneficiary
+GET   /api/agent/space-from-bankr-project?symbol=SPACE   ← Bankr project → Space preview (+ originalTweet)
+POST  /api/agent/space-from-bankr-project?symbol=SPACE   ← apply; headers X-API-Key + x-wallet-address
+GET   /api/agent/bankr-project-payload?symbol=SPACE   ← Space → Bankr project preview
+PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks?, customBannerUrl?, customIconUrl?, tweetBannerFrom?, tweetIconFrom?, tweetImageIndex?, bankrProject? }  ← fee beneficiary; bankrProject = site auto-sync Path A
+GET   /api/oembed/tweet/media?url={status_url}&index=0   ← resolve pbs.twimg.com from tweet (hotlink, no pin)
 POST  /api/communities/{tokenAddress}     body: { description? }
 POST  /api/communities/{tokenAddress}/verify
-POST  /api/communities/{tokenAddress}/posts   body: { content, source? }  → returns postId
+POST  /api/communities/{tokenAddress}/posts   body: { content, source?, syncToBankrProject? }  → returns postId; syncToBankrProject pushes to bankr.bot/agents when enabled
 ```
 
 **Post `source` (optional provenance):**
@@ -76,14 +80,11 @@ POST  /api/communities/{tokenAddress}/fundraising/x402   ← browser x402 proxy 
 ```
 GET  /api/communities/{tokenAddress}/poidh
 POST /api/communities/{tokenAddress}/poidh/request   body: { title, description }
-POST /api/communities/{tokenAddress}/poidh/seed      body: { ethAmount, title? | bountyId? }
-POST /api/communities/{tokenAddress}/poidh/propose     body: { bountyId, claimId }
-GET  /api/communities/{tokenAddress}/poidh/{bountyId}   ← on-chain detail
 ```
 
-**Seed (`/poidh/seed`):** platform issuer adds ETH to pool — agent uses this for "add 0.01 ETH to bounty". Header `x-wallet-address` = linked holder. Max 0.1 ETH. Skill: **`POIDH-BOUNTY-ACTIONS.md`**.
+**Agent:** create (`POST …/request`), list (`GET …/poidh`). Reply with each bounty **`url`** for fund/claim/vote on poidh.xyz. Skill: **`POIDH-BOUNTY-ACTIONS.md`**.
 
-**User fund/claim/vote:** browser EOA on Bounties tab — no agent API for `createClaim`.
+**User fund/claim/vote:** on **poidh.xyz** (link from GET response) — not on bankr.space.
 
 **PATCH socialLinks fields:** `x`, `website`, `github`, `telegram`, `discord`, `custom[]` (`{ title, url }`, max 12) (beneficiary wallet is read-only from Bankr).
 
@@ -92,8 +93,22 @@ GET  /api/communities/{tokenAddress}/poidh/{bountyId}   ← on-chain detail
 **holders check before writes:**
 ```
 GET /api/holders/{tokenAddress}?wallet=0x…
-→ canPost, canEditProfile, canPinPosts, isBeneficiary
+→ canPost, canEditProfile, canPinPosts, canCreateQuestion, canVoteOnQuestion, isBeneficiary
 ```
+
+---
+
+## Holder votes (24h polls)
+
+```
+GET  /api/communities/{tokenAddress}/questions?wallet=0x…
+POST /api/communities/{tokenAddress}/questions
+     body: { prompt, voteType: "yes_no"|"choice", options?: string[], durationHours?: 1-24 }
+POST /api/questions/{questionId}/vote
+     body: { tokenAddress, optionId }  OR  { tokenAddress, action: "close" }
+```
+
+**Start vote:** verified space admin (`canCreateQuestion`). **Close early:** same admins. **Cast vote:** holders only. One active vote per space; auto-settles when window ends (default 24h, max 24h). Skill: **`HOLDER-VOTES.md`**.
 
 ---
 

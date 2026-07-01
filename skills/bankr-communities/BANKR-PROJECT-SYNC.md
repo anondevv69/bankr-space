@@ -27,11 +27,13 @@ Fee recipient: Edit profile → **Bankr project sync** → `bk_…` → enable p
 ```
 
 ```
-1. GET /api/holders/{token}?wallet={linked} → fee recipient
-2. GET /api/agent/bankr-project-payload?symbol=SPACE
-3. POST /api/agent/bankr-project-payload?symbol=SPACE
+1. GET https://www.bankr.space/api/holders/{token}?wallet={linked} → fee recipient
+2. GET https://www.bankr.space/api/agent/bankr-project-payload?symbol=SPACE
+3. POST https://www.bankr.space/api/agent/bankr-project-payload?symbol=SPACE
    Headers: X-API-Key: {user_bk_key}, x-wallet-address: {linked}
 ```
+
+If Bankr CLI sandbox is down → read **`BANKR-PROJECT-FALLBACK.md`** (full URLs + site auto-sync path).
 
 Or call `POST/PUT https://api.bankr.bot/agent/profile` directly with `bankrProfilePayload`.
 

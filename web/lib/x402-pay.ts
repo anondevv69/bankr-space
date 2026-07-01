@@ -14,7 +14,7 @@ import {
   X402_PAYMENT_TOKEN_ADDRESS,
   X402_PAYMENT_TOKEN_SYMBOL,
 } from '@/lib/x402-config';
-import { raffleX402CampaignId } from '@/lib/community-raffles';
+import { raffleX402CampaignId } from '@/lib/raffle-x402-ids';
 import { X402_FUND_MAX_AUTHORIZE_ATOMIC } from '@/lib/space-x402-price';
 import { x402AcceptsIncludeToken } from '@/lib/x402-upstream';
 

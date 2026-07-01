@@ -21,10 +21,11 @@
 | what **opportunities** on spaces? | briefing → `opportunities[]` | unverified, first post, create space, **fundraising_open** |
 | any **fundraising** on **$TMP**? | `GET /api/communities/{token}/fundraising` or briefing → `fundraising.open[]` | list open goals + progress |
 | **fund** / **contribute** to **TMP** Dex profile | **`FUNDRAISING.md`** → fundraising GET → space URL (pay on site) |
-| **fund** / **add ETH** to **$SPACE** bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → **`POST …/poidh/seed`** |
-| **seed** **0.01 ETH** to **$SPACE** **Test bounty** | Same — parse amount + title from tweet → POST seed |
-| **how do I fund** a bounty (my wallet) | **`POIDH-BOUNTY-ACTIONS.md`** → guide Bounties tab + MetaMask |
+| **fund** / **add ETH** / **seed** **$SPACE** bounty | **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz) |
+| **how do I fund** / **claim** / **vote** on a bounty | Same — GET → paste **`url`**; POIDH handles payout rules |
 | **completed** fundraisers on **$TMP**? | briefing → `fundraising.completed[]` | past goals only |
+| **active poll** / **vote** on **$TMP**? | `GET …/questions` or briefing → `holderVotes` | prompt + tallies + time left |
+| **vote result** on **$TMP** space? | `GET …/questions` → latest settled | winner label + counts |
 
 ---
 
@@ -34,7 +35,13 @@
 |-----------|------|
 | **start** / **create** space for **$TMP** | search → `POST /api/communities/{token}` `{ description? }` + header `x-wallet-address: {linked}` |
 | **verify** **$TMP** space | `GET /api/holders/{token}?wallet={linked}` → `POST /api/communities/{token}/verify` (fee beneficiary) |
+| **update Space from** my **Bankr project** | **`BANKR-PROJECT-SYNC.md`** Path C → `POST /api/agent/space-from-bankr-project` |
+| **sync Bankr project to** **$TMP** space | same Path C |
+| **create Bankr project from** **$SPACE** space | **`BANKR-PROJECT-SYNC.md`** Path B → `GET/POST /api/agent/bankr-project-payload` |
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
+| **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media?url={parent}` → `PATCH` `{ tweetBannerFrom }` |
+| **set banner** to **pbs.twimg.com** URL on **TMP** | `PATCH` `{ customBannerUrl: "https://pbs.twimg.com/…" }` (hotlink, no IPFS) |
+| **post** in **Space** (project sync on) | `POST …/posts` `{ content, syncToBankrProject: true, source }` → Space + bankr.bot/agents update |
 | **enable** / **start** **custom** fundraiser **"title"** **$10** on **SPACE** | **`BENEFICIARY-ACTIONS.md`** → holders → GET community → merge `raisedUsd` → `PATCH …/communities/{token}` `{ fundraising: { campaigns } }` |
 | **enable** Dex profile / Dex boost fundraiser on **TMP** | same PATCH — `id`: `dex-profile` or `dex-boost`, preset labels/goals |
 | **pin** post in **TMP** / **pin it** after post | `POST /api/communities/{token}/pin-post` `{ postId, action: "pin" }` (verified beneficiary) |
@@ -44,6 +51,8 @@
 | **post** {inline text} in **$xxx** space (no colon) | **X-REPLY-POST-CONTENT.md** → inline text only, not parent tweet |
 | **comment** in **0x935e…** space: {text} | same as post |
 | react **👍** on post **{id}** in **TMP** | `POST /api/posts/{id}/react` `{ tokenAddress, reaction: "👍" }` |
+| **start vote** / **poll** on **$TMP** space | **`HOLDER-VOTES.md`** → `POST …/questions` `{ prompt, voteType }` |
+| **vote yes** / **vote on poll** in **$TMP** | **`HOLDER-VOTES.md`** → `GET …/questions` → `POST /api/questions/{id}/vote` |
 
 ---
 
@@ -53,7 +62,10 @@
 @bankrbot what's the latest on the TMP space?
 @bankrbot what's the latest on the TMP community?   ← same intent
 @bankrbot verify the TMP space
+@bankrbot create Bankr project from Space space
+@bankrbot sync my Space to bankr.bot agents
 @bankrbot add website https://tokenmarketplace.shop to TMP space profile
+@bankrbot use this as Space banner
 @bankrbot post in TMP space: launch update — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot post in TMP space: gm holders

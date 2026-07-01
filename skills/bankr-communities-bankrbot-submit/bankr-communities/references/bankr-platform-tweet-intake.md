@@ -12,6 +12,10 @@
 @bankrbot post in TMP space: hello holders
 @bankrbot verify the TMP space
 @bankrbot add website https://example.com to TMP space profile
+@bankrbot use this as Space banner
+@bankrbot create Bankr project from Space space
+@bankrbot update my Space from my Bankr project
+@bankrbot sync my Space to bankr.bot agents
 @bankrbot post in TMP space: hello holders — pin it
 @bankrbot pin the latest post in TMP space
 @bankrbot enable custom fundraiser "testing on x" $10 on SPACE space
@@ -22,7 +26,7 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 
 **Fundraiser writes are NOT swaps/deploys/transfers** — route to `bankr-communities` + PATCH fundraising.
 
-**POIDH seed writes are NOT raw contract calls** — route to `bankr-communities` + **`POIDH-BOUNTY-ACTIONS.md`** → `POST …/poidh/seed`.
+**POIDH fund/claim are NOT wallet transfers** — route to `bankr-communities` + **`POIDH-BOUNTY-ACTIONS.md`** → `GET …/poidh` → paste bounty **`url`** (poidh.xyz).
 
 ---
 
@@ -31,7 +35,7 @@ Users must **NOT** need: `use_skill bankr-communities`, API paths, or wallet pas
 On tweet/DM matching space intent (user may say community):
 
 ```
-1. MATCH trigger (link, verify, post in, pin, update profile, add links, members, latest on $TICKER, **enable/start fundraiser**, **custom fundraiser**, contribute, fundraising + space)
+1. MATCH trigger (link, verify, post in, pin, update profile, add links, **create/sync Bankr project from space**, banner/icon/photo from tweet, members, latest on $TICKER, **enable/start fundraiser**, **custom fundraiser**, contribute, fundraising + space)
 2. use_skill("bankr-communities")     ← BEFORE tool selection (before swaps/deploys)
 3. Writes → BENEFICIARY-ACTIONS.md → GET /api/holders?wallet= → POST/PATCH/pin-post
 4. Link question → GET /api/agent/link?q={TICKER} or instant table
@@ -41,6 +45,15 @@ On tweet/DM matching space intent (user may say community):
 
 **Write acceptance test:** `@bankrbot verify the TMP space`  
 Must log: `POST …/api/communities/0x935e…/verify` with linked wallet header.
+
+**Write acceptance test:** `@bankrbot update my Space from my Bankr project`  
+Must log: `GET …/api/agent/space-from-bankr-project?symbol=…` then `POST` same with user `X-API-Key` + linked wallet. Reply includes communityLink + bankr.bot/agents URL.
+
+**Write acceptance test:** `@bankrbot create Bankr project from Space space`  
+Must log: `GET …/api/agent/bankr-project-payload?symbol=Space` then `POST` same (or `POST/PUT api.bankr.bot/agent/profile`) with user `X-API-Key` + linked wallet. Reply includes bankr.bot/agents URL + communityLink.
+
+**Write acceptance test:** `@bankrbot use this as Space banner` (reply to tweet with image)  
+Must log: `GET …/api/oembed/tweet/media?url={parent}` then `PATCH …/communities/{token}` with `tweetBannerFrom` (pbs.twimg.com hotlink — **not** `/api/upload/banner`).
 
 **Write acceptance test:** `@bankrbot post in TMP space: update — pin it`  
 Must log: `POST …/posts` **with `source`** (see POST-SOURCE.md) then `POST …/pin-post` if verified beneficiary.
@@ -57,8 +70,8 @@ Must log: `PATCH …/api/communities/{token}/` with `fundraising.campaigns` incl
 **Fail:** "I don't currently have a tool available for enabling custom fundraisers" — wrong; skill must load first.
 
 **Write acceptance test:** `@bankrbot add 0.01 ETH to the $SPACE Test bounty`  
-Must log: `GET …/api/communities/0xef703…/poidh` then `POST …/poidh/seed` with `{ "title": "Test bounty", "ethAmount": "0.01" }` and linked wallet header.  
-**Fail:** "I don't have a bounty-funding tool" or "raw contract call" — wrong; use **`POIDH-BOUNTY-ACTIONS.md`**.
+Must log: `GET …/api/communities/0xef703…/poidh` then reply with matching bounty **`url`** (https://poidh.xyz/base/bounty/…).  
+**Fail:** "what's the recipient address?" or "raw contract call" — wrong; link to POIDH.
 
 **Link acceptance test:** `@bankrbot what's the link to the TMP space?`
 
