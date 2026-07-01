@@ -23,6 +23,8 @@
 | Create space for $X | search → POST `/api/communities/{token}` |
 | Verify $X space / community | POST verify (owner) |
 | Post "…" in $X space / community | holder check → POST post **with `source`** (POST-SOURCE.md) |
+| Start vote / poll on $X space | HOLDER-VOTES.md → POST `/api/communities/{token}/questions` |
+| Vote yes / vote on $X poll | GET questions → POST `/api/questions/{id}/vote` |
 | React 👍 to post | holder check → POST react |
 
 ---

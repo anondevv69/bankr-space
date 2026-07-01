@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.26.0
+version: 1.27.0
 description: >-
   Bankr Space ↔ bankr.bot/agents two-way sync (BANKR-PROJECT-SYNC.md Paths B+C).
   Original tweets from GET /agent-profiles/:id/tweets shown on Spaces.
@@ -63,6 +63,8 @@ If skill version < 1.23 or HOLDER-VOTES missing → **re-install skill from GitH
 User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`X-REPLY-POST-CONTENT.md`** (X reply vs explicit text) and **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
 User says **banner / icon / photo from tweet** → read **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media` or `PATCH` `tweetBannerFrom` / `tweetIconFrom` (hotlink `pbs.twimg.com`, no IPFS).
+
+User asks **create Bankr project from Space** / **sync Space to bankr.bot** → **`BANKR-PROJECT-SYNC.md`** Path B. If CLI sandbox fails → **`BANKR-PROJECT-FALLBACK.md`**.
 
 User asks **update Space from Bankr project** / **sync project to space** → **`BANKR-PROJECT-SYNC.md`** Path C → `GET/POST /api/agent/space-from-bankr-project`.
 

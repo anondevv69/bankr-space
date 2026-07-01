@@ -1,8 +1,10 @@
 ---
 name: bankr-communities
-version: 1.23.0
+version: 1.27.0
 description: >-
-  Bankr Space on bankr.space. Holder votes: yes/no or multiple-choice polls (1–24h) — HOLDER-VOTES.md (never say no poll feature).
+  Bankr Space ↔ bankr.bot/agents two-way sync (BANKR-PROJECT-SYNC.md Paths B+C).
+  Original tweets from GET /agent-profiles/:id/tweets shown on Spaces.
+  Holder votes: yes/no or multiple-choice polls (1–24h) — HOLDER-VOTES.md (never say no poll feature).
   Agents: POST /api/agent/start-vote with symbol Space. Petition spaces: fee-right unit holders only.
   POIDH: create/list on bankr.space; fund/claim/vote on poidh.xyz. NOT Twitter audio Spaces.
 siteUrl: https://bankr.space
@@ -60,10 +62,19 @@ If skill version < 1.23 or HOLDER-VOTES missing → **re-install skill from GitH
 
 User says **verify**, **post**, **pin**, **add links**, **update profile** → read **`BENEFICIARY-ACTIONS.md`** → for **post** also read **`X-REPLY-POST-CONTENT.md`** (X reply vs explicit text) and **`POST-SOURCE.md`** → use linked wallet → call API → reply + space URL.
 
-| User says | Agent does |
+User says **banner / icon / photo from tweet** → read **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media` or `PATCH` `tweetBannerFrom` / `tweetIconFrom` (hotlink `pbs.twimg.com`, no IPFS).
+
+User asks **create Bankr project from Space** / **sync Space to bankr.bot** → **`BANKR-PROJECT-SYNC.md`** Path B. If CLI sandbox fails → **`BANKR-PROJECT-FALLBACK.md`**.
+
+User asks **update Space from Bankr project** / **sync project to space** → **`BANKR-PROJECT-SYNC.md`** Path C → `GET/POST /api/agent/space-from-bankr-project`.
 |-----------|------------|
+| **update Space from** my **Bankr project** | **`BANKR-PROJECT-SYNC.md`** Path C → `POST /api/agent/space-from-bankr-project` |
+| **sync Bankr project to** **$TMP** space | same Path C |
+| **create Bankr project from** **Space** / **$TMP** space | **`BANKR-PROJECT-SYNC.md`** Path B → payload GET → Bankr profile upsert |
 | **verify** the **TMP** space (or community) | `POST …/verify` (fee beneficiary wallet) |
 | **add website** / **update profile** for **TMP** | `PATCH …/communities/{token}` `{ socialLinks, description }` |
+| **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `PATCH` `{ tweetBannerFrom: parent_status_url }` |
+| **set this photo as** **TMP** **icon** | **`X-TWEET-IMAGE-PROFILE.md`** → `PATCH` `{ tweetIconFrom: parent_status_url }` |
 | **post** in **TMP**: text **and pin it** | `POST …/posts` **with `source`** → `POST …/pin-post` if verified beneficiary |
 | **pin** latest post in **TMP** | `POST …/pin-post` `{ postId, action: "pin" }` |
 | **fund** / **contribute** to **TMP** space fundraiser | Read **`FUNDRAISING.md`** → `GET …/fundraising` or briefing → reply progress + space URL |
@@ -281,6 +292,8 @@ TMP marketplace ops → TMP skills. Space social layer → **this skill**.
 |------|---------|
 | `TERMINOLOGY.md` | **community vs space** — read first |
 | `X-REPLY-POST-CONTENT.md` | **X reply: post THIS = parent tweet; explicit text = user words** |
+| `X-TWEET-IMAGE-PROFILE.md` | **X reply: banner/icon from tweet → pbs.twimg.com hotlink (no IPFS)** |
+| `BANKR-PROJECT-SYNC.md` | **Space ↔ bankr.bot/agents profile + project updates (auto after site setup)** |
 | `POST-SOURCE.md` | **Mandatory `source` on every agent post** (X DM, mention, terminal) |
 | `BENEFICIARY-ACTIONS.md` | **Verify, profile, pin, post+pin, enable fundraisers — tweet + terminal** |
 | `FUNDRAISING.md` | **Discover open/completed fundraisers, guide USDC x402 contributions** |
