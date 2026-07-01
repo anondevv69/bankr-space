@@ -259,11 +259,13 @@ If not holder → reply: "You need to hold $SYMBOL to post" + space link.
 @bankrbot start a yes/no vote on TMP: should we do a Dex boost?
 @bankrbot vote yes on the TMP space poll
 @bankrbot use this as Space banner          ← X reply to image tweet (hotlinks pbs.twimg.com)
+@bankrbot create Bankr project from Space space
+@bankrbot sync my Space to bankr.bot agents
 ```
 
-**X reply → banner/icon from tweet:** Skill **`X-TWEET-IMAGE-PROFILE.md`** — parent status URL → `PATCH tweetBannerFrom` / `tweetIconFrom` (no IPFS upload).
+**Create/sync Bankr project from Space:** Skill **`BANKR-PROJECT-SYNC.md`** Path B — `GET /api/agent/bankr-project-payload` → upsert with user's Bankr API key on platform.
 
-**Bankr project sync:** Skill **`BANKR-PROJECT-SYNC.md`** — profile/post writes sync to bankr.bot/agents after fee recipient enables API key on site.
+**Bankr project sync (site auto):** Skill **`BANKR-PROJECT-SYNC.md`** Path A — optional key on bankr.space.
 
 **X reply → what to post (`content`):** Skill **`X-REPLY-POST-CONTENT.md`** (v1.7+):
 - **"post this/that in $TICKER space"** (replying to a tweet) → parent status URL (shows tweet card on site)

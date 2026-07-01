@@ -35,6 +35,8 @@
 |-----------|------|
 | **start** / **create** space for **$TMP** | search → `POST /api/communities/{token}` `{ description? }` + header `x-wallet-address: {linked}` |
 | **verify** **$TMP** space | `GET /api/holders/{token}?wallet={linked}` → `POST /api/communities/{token}/verify` (fee beneficiary) |
+| **create Bankr project from** **$SPACE** space | **`BANKR-PROJECT-SYNC.md`** Path B → `GET /api/agent/bankr-project-payload?symbol=SPACE` → `POST` same with `X-API-Key` (fee recipient) |
+| **sync** **TMP** **to bankr** project / agents | same Path B refresh from latest Space data |
 | **update** / **add links** to **$TMP** profile | `GET /api/communities/{token}` → merge → `PATCH /api/communities/{token}` `{ description, socialLinks }` (beneficiary) |
 | **use this as** **$SPACE** **banner** (X reply to image tweet) | **`X-TWEET-IMAGE-PROFILE.md`** → `GET /api/oembed/tweet/media?url={parent}` → `PATCH` `{ tweetBannerFrom }` |
 | **set banner** to **pbs.twimg.com** URL on **TMP** | `PATCH` `{ customBannerUrl: "https://pbs.twimg.com/…" }` (hotlink, no IPFS) |
@@ -59,6 +61,8 @@
 @bankrbot what's the latest on the TMP space?
 @bankrbot what's the latest on the TMP community?   ← same intent
 @bankrbot verify the TMP space
+@bankrbot create Bankr project from Space space
+@bankrbot sync my Space to bankr.bot agents
 @bankrbot add website https://tokenmarketplace.shop to TMP space profile
 @bankrbot use this as Space banner
 @bankrbot post in TMP space: launch update — pin it

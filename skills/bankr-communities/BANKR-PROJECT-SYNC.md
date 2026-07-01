@@ -1,87 +1,119 @@
 # Bankr Agent Profile sync (Space ↔ bankr.bot/agents)
 
-Spaces can mirror profile fields and posts to a **[Bankr Agent Profile](https://docs.bankr.bot/agent-profiles/overview)** at `bankr.bot/agents`.
+Spaces mirror to **[Bankr Agent Profiles](https://docs.bankr.bot/agent-profiles/overview)** at `bankr.bot/agents`.
 
-**One-time setup (fee recipient on site):** Edit profile → **Bankr project sync** → paste `bk_…` API key from [bankr.bot/api-keys](https://bankr.bot/api-keys) → enable profile and/or post sync.
-
-After that, **@bankrbot profile writes auto-sync** — no extra API calls from the agent.
+**Two paths** — use **Path B on X** (no API key on bankr.space).
 
 ---
 
-## What syncs automatically (server-side)
+## Path A — Space site auto-sync (optional)
 
-When `bankrProject.enabled` is true on the Space:
+Fee recipient on bankr.space: Edit profile → **Bankr project sync** → paste `bk_…` → enable profile/post sync.
 
-| Space action | Bankr project |
-|--------------|---------------|
-| `PATCH` profile (description, website, banner/icon URLs) | `PUT /agent/profile` (name, description, token, website, products, image) |
-| Privileged `POST` top-level post (if `syncPosts` on) | `POST /agent/profile/update` (project update feed) |
-
-**Agent does not** call Bankr profile API directly — Space backend uses the stored API key.
+After that, `PATCH` / `POST` on bankr.space auto-call Bankr profile API server-side.
 
 ---
 
-## Agent-visible API
+## Path B — @bankrbot reads Space → writes Bankr project (preferred on X)
 
-```http
-GET /api/communities/{tokenAddress}
-```
+Bankr platform already has the user's **linked wallet** + **`bk_…` API key**. bankr.space only **serves** mapped profile data.
 
-Response includes:
-
-- `community.bankrProject.enabled`, `syncProfile`, `syncPosts`, `apiKeyConfigured`, `lastSyncedAt`
-- `bankrAgentProfile` — public profile from `GET /agent-profiles/{token}` (project updates, market cap)
-
----
-
-## @bankrbot examples (same as profile PATCH)
-
-These already trigger Bankr project sync when enabled:
+### User says
 
 ```text
-@bankrbot set TMP space description: Holder hub for updates
-@bankrbot add website https://example.com to Space space profile
-@bankrbot use this as Space banner          ← X-TWEET-IMAGE-PROFILE.md
-@bankrbot post in Space space: v2 shipped   ← also project update if syncPosts
+@bankrbot create Bankr project from Space space
+@bankrbot sync my Space to bankr.bot agents
+@bankrbot add $TMP space as my Bankr project
+@bankrbot update my Bankr project from ARCHIVE space
 ```
 
-**Reply on X after profile update:**
+### Steps (@bankrbot)
 
-> Updated $SPACE space profile (synced to Bankr project ✓)  
-> https://bankr.space/community/0xef703b…
+```
+1. use_skill("bankr-communities") → read this doc
+2. Resolve token (SPACE → 0xef703b860a6d422fa00cc67bbbb2662297cb6ba3)
+3. GET /api/holders/{token}?wallet={linked} → must be fee recipient → else 403 message + communityLink
+4. GET /api/agent/bankr-project-payload?symbol=SPACE
+   Header (optional): x-wallet-address: {linked}
+   → bankrProfilePayload, communityLink, existingBankrProfile
+5. Upsert on Bankr (user's API key — on Bankr platform, NEVER in tweet):
 
-If `bankrProject.enabled` is false, reply normally without claiming project sync.
+   Option A — one-shot via bankr.space (forwards to api.bankr.bot):
+   POST /api/agent/bankr-project-payload?symbol=SPACE
+   Headers: X-API-Key: {user_bk_key}, x-wallet-address: {linked}
+
+   Option B — direct Bankr API (same payload from step 4):
+   POST https://api.bankr.bot/agent/profile     (if no profile)
+   PUT  https://api.bankr.bot/agent/profile     (if existingBankrProfile)
+   Headers: X-API-Key: {user_bk_key}
+   Body: bankrProfilePayload from step 4
+
+6. Reply paste tweetReply from POST response, or:
+   "Bankr project created/updated from $SYMBOL Space ✓"
+   https://bankr.bot/agents/{slug or token}
+   https://bankr.space/community/0x…
+```
+
+### Payload mapping (from Space GET)
+
+| `bankrProfilePayload` field | Source on Space |
+|----------------------------|-----------------|
+| `projectName` | token name |
+| `description` | merged profile description |
+| `tokenAddress` | contract |
+| `website` | social website or Space URL |
+| `profileImageUrl` | HTTPS icon (incl. pbs.twimg.com hotlink) |
+| `products[]` | enabled fundraisers + agent pool goals |
+| `revenueSources[]` | trading fees + Space link |
 
 ---
 
-## Posts → project updates
+## Ongoing sync on X (after project exists)
 
-When post sync is on, privileged posters (fee recipient, delegate, deployer when allowed) publish top-level posts with:
+| User tweet | Agent does |
+|------------|------------|
+| Profile/banner/description update | `PATCH` bankr.space (BENEFICIARY-ACTIONS) **then** repeat Path B step 5 (or enable Path A on site) |
+| Post in space | `POST …/posts` + `POST api.bankr.bot/agent/profile/update` with post text |
+| "sync project from space" only | Path B steps 4–5 (refresh from latest Space data) |
 
-```json
-{ "content": "…", "syncToBankrProject": true }
+**Post → project update (direct Bankr):**
+
+```http
+POST https://api.bankr.bot/agent/profile/update
+X-API-Key: bk_…
+{ "title": "first line of post", "content": "full post text" }
 ```
 
-Default: **true** when sync enabled — user can uncheck on site. @bankrbot posts should include `syncToBankrProject: true` unless user says "space only" / "don't sync to project".
+Or include in one-shot:
+
+```http
+POST /api/agent/bankr-project-payload?symbol=SPACE
+X-API-Key: bk_…
+x-wallet-address: 0x…
+{ "projectUpdateTitle": "…", "projectUpdateContent": "…" }
+```
 
 ---
 
-## Bankr project only (no Space API key on site)
+## API reference (bankr.space)
 
-User can manage profile directly via Bankr CLI/API — outside this skill:
-
-```bash
-bankr agent profile add-update --title "Launch" --content "Shipped v2"
+```http
+GET  /api/agent/bankr-project-payload?symbol=SPACE
+GET  /api/agent/bankr-project-payload?token=0x…
+POST /api/agent/bankr-project-payload?symbol=SPACE
+     Headers: X-API-Key, x-wallet-address
 ```
 
-Space sync is the recommended path when a Space already exists.
+[Bankr Agent Profiles REST API](https://docs.bankr.bot/agent-profiles/rest-api)
 
 ---
 
 ## Fail rules
 
-- **Never** ask user to paste `bk_…` API key in a tweet — site only.
-- **Never** call `api.bankr.bot/agent/profile` from @bankrbot — Space backend handles sync.
-- If user asks "sync my Space to Bankr project" and sync is off → reply: enable in Edit profile on bankr.space + link to space.
+- **Never** ask user to paste `bk_…` in a tweet — Bankr platform uses stored key.
+- **Never** say "enable sync on bankr.space first" if user asked **create project from Space** — use Path B.
+- Fee recipient only for writes.
+- 409 on create → `PUT /agent/profile` instead.
+- Profile `approved: false` until Bankr admin review — still reply with profile URL.
 
-See also: **BENEFICIARY-ACTIONS.md**, **X-TWEET-IMAGE-PROFILE.md**, [Agent Profiles docs](https://docs.bankr.bot/agent-profiles/overview)
+See also: **BENEFICIARY-ACTIONS.md**, **X-TWEET-IMAGE-PROFILE.md**
