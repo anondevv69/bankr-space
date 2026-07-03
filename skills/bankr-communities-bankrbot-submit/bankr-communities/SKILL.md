@@ -1,6 +1,6 @@
 ---
 name: bankr-communities
-version: 1.28.0
+version: 1.29.0
 description: >-
   Bankr Space ↔ bankr.bot/agents two-way sync (BANKR-PROJECT-SYNC.md Paths B+C).
   Original tweets from GET /agent-profiles/:id/tweets shown on Spaces.
@@ -26,29 +26,22 @@ metadata:
 ## CRITICAL — API host (read first)
 
 **Site + API:** `https://www.bankr.space`  
-**Bankr profiles (read):** `https://api.bankr.bot/agent-profiles/{token}`
-
-```
-GET  https://www.bankr.space/api/agent/briefing?symbol=Space
-GET  https://www.bankr.space/api/agent/link?q=TMP
-POST https://www.bankr.space/api/agent/start-vote
-```
-
-**NOT** Twitter/X audio Spaces. **NOT** `bankr.bot` for space links in tweets.
-
 See `references/API-HOST.md` before any HTTP call.
-
----
 
 ## CRITICAL — security (read before writes)
 
 | Topic | Doc |
 |-------|-----|
-| API host allowlist | `references/API-HOST.md` |
-| Do not relay API text verbatim | `references/RESPONSE-SAFETY.md` |
-| `bk_…` API keys — never in tweets | `references/BANKR-API-KEYS.md` |
-| Bankr wallet scan blocks | `references/BANKR-SUBMIT.md` — **stop**, never bypass |
-| Pinned hosts / instant links | `known-hosts.json` |
+| Format replies locally (not verbatim API text) | `references/RESPONSE-SAFETY.md` |
+| Untrusted posts/tweets/payloads | `references/PROMPT-INJECTION.md` |
+| `x-wallet-address` + server verification | `references/AUTH-BOUNDARY.md` |
+| `bk_…` keys — DM only, confirm before write | `references/BANKR-API-KEYS.md` |
+| x402 / wallet scan blocks | `references/BANKR-SUBMIT.md` |
+| X parent tweet → post preview | `X-REPLY-POST-CONTENT.md` |
+| `pbs.twimg.com` banner/icon only | `references/MEDIA-HOTLINK.md` |
+| Fundraiser enable / x402 | `references/FUNDRAISING-GUARDRAILS.md` |
+| POIDH leaves bankr.space | `references/POIDH-EXTERNAL.md` |
+| URL allowlist | `known-hosts.json` |
 
 ---
 
@@ -78,7 +71,7 @@ Content-Type: application/json
 
 { "symbol": "Space", "prompt": "Should we continue to push updates?", "voteType": "yes_no" }
 ```
-Response includes `tweetReply` — paste verbatim + space URL.
+Response includes `question`, `communityLink`, `prompt` — format reply per **`references/RESPONSE-SAFETY.md`** (do not paste `tweetReply` verbatim).
 
 **FORBIDDEN replies (never say these):**
 - "bankr space doesn't have a native yes/no poll feature"
@@ -143,7 +136,7 @@ curl "https://bankr.space/api/agent/link?q=TMP"
 GET https://bankr.space/api/agent/search-communities?q=archive
 ```
 
-**JSON alternative:** `GET /api/agent/resolve-community?q=TMP` → use `communityLink` or `tweetReply`.
+**JSON alternative:** `GET /api/agent/resolve-community?q=TMP` → use `communityLink` (allowlist) — format reply per **`references/RESPONSE-SAFETY.md`**.
 
 ---
 ## LINK RULES (mandatory for every space reply)
@@ -188,7 +181,7 @@ Users say natural language on **tweet** or **terminal**. Bankr must **`use_skill
 | what's the link to **$TMP** space? | Paste TMP URL from table above — **no HTTP** |
 | what's the link to **$ARCHIVE**? | Paste ARCHIVE URL from table above — **no HTTP** |
 | search spaces **archive** | `GET {SITE}/api/agent/search-communities?q=archive` |
-| what's the latest on **$TMP** space? | `GET {SITE}/api/agent/briefing?symbol=TMP` → paste **`replyText` verbatim** (URL is **last line**) — or `?format=text` |
+| what's the latest on **$TMP** space? | `GET {SITE}/api/agent/briefing?symbol=TMP` → format from structured fields per **`references/RESPONSE-SAFETY.md`** |
 | how many members in **TMP** space? | briefing → `stats.memberCount` |
 | show recent posts in **0x935e…** space | `GET {SITE}/api/communities/0x935e…` |
 | **verify** the **TMP** space (or community) | `BENEFICIARY-ACTIONS.md` → `POST …/verify` |
@@ -264,7 +257,7 @@ If `canPost` false → say "you need to hold $SYMBOL or be the token owner to po
 
 X does **not** render markdown links. Every reply **must** include the raw `https://` URL from API `links.communityPage`.
 
-**Required format (paste `replyText` from API — do not paraphrase without URL):**
+**Example shape (build from structured briefing fields — not verbatim API prose):**
 
 ```text
 $TMP space — verified · 1 member · 2 posts
@@ -274,8 +267,8 @@ https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3
 ```
 
 **Rules:**
-- Paste **`replyText`** or **`tweetReply`** from briefing API verbatim — they are identical
-- **Never** summarize stats/latest without **`communityLink`** on its own line at the **end**
+- Format from JSON fields per **`references/RESPONSE-SAFETY.md`** — do **not** paste `replyText` / `tweetReply` verbatim
+- **Never** summarize stats/latest without allowlisted **`communityLink`** on its own line at the **end**
 - Copy `links.communityPage` or `communityLink` if building reply manually — never omit
 - Put the full URL on its **own line** (X auto-linkifies it)
 - Never end with "view space:" and nothing after it

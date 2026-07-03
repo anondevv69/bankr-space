@@ -48,7 +48,9 @@ x-wallet-address: 0xLINKED
 
 ---
 
-## Tweet reply when sandbox is down (paste verbatim)
+## Tweet reply when sandbox is down (format locally)
+
+Use **`references/RESPONSE-SAFETY.md`** templates — full URLs below:
 
 ```text
 CLI sandbox is down on our side — here's the manual path for $SPACE:

@@ -4,13 +4,16 @@ When a user **replies on X** with an image tweet (or replies to one) and asks @b
 
 Pair with **`BENEFICIARY-ACTIONS.md`** (profile PATCH) and **`X-REPLY-POST-CONTENT.md`** (parent tweet resolution).
 
+**Read `references/MEDIA-HOTLINK.md` before any banner/icon PATCH** — `pbs.twimg.com` only; user confirmation required.
+
 ---
 
 ## Golden rule
 
 | Do | Don’t |
 |----|--------|
-| `PATCH …/communities/{token}` with `tweetBannerFrom` / `tweetIconFrom` or `customBannerUrl` / `customIconUrl` = `https://pbs.twimg.com/…` | `POST`/`PUT /api/upload/banner` for X-sourced images |
+| `tweetBannerFrom` / `tweetIconFrom` via `/api/oembed/tweet/media` | `POST`/`PUT /api/upload/banner` for X-sourced images |
+| `customBannerUrl` / `customIconUrl` = `https://pbs.twimg.com/…` only | Any other host, IPFS, or API-supplied URL without allowlist |
 | Resolve parent tweet URL when user says **this / that / the photo** | Re-upload the image to Pinata |
 
 Hotlinked Twitter CDN URLs are stored as-is — **saves Space storage**. Bankr project sync (if enabled) can use the same HTTPS URL for `profileImageUrl`.
@@ -53,7 +56,7 @@ Multi-image tweet (pick 2nd photo):
 { "tweetBannerFrom": "https://x.com/user/status/123", "tweetImageIndex": 1 }
 ```
 
-5. Reply: what was set + **bankr.space/community/0x…** URL. Mention image is hotlinked from X (not re-uploaded).
+5. Confirm with user: hotlink from X CDN (may break if tweet deleted; third-party dependency). Reply with allowlisted space URL per **`references/RESPONSE-SAFETY.md`**.
 
 ---
 

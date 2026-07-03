@@ -2,6 +2,8 @@
 
 Optional USDC goals per space (Dex profile, Dex boost, custom). **Posts stay free.**
 
+**Guardrails:** read **`references/FUNDRAISING-GUARDRAILS.md`** before enabling campaigns or directing payment. **Base + USDC only.** Fee recipient payee validation. Explicit user confirmation before PATCH enable.
+
 ---
 
 ## Discover (read-only — no wallet)

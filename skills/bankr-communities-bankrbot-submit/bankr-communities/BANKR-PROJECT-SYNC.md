@@ -71,7 +71,7 @@ Or call `POST/PUT https://api.bankr.bot/agent/profile` directly with `bankrProfi
 5. POST /api/agent/space-from-bankr-project?symbol=SPACE
    Headers: X-API-Key: {user_bk_key}, x-wallet-address: {linked}
    Body (optional): { "importOriginalTweetAsPost": true }
-6. Reply tweetReply — Space URL + bankr.bot/agents URL
+6. Format reply from `communityLink`, `bankrProfileUrl` per **`references/RESPONSE-SAFETY.md`**
 ```
 
 ### Profile → Space field mapping

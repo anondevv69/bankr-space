@@ -2,6 +2,7 @@
   "apiBase": "https://www.bankr.space",
   "apiBaseAliases": ["https://bankr.space"],
   "bankrProfileApi": "https://api.bankr.bot",
+  "poidhSite": "https://poidh.xyz",
   "allowedUrlHosts": [
     "www.bankr.space",
     "bankr.space",
@@ -9,12 +10,13 @@
     "bankr.bot",
     "x.com",
     "twitter.com",
-    "pbs.twimg.com"
+    "pbs.twimg.com",
+    "poidh.xyz",
+    "docs.bankr.bot"
   ],
+  "allowedMediaHosts": ["pbs.twimg.com"],
   "communityUrlTemplate": "https://www.bankr.space/community/{tokenAddress}",
   "linkApiTemplate": "https://www.bankr.space/api/agent/link?q={TICKER}",
-  "agentProfilePublicTemplate": "https://api.bankr.bot/agent-profiles/{tokenAddress}",
-  "agentProfilePageTemplate": "https://bankr.bot/agents/{slug}",
   "forbiddenLinkHosts": ["t.co"],
   "instantLinks": {
     "TMP": "https://www.bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3",

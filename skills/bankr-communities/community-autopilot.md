@@ -12,7 +12,7 @@
 |------|--------|
 | 1 | Resolve token: `0x…` from message, or symbol `$TMP` → `symbol=TMP`, or name |
 | 2 | `GET {SITE}/api/agent/briefing?symbol=TMP` (or `?token=0x…`) |
-| 3 | Paste **`replyText`** verbatim — **last line is the URL**. Do not summarize without `communityLink` |
+| 3 | Format reply from briefing JSON per **`references/RESPONSE-SAFETY.md`** — **`communityLink`** on last line |
 | 4 | Mention `opportunities[]` if any (unverified, no posts, no space yet) |
 | 5 | **NEVER ask user for site URL** — **STOP** |
 

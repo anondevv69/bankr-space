@@ -2,7 +2,7 @@
 
 > **Mandatory for @bankrbot:** user says **create bounty**, **open bounty**, **list bounties** → load `bankr-communities` → **read this file** → **HTTP GET/POST bankr.space** → reply with result + links.
 >
-> **Fund / claim / vote / seed:** bankr.space only **lists status**. Reply with the bounty **`url`** from GET — user works on **poidh.xyz**. **Do NOT** ask for a recipient `0x` address.
+> **Fund / claim / vote / seed:** bankr.space only **lists status**. Reply with allowlisted bounty **`url`** from GET — user works on **poidh.xyz**. Read **`references/POIDH-EXTERNAL.md`**. **Do NOT** ask for a recipient `0x` address.
 
 **Site:** `https://bankr.space`  
 **Writes (create only):** header **`x-wallet-address: {user's linked Bankr wallet}`** — wallet that holds the token.

@@ -3,7 +3,7 @@
 > Same pipeline as **post in space**. User does NOT need to say `use_skill`. Load `bankr-communities` → call API → plain English reply + space URL.
 
 **Site:** `https://bankr.space`  
-**Writes:** header `x-wallet-address: {user's linked Bankr wallet}` — never the thread starter's wallet.
+**Writes:** header `x-wallet-address: {user's linked Bankr wallet}` — bankr.space **verifies on-chain** (fee recipient, holder, delegate). See **`references/AUTH-BOUNDARY.md`**. Never use the thread starter's wallet unless they are the actor.
 
 ---
 
@@ -229,7 +229,7 @@ Read **`FUNDRAISING.md`** for discovery / contribute flows (reads + donor guidan
    - GET /api/holders/{token}?wallet={linked} again → if canPinPosts:
      POST /api/communities/{tokenAddress}/pin-post  body: { "postId": "{postId}", "action": "pin" }
    - else: confirm post but say "Only verified beneficiary can pin — post is live unpinned"
-4. Reply: paste post replyText from step 2 + "pinned ✓" if step 3 ran → STOP
+4. Reply: format from post response + "pinned ✓" if step 3 ran per **`references/RESPONSE-SAFETY.md`** → STOP
 ```
 
 ---

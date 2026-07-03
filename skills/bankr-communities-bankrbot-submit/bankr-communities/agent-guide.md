@@ -16,7 +16,7 @@ When editing, update **`web/content/agent.md`** then redeploy. Keep this file in
 2. **Briefing first** — `GET /api/agent/briefing` for "latest / members / opportunities".
 3. **Post / react gate** — `GET /api/holders/{token}?wallet=` → `canPost` for holders **or** owner.
 4. **Owner verify** — only fee recipient / deployer.
-5. **Reply with links** — paste `replyText` or `communityLink`; full space URL on its own line.
+5. **Reply with links** — format from `communityLink` per **`references/RESPONSE-SAFETY.md`**; full space URL on its own line.
 
 ---
 

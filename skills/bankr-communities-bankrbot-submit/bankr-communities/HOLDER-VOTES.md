@@ -70,7 +70,7 @@ Content-Type: application/json
 
 Use `"symbol": "Space"` when user says **vote on Space** — maps to `0xef703b860a6d422fa00cc67bbbb2662297cb6ba3`. Or pass `"token": "0x…"`.
 
-Success → `{ success, tweetReply, question, communityLink }` — reply with `tweetReply`.
+Success → `{ success, question, communityLink, prompt }` — format reply per **`references/RESPONSE-SAFETY.md`** (do not paste `tweetReply` verbatim).
 
 ### List votes (incl. active + settled)
 
@@ -183,7 +183,7 @@ Reply template:
 4. If holderVotes.active → "A vote is already open" + summarize + offer close or wait → STOP
 5. Parse yes/no vs choice from user text; parse duration if user says "6 hour" etc. (1–24h)
 6. POST /api/agent/start-vote  { symbol: "Space"|"TMP"|…, prompt, voteType?, durationHours? }
-7. Reply with response.tweetReply → STOP
+7. Format reply from response fields per **`references/RESPONSE-SAFETY.md`** → STOP
 8. 409 → active vote already exists
 ```
 

@@ -1,47 +1,61 @@
-# Bankr API keys (`bk_…`) — agent rules
+# Bankr API keys (`bk_…`) — secure handling
 
 ## Never in public tweets
 
 - **Never** ask the user to paste `bk_…` in a reply to @bankrbot on X.
-- **Never** echo or repeat a user's API key in any public channel.
-- **Never** store the key in skill files or commit it to git.
+- **Never** echo, log, store in scratchpad, or repeat a user's API key in any channel.
+- **Never** commit keys to git or include in skill files.
+
+---
 
 ## Path A — site one-time setup (recommended)
 
 Fee recipient pastes `bk_…` once on **bankr.space** → Edit profile → Bankr project sync.
 
-After that, profile saves and posts **auto-sync** to `bankr.bot/agents` server-side. The agent does not need the key for ongoing Space → project sync.
+Key is stored **server-side only** on bankr.space — not in the skill, not in agent memory. Ongoing sync does not require the agent to handle the key.
 
-## Path B — X agent create/sync
+---
 
-`POST https://www.bankr.space/api/agent/bankr-project-payload` requires:
+## Path B — agent create/sync (X or terminal)
+
+`POST https://www.bankr.space/api/agent/bankr-project-payload` with:
 
 ```
 X-API-Key: bk_…
 x-wallet-address: 0xFEE_RECIPIENT
 ```
 
-Use only when:
+**Required before any Bankr profile write:**
 
-1. User has **Agent API access** enabled on the key (`bankr.bot/api-keys`).
-2. Key is provided via **DM**, Bankr secure channel, or platform-linked account — **not** a public tweet.
-3. Fee recipient check passes: `GET /api/holders/{token}?wallet={linked}`.
+1. **Explicit user confirmation** in this session: "create/update Bankr project from $SYMBOL space"
+2. Key provided via **DM**, Bankr secure channel, or platform-linked account — **not** a public tweet
+3. **Agent API access** enabled on the key (`bankr.bot/api-keys`)
+4. Fee recipient check passes
+5. **Key scope:** profile write only — do not use the key for unrelated Bankr actions
 
-If `Agent API access not enabled` → direct user to enable on bankr.bot/api-keys or use Path A on site.
+**Agent must not:**
+
+- Persist the key across sessions
+- Log the key in tool output
+- Call `api.bankr.bot/agent/profile` except for the confirmed sync action
+
+---
 
 ## Path C — project → Space
 
-`GET/POST /api/agent/space-from-bankr-project` — optional `X-API-Key` for unapproved owner profiles. Same DM-only rule for keys.
+Optional `X-API-Key` for unapproved owner profiles. Same DM-only and confirmation rules.
 
-## Read-only Bankr calls
+---
 
-Public reads (no key):
+## Read-only (no key)
 
 ```
 GET https://api.bankr.bot/agent-profiles/{tokenAddress}
 GET https://api.bankr.bot/agent-profiles/{tokenAddress}/tweets
 ```
 
-## If Bankr rejects a write
+---
 
-Stop and surface the error. **Do not** instruct users to bypass Bankr security controls or paste keys in public threads.
+## On failure
+
+Stop and surface the error. Do not bypass Bankr security or ask for keys in public threads.

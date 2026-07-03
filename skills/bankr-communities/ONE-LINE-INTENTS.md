@@ -12,7 +12,7 @@
 |-----------|-----|-------|
 | what's the link to **$TMP** space? | `GET /api/agent/link?q=TMP` → paste response body (plain text URL) |
 | search live spaces **archive** | `GET /api/agent/search-communities?q=archive` |
-| what's the latest on **$TMP** space? | briefing → paste **`replyText` verbatim** (URL on **last** line) |
+| what's the latest on **$TMP** space? | briefing → format from structured fields per **`references/RESPONSE-SAFETY.md`** |
 | how many **members** in **CTO** space? | `GET /api/agent/briefing?symbol=CTO` → `stats.memberCount` | "N members in $CTO space" |
 | show **recent posts** for **0x935e…** | `GET /api/communities/0x935e…` | summarize last 5 posts |
 | **list** all spaces | `GET /api/communities` | count + top symbols |

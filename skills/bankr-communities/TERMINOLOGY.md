@@ -24,7 +24,7 @@ Users often say **community** or **space** interchangeably. Treat both as the sa
 - "post in CTO community" = "post in CTO space"
 - "verify the community" = "verify the space"
 
-**When replying:** prefer **space** in your wording (API `replyText` already uses "space").
+**When replying:** prefer **space** in your wording. Format replies from structured API fields per **`references/RESPONSE-SAFETY.md`** — do not paste `replyText` / `tweetReply` verbatim.
 
 ## The **Space** token (ticker) vs generic "space"
 
@@ -52,7 +52,7 @@ These are **API / code names** — use exactly as documented:
 
 ## Reply templates (from API)
 
-Paste `replyText` / `tweetReply` verbatim. Format uses **space**:
+Format replies from structured fields per **`references/RESPONSE-SAFETY.md`**. Format uses **space**:
 
 ```text
 $TMP space — verified · 12 members · 34 posts

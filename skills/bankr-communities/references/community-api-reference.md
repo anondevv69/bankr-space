@@ -2,7 +2,7 @@
 
 **Base:** `https://bankr.space` (default; override with `COMMUNITIES_SITE_URL`)
 
-All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
+All responses JSON. Writes require header **`x-wallet-address: 0x…`** — **bankr.space verifies on-chain** (holder, fee recipient, delegate). See **`references/AUTH-BOUNDARY.md`**. Format agent replies from structured fields — **`references/RESPONSE-SAFETY.md`** (do not paste `replyText`/`tweetReply` verbatim).
 
 ---
 
@@ -11,7 +11,7 @@ All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked 
 ```
 GET /api/agent/link?q=TMP                    ← plain text reply (preferred for link questions)
 GET /api/agent/link?q=ARCHIVE
-GET /api/agent/resolve-community?q=TMP       ← JSON with communityLink / tweetReply
+GET /api/agent/resolve-community?q=TMP       ← JSON with communityLink (format reply locally)
 GET /api/agent/resolve-community?q=TMP&format=text
 GET /api/agent/search-communities?q=archive
 ```

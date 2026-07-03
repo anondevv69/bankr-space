@@ -17,7 +17,7 @@
    Bankr script equivalent:
    const body = await http.fetch('https://bankr.space/api/agent/link?q=TMP');
 
-3. Tweet reply = response body verbatim. One line. Do not add text before or after.
+3. Tweet reply = allowlisted URL only (from `communityLink` or link API body). One line. Format per **`references/RESPONSE-SAFETY.md`**.
 ```
 
 **The API returns plain text — not JSON.** The entire response body is what you paste in the tweet.
@@ -53,7 +53,7 @@ Read `known-communities.json`. Never reply "I wasn't able to generate a response
 GET https://bankr.space/api/agent/resolve-community?q=TMP
 ```
 
-Use field `communityLink` or `tweetReply` from JSON.
+Use field `communityLink` from JSON after allowlist check (`known-hosts.json`).
 
 Plain text is preferred: `GET .../api/agent/link?q=TMP`
 

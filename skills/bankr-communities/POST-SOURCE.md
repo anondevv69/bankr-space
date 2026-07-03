@@ -128,7 +128,7 @@ x-client: agent
 2. Build `content` (max 2000 chars)
 3. Set `source` using table above — **do not skip**
 4. `POST …/posts` with headers + body
-5. Reply with `replyText` + space URL
+5. Reply with structured fields + space URL per **`references/RESPONSE-SAFETY.md`**
 
 ---
 

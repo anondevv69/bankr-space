@@ -4,6 +4,8 @@ Fee recipient (or a **trusted delegate** on their behalf) can ask for a skill-li
 
 **Money rule:** x402 always settles to the **fee recipient** — never the platform agent. The agent is **authorized** to act after the pool is matched; spend comes from the fee recipient's Bankr wallet.
 
+**Opt-in rule (mandatory):** Matching the fundraiser goal does **not** auto-run QRCoin, 0xWork, or any downstream skill. The agent must **ask the user to confirm** execution in a separate explicit step before any on-chain action or `/wallet/submit`.
+
 ---
 
 ## Architecture
@@ -25,7 +27,10 @@ Fee recipient enables custom fundraiser (PATCH — fee recipient only)
 Holders contribute (x402 USDC → fee recipient wallet, $1/click)
         │
         ▼
-Goal matched (raisedUsd ≥ goalUsd) — agent authorized to execute
+Goal matched (raisedUsd ≥ goalUsd) — **stop; ask user to confirm** skill execution
+        │
+        ▼
+User explicitly confirms QRCoin / 0xWork / … run (opt-in — not automatic)
         │
         ▼
 Platform agent OR fee recipient's agent (bankrbot, hermes — AGENT-WALLETS.md)
